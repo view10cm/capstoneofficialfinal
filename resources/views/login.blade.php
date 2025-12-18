@@ -10,8 +10,15 @@
 
 <body class="bg-amber-50 min-h-screen flex items-center justify-center"
     style="background: url('{{ asset('/images/Login.svg') }}') center center / cover no-repeat;">
-    <div class="bg-white p-8 rounded-[12px] shadow-md w-[400px] h-[400px]">
+    <div class="bg-white p-8 rounded-[12px] shadow-md w-[400px]">
         <h2 class="mb-6 text-center font-bold" style="font-family: 'Cinzel', serif; font-size: 32px;">Caffe Arabica</h2>
+
+        <!-- Display error message if account doesn't exist -->
+        @if ($errors->has('email'))
+            <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+                {{ $errors->first('email') }}
+            </div>
+        @endif
 
         <form method="POST" action="/login">
             @csrf
@@ -24,7 +31,8 @@
                     name="email"
                     placeholder="Enter your email"
                     required
-                    autofocus>
+                    autofocus
+                    value="{{ old('email') }}">
                 <p id="emailError" class="text-red-500 text-xs mt-1 hidden">Invalid Email address</p>
             </div>
             <div class="mb-6">
@@ -48,38 +56,9 @@
                 Password?</a>
         </div>
     </div>
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const emailInput = document.getElementById('email');
-        const passwordInput = document.getElementById('password');
-        const signInBtn = document.getElementById('signInBtn');
-        const emailError = document.getElementById('emailError');
-        
-        function validateEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
-        }
-        
-        function updateButtonState() {
-            const isEmailValid = validateEmail(emailInput.value);
-            const isPasswordValid = passwordInput.value.length >= 6;
-            
-            emailError.classList.toggle('hidden', isEmailValid || emailInput.value === '');
-            
-            if (isEmailValid && isPasswordValid) {
-                signInBtn.disabled = false;
-            } else {
-                signInBtn.disabled = true;
-            }
-        }
-        
-        emailInput.addEventListener('input', updateButtonState);
-        passwordInput.addEventListener('input', updateButtonState);
-        
-        // Initial validation
-        updateButtonState();
-    });
-</script>
+    
+    <!-- Include external JavaScript file -->
+    <script src="{{ asset('js/login-validation.js') }}"></script>
 </body>
 
 </html>
