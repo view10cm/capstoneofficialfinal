@@ -16,6 +16,64 @@
 
             <!-- Users Table Container -->
             <div class="flex-1 p-6">
+                <!-- Header with Controls -->
+                <div class="bg-white rounded-lg shadow mb-6">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <!-- Left side: User Text -->
+                            <div class="flex items-center">
+                                <h2 class="text-lg font-semibold text-gray-800">Users</h2>
+                                <span class="ml-2 px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                                    {{ $users->total() }} total
+                                </span>
+                            </div>
+
+                            <!-- Right side: Search, Filter, and Add Button -->
+                            <div class="flex flex-col sm:flex-row gap-4">
+                                <!-- Search Bar -->
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                    </div>
+                                    <input type="text" 
+                                           id="searchInput"
+                                           placeholder="Search users by name or email..." 
+                                           class="pl-10 pr-4 py-2.5 w-full sm:w-64 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors"
+                                           onkeyup="searchUsers()">
+                                </div>
+
+                                <!-- Status Filter Dropdown -->
+                                <div class="relative">
+                                    <select id="statusFilter" 
+                                            onchange="filterUsers()"
+                                            class="appearance-none pl-4 pr-10 py-2.5 w-full sm:w-48 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors bg-white cursor-pointer">
+                                        <option value="">All Status</option>
+                                        <option value="Activated">Activated</option>
+                                        <option value="Deactivated">Deactivated</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                <!-- Add New User Button -->
+                                <button onclick="addNewUser()"
+                                        class="flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-700 hover:to-amber-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm hover:shadow transition-all duration-200">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                    Add New User
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
                 <div class="bg-white rounded-lg shadow overflow-hidden">
                     <!-- Table -->
                     <div class="overflow-x-auto">
@@ -29,9 +87,12 @@
                                     <th class="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody class="bg-white divide-y divide-gray-200" id="usersTableBody">
                                 @foreach($users as $user)
-                                <tr class="hover:bg-gray-50">
+                                <tr class="user-row hover:bg-gray-50" 
+                                    data-name="{{ strtolower($user->name) }}"
+                                    data-email="{{ strtolower($user->email) }}"
+                                    data-status="{{ $user->status }}">
                                     <td class="py-4 px-6 whitespace-nowrap">
                                         <div class="flex items-center">
                                             <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
@@ -304,6 +365,29 @@
                     <button id="confirmDeactivateBtn" type="button" 
                             class="px-5 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg text-sm font-medium hover:from-red-700 hover:to-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 shadow-sm hover:shadow transition-all duration-200">
                         Deactivate Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal (Placeholder - you'll need to implement this) -->
+    <div id="addUserModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="addUserModalContent">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold text-gray-900">Add New User</h3>
+                    <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-gray-600 mb-6">This feature is coming soon. You'll be able to add new users here.</p>
+                <div class="flex justify-end">
+                    <button onclick="closeAddUserModal()"
+                            class="px-5 py-2.5 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200">
+                        OK
                     </button>
                 </div>
             </div>

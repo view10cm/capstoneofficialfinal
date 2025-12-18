@@ -115,6 +115,36 @@ function updateUserStatus(userId, newStatus) {
     // Reattach click event to the badge
     badge.onclick = () => toggleDropdown(userId);
     
+    // Update the data-status attribute for filtering
+    const row = document.querySelector(`.user-row[data-user-id="${userId}"]`);
+    if (!row) {
+        // Try to find row by checking all rows for this user
+        const allRows = document.querySelectorAll('.user-row');
+        allRows.forEach(r => {
+            if (r.querySelector(`#status-badge-${userId}`)) {
+                r.setAttribute('data-status', newStatus);
+                
+                // Reapply filters if any are active
+                const statusFilter = document.getElementById('statusFilter');
+                const selectedStatus = statusFilter.value;
+                
+                if (selectedStatus && selectedStatus !== newStatus) {
+                    r.style.display = 'none';
+                }
+            }
+        });
+    } else {
+        row.setAttribute('data-status', newStatus);
+        
+        // Reapply filters if any are active
+        const statusFilter = document.getElementById('statusFilter');
+        const selectedStatus = statusFilter.value;
+        
+        if (selectedStatus && selectedStatus !== newStatus) {
+            row.style.display = 'none';
+        }
+    }
+    
     // Make AJAX call to update the user status in the database
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     
@@ -250,3 +280,114 @@ function initUserManagement() {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', initUserManagement);
+
+        // Search and Filter Functions
+        function searchUsers() {
+            const searchInput = document.getElementById('searchInput');
+            const filter = searchInput.value.toLowerCase();
+            const rows = document.querySelectorAll('.user-row');
+            
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name');
+                const email = row.getAttribute('data-email');
+                
+                if (name.includes(filter) || email.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+        
+        function filterUsers() {
+            const statusFilter = document.getElementById('statusFilter');
+            const selectedStatus = statusFilter.value;
+            const rows = document.querySelectorAll('.user-row');
+            
+            rows.forEach(row => {
+                const status = row.getAttribute('data-status');
+                
+                if (!selectedStatus || status === selectedStatus) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update the search input if it has value
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput.value) {
+                searchUsers(); // Reapply search filter after status filter
+            }
+        }
+        
+        // Update status and refresh filter display
+        function updateUserStatusAndRefresh(userId, newStatus) {
+            // First update the user status via AJAX
+            updateUserStatus(userId, newStatus);
+            
+            // Then update the data-status attribute for filtering
+            const row = document.querySelector(`.user-row[data-user-id="${userId}"]`);
+            if (row) {
+                row.setAttribute('data-status', newStatus);
+                
+                // Reapply filters if any are active
+                const statusFilter = document.getElementById('statusFilter');
+                const selectedStatus = statusFilter.value;
+                
+                if (selectedStatus && selectedStatus !== newStatus) {
+                    row.style.display = 'none';
+                }
+            }
+        }
+        
+        // Add New User Modal Functions
+        function addNewUser() {
+            const modal = document.getElementById('addUserModal');
+            const modalContent = document.getElementById('addUserModalContent');
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.add('modal-show');
+                modalContent.style.opacity = '1';
+                modalContent.style.transform = 'scale(1)';
+            }, 10);
+        }
+        
+        function closeAddUserModal() {
+            const modal = document.getElementById('addUserModal');
+            const modalContent = document.getElementById('addUserModalContent');
+            
+            modalContent.style.opacity = '0';
+            modalContent.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+        
+        // Close modal when clicking outside
+        document.getElementById('addUserModal').addEventListener('click', function(e) {
+            if (e.target.id === 'addUserModal') {
+                closeAddUserModal();
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !document.getElementById('addUserModal').classList.contains('hidden')) {
+                closeAddUserModal();
+            }
+        });
+        
+        // Initialize status filter based on URL parameter if present
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const statusParam = urlParams.get('status');
+            
+            if (statusParam && (statusParam === 'Activated' || statusParam === 'Deactivated')) {
+                const statusFilter = document.getElementById('statusFilter');
+                statusFilter.value = statusParam;
+                filterUsers();
+            }
+        });
