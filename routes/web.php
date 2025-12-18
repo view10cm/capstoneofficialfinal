@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuthController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -11,7 +12,17 @@ Route::get('/system-description', function () {
     return view('systemDescription');
 })->name('system-description');
 
-// Add this route for login
+// Login routes
 Route::get('/login', function () {
     return view('login');
 })->name('login');
+
+Route::post('/login', [AuthController::class, 'login']);
+
+// Admin dashboard route (protected)
+Route::get('/admin/dashboard', function () {
+    return view('adminDashboard');
+})->name('admin.dashboard')->middleware('auth');
+
+// Add logout route
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');

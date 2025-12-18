@@ -48,6 +48,38 @@
                 Password?</a>
         </div>
     </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const signInBtn = document.getElementById('signInBtn');
+        const emailError = document.getElementById('emailError');
+        
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+        
+        function updateButtonState() {
+            const isEmailValid = validateEmail(emailInput.value);
+            const isPasswordValid = passwordInput.value.length >= 6;
+            
+            emailError.classList.toggle('hidden', isEmailValid || emailInput.value === '');
+            
+            if (isEmailValid && isPasswordValid) {
+                signInBtn.disabled = false;
+            } else {
+                signInBtn.disabled = true;
+            }
+        }
+        
+        emailInput.addEventListener('input', updateButtonState);
+        passwordInput.addEventListener('input', updateButtonState);
+        
+        // Initial validation
+        updateButtonState();
+    });
+</script>
 </body>
 
 </html>
