@@ -1,34 +1,27 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AdminController;
+use App\Http\Controllers\Admin\AdminController;
 
 // Admin routes group
 Route::prefix('admin')->name('admin.')->group(function () {
     
     // Dashboard
-    Route::get('/dashboard', function () {
-        return view('admin.adminDashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // Inventory
-    Route::get('/inventory', function () {
-        return view('admin.adminInventory');
-    })->name('inventory');
+    Route::get('/inventory', [AdminController::class, 'inventory'])->name('inventory');
 
     // Menu
-    Route::get('/menu', function () {
-        return view('admin.adminMenu');
-    })->name('menu');
+    Route::get('/menu', [AdminController::class, 'menu'])->name('menu');
 
     // Users
-    Route::get('/users', function () {
-        return view('admin.adminUsers');
-    })->name('users');
+    Route::get('/users', [AdminController::class, 'users'])->name('users');
+    
+    // Update user status (for AJAX call)
+    Route::post('/users/{user}/status', [AdminController::class, 'updateStatus'])->name('users.updateStatus');
 
     // Order History
-    Route::get('/order-history', function () {
-        return view('admin.adminOrderHistory');
-    })->name('order-history');
+    Route::get('/order-history', [AdminController::class, 'orderHistory'])->name('order-history');
 
 });
