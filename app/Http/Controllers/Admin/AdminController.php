@@ -39,9 +39,13 @@ class AdminController extends Controller
     {
         // Get users with pagination (7 per page as shown in the image)
         $users = User::paginate(7);
-        return view('admin.adminUsers', compact('users'));
+    
+        // Get counts for statistics
+        $activatedCount = User::where('status', 'Activated')->count();
+        $deactivatedCount = User::where('status', 'Deactivated')->count();
+    
+        return view('admin.adminUsers', compact('users', 'activatedCount', 'deactivatedCount'));
     }
-
     /**
      * Display the order history page.
      */
