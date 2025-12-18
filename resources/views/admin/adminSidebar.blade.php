@@ -7,37 +7,37 @@
     <nav class="flex-1">
         <ul class="space-y-4">
             <li>
-                <a href="" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors">
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors {{ request()->routeIs('admin.dashboard') ? 'text-orange-600' : '' }}">
                     <!-- Dashboard Icon -->
                     <img src="{{ asset('images/sidebarDashboard.svg') }}" alt="Dashboard Icon" class="h-6 w-6 mr-3">
                     Dashboard
                 </a>
             </li>
             <li>
-                <a href="" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors">
+                <a href="{{ route('admin.inventory') }}" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors {{ request()->routeIs('admin.inventory') ? 'text-orange-600' : '' }}">
                     <!-- Inventory Icon -->
-                    <img src="{{ asset('images/sidebarInventory.svg') }}" alt="Dashboard Icon" class="h-5 w-5 mr-3">
+                    <img src="{{ asset('images/sidebarInventory.svg') }}" alt="Inventory Icon" class="h-5 w-5 mr-3">
                     Inventory
                 </a>
             </li>
             <li>
-                <a href="" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors">
+                <a href="{{ route('admin.menu') }}" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors {{ request()->routeIs('admin.menu') ? 'text-orange-600' : '' }}">
                     <!-- Menu Icon -->
-                    <img src="{{ asset('images/sidebarMenu.svg') }}" alt="Dashboard Icon" class="h-6 w-6 mr-3">
+                    <img src="{{ asset('images/sidebarMenu.svg') }}" alt="Menu Icon" class="h-6 w-6 mr-3">
                     Menu
                 </a>
             </li>
             <li>
-                <a href="" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors">
+                <a href="{{ route('admin.users') }}" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors {{ request()->routeIs('admin.users') ? 'text-orange-600' : '' }}">
                     <!-- Users Icon -->
-                    <img src="{{ asset('images/sidebarUsers.svg') }}" alt="Dashboard Icon" class="h-6 w-6 mr-3">
+                    <img src="{{ asset('images/sidebarUsers.svg') }}" alt="Users Icon" class="h-6 w-6 mr-3">
                     Users
                 </a>
             </li>
             <li>
-                <a href="" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors">
+                <a href="{{ route('admin.order-history') }}" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors {{ request()->routeIs('admin.order-history') ? 'text-orange-600' : '' }}">
                     <!-- Order History Icon -->
-                    <img src="{{ asset('images/sidebarOrderHistory.svg') }}" alt="Dashboard Icon" class="h-6 w-6 mr-3">
+                    <img src="{{ asset('images/sidebarOrderHistory.svg') }}" alt="Order History Icon" class="h-6 w-6 mr-3">
                     Order History
                 </a>
             </li>
@@ -45,10 +45,13 @@
     </nav>
     <!-- Logout -->
     <div class="mt-auto">
-        <a href="" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors">
-            <!-- Logout Icon -->
-            <img src="{{ asset('images/sidebarLogout.svg') }}" alt="Dashboard Icon" class="h-6 w-6 mr-3">
-            Log Out
-        </a>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="flex items-center text-black hover:text-orange-600 font-medium transition-colors">
+                <!-- Logout Icon -->
+                <img src="{{ asset('images/sidebarLogout.svg') }}" alt="Logout Icon" class="h-6 w-6 mr-3">
+                Log Out
+            </button>
+        </form>
     </div>
 </div>
