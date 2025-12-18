@@ -32,4 +32,16 @@ class User extends Authenticatable
             'last_login' => 'datetime', // Add this
         ];
     }
+
+    public function getFormattedLastLoginAttribute()
+    {
+        if (!$this->last_login) {
+            return 'Never logged in';
+        }
+        
+        return Carbon::parse($this->last_login)
+            ->setTimezone(config('app.timezone', 'Asia/Manila'))
+            ->format('Y-m-d H:i');
+    }
+
 }
