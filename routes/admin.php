@@ -18,7 +18,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Users
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     
-    // Update user status (for AJAX call)
+    // Update user status (for AJAX call) - make sure this route exists
     Route::post('/users/{user}/status', [AdminController::class, 'updateStatus'])->name('users.updateStatus');
 
     // Order History

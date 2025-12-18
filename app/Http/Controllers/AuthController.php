@@ -27,6 +27,12 @@ class AuthController extends Controller
             ])->onlyInput('email');
         }
 
+        // Check if account is deactivated
+        if ($user->status === 'Deactivated') {
+            return back()->with('deactivated', 'This account has been deactivated. Please contact an administrator.')
+                        ->onlyInput('email');
+        }
+
         if (Auth::attempt($credentials)) {
             // Update last login timestamp
             $user->last_login = now();
