@@ -13,7 +13,23 @@
         <h2 class="mb-6 text-center font-bold" style="font-family: 'Cinzel', serif; font-size: 32px;">Caffe Arabica</h2>
         <p class="mb-6 text-center text-gray-600">Enter your email to reset your password</p>
         
-        <form method="POST" action="#">
+        <!-- Display success message -->
+        @if(session('status'))
+            <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-600 text-sm">
+                {{ session('status') }}
+            </div>
+        @endif
+        
+        <!-- Display validation errors -->
+        @if($errors->any())
+            <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+                @foreach($errors->all() as $error)
+                    <p>{{ $error }}</p>
+                @endforeach
+            </div>
+        @endif
+        
+        <form method="POST" action="{{ route('forgot-password.send') }}">
             @csrf
             <div class="mb-6">
                 <label class="block mb-1 font-medium" for="email"
@@ -24,7 +40,8 @@
                     name="email"
                     placeholder="Enter your email"
                     required
-                    autofocus>
+                    autofocus
+                    value="{{ old('email') }}">
             </div>
             
             <button

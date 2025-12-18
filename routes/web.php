@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ForgotPasswordController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -19,10 +20,13 @@ Route::get('/login', function () {
 
 Route::post('/login', [AuthController::class, 'login']);
 
-// Forgot Password route
-Route::get('/forgot-password', function () {
-    return view('forgot-password'); // Make sure this view exists
-})->name('forgot-password');
+// Forgot Password routes
+Route::get('/forgot-password', [ForgotPasswordController::class, 'show'])->name('forgot-password');
+Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLink'])->name('forgot-password.send');
+
+// Password reset routes
+Route::get('/reset-password', [ForgotPasswordController::class, 'showResetForm'])->name('password.reset');
+Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])->name('password.reset.submit');
 
 // Admin dashboard route (protected)
 Route::get('/admin/dashboard', function () {
