@@ -73,7 +73,7 @@
                                     </td>
                                     <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">
                                         @if($user->last_login)
-                                            {{ \Carbon\Carbon::parse($user->last_login)->format('Y-m-d H:i') }}
+                                            {{ \Carbon\Carbon::parse($user->last_login)->setTimezone(config('app.timezone', 'Asia/Manila'))->format('Y-m-d H:i') }}
                                         @else
                                             Never logged in
                                         @endif
