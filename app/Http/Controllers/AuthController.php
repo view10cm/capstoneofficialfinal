@@ -27,7 +27,7 @@ class AuthController extends Controller
             return match ($user->role) {
                 'Admin' => redirect()->route('admin.dashboard'),
                 'Customer' => redirect()->route('customer.landingPage'),
-                'Staff' => redirect()->route('staff.dashboard'),
+                'Staff' => redirect()->route('staff.landingPage'),  // Updated to staff.landingPage
                 'Kitchen' => redirect()->route('kitchen.dashboard'),
                 default => redirect()->route('login')->withErrors([
                     'email' => 'Unauthorized role.',
