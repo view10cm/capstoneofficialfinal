@@ -21,6 +21,13 @@ class DatabaseSeeder extends Seeder
             'role' => 'Admin',
         ]);
 
+        User::create([
+            'name' => 'Admin User',
+            'email' => 'rednegrite@gmail.com',
+            'password' => Hash::make('View10cm'),
+            'role' => 'Admin',
+        ]);
+
         // Create Staff Account
         User::create([
             'name' => 'Staff User',
