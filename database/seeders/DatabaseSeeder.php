@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             'role' => 'Staff',
         ]);
 
-        // Create Kitchen Staff Account
+        // Create Kitchen Staff Account - ALREADY EXISTS
         User::create([
             'name' => 'Kitchen Staff',
             'email' => 'kitchen@caffearabica.com',
