@@ -22,7 +22,10 @@ class AppServiceProvider extends ServiceProvider
     {
         // Register admin routes
         Route::middleware('web')
-            ->namespace($this->app->getNamespace())
             ->group(base_path('routes/admin.php'));
+
+        // Register customer routes
+        Route::middleware('web')
+            ->group(base_path('routes/customer.php'));
     }
 }

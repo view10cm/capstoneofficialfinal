@@ -24,5 +24,7 @@ Route::get('/admin/dashboard', function () {
     return view('adminDashboard');
 })->name('admin.dashboard')->middleware('auth');
 
-// Add logout route
+// Logout route
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Remove the customer/home route from here since it's in routes/customer.php

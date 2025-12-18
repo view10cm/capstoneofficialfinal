@@ -21,6 +21,14 @@ class DatabaseSeeder extends Seeder
             'role' => 'Admin',
         ]);
 
+        // Create Customer Account
+        User::create([
+            'name' => 'Customer User',
+            'email' => 'customer@caffearabica.com',
+            'password' => Hash::make('customer123'),
+            'role' => 'Customer',
+        ]);
+
         // Optionally create other test users
         User::factory()->create([
             'name' => 'Test Customer',
