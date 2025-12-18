@@ -176,6 +176,217 @@ function updateUserStatus(userId, newStatus) {
     });
 }
 
+// Create new user via AJAX
+function createNewUser() {
+    const form = document.getElementById('addUserForm');
+    const formData = new FormData(form);
+    
+    // Clear previous errors
+    clearFormErrors();
+    
+    // Show loading state
+    const createBtn = document.getElementById('createAccountBtn');
+    const spinner = document.getElementById('createAccountSpinner');
+    const btnText = document.getElementById('createAccountText');
+    
+    spinner.classList.remove('hidden');
+    btnText.textContent = 'Creating...';
+    createBtn.disabled = true;
+    
+    // Get CSRF token
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    
+    fetch('/admin/users/create', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => response.json().then(data => ({ status: response.status, body: data })))
+    .then(({ status, body }) => {
+        if (status === 201 || status === 200) {
+            // Success
+            showNotification('Account created successfully!', 'success');
+            closeAddUserModal();
+            addUserToTable(body.user);
+            
+            // Reset form
+            form.reset();
+        } else if (status === 422) {
+            // Validation errors
+            handleValidationErrors(body.errors);
+        } else {
+            // Other errors
+            throw new Error(body.message || 'Failed to create user');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating user:', error);
+        showNotification(error.message || 'Failed to create user. Please try again.', 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        spinner.classList.add('hidden');
+        btnText.textContent = 'Create Account';
+        createBtn.disabled = false;
+    });
+}
+
+// Add new user to the table
+function addUserToTable(user) {
+    const tbody = document.getElementById('usersTableBody');
+    
+    // Create new row
+    const newRow = document.createElement('tr');
+    newRow.className = 'user-row hover:bg-gray-50';
+    newRow.setAttribute('data-name', user.name.toLowerCase());
+    newRow.setAttribute('data-email', user.email.toLowerCase());
+    newRow.setAttribute('data-status', user.status);
+    
+    // Format last login
+    const lastLogin = user.last_login ? 
+        new Date(user.last_login).toLocaleString('en-US', { 
+            year: 'numeric', 
+            month: '2-digit', 
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        }) : 'Never logged in';
+    
+    // Get initial for avatar
+    const initial = user.name.charAt(0).toUpperCase();
+    
+    newRow.innerHTML = `
+        <td class="py-4 px-6 whitespace-nowrap">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span class="text-gray-600 font-medium">${initial}</span>
+                </div>
+                <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">${user.name}</div>
+                </div>
+            </div>
+        </td>
+        <td class="py-4 px-6 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${user.email}</div>
+        </td>
+        <td class="py-4 px-6 whitespace-nowrap">
+            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                ${user.role}
+            </span>
+        </td>
+        <td class="py-4 px-6 whitespace-nowrap">
+            <div class="relative inline-block w-40">
+                <div class="relative">
+                    <div id="status-badge-${user.id}" 
+                         class="inline-flex items-center justify-between px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all duration-200 hover:shadow-md bg-green-100 text-green-800 border border-green-200 hover:bg-green-50"
+                         onclick="toggleDropdown(${user.id})">
+                        <span>${user.status}</span>
+                        <svg class="ml-2 w-4 h-4 transition-transform duration-200" 
+                             id="dropdown-arrow-${user.id}"
+                             fill="none" 
+                             stroke="currentColor" 
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" 
+                                  stroke-linejoin="round" 
+                                  stroke-width="2" 
+                                  d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                    
+                    <div id="status-dropdown-${user.id}" 
+                         class="absolute z-10 hidden mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                        <button type="button" 
+                                onclick="selectStatus(${user.id}, 'Activated', '${user.name}', '${user.role}')"
+                                class="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between bg-green-50 text-green-700 font-medium">
+                            <span>Activated</span>
+                            <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <button type="button" 
+                                onclick="selectStatus(${user.id}, 'Deactivated', '${user.name}', '${user.role}')"
+                                class="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between text-gray-700">
+                            <span>Deactivated</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </td>
+        <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">
+            ${lastLogin}
+        </td>
+    `;
+    
+    // Add to the beginning of the table (or wherever appropriate)
+    tbody.insertBefore(newRow, tbody.firstChild);
+    
+    // Update total count
+    updateTotalCount(1);
+    
+    // Reapply filters if any are active
+    applyFilters();
+}
+
+// Update total user count
+function updateTotalCount(increment) {
+    const countElement = document.querySelector('.bg-amber-100.text-amber-800.rounded-full');
+    if (countElement) {
+        const currentCount = parseInt(countElement.textContent.replace(' total', '').trim());
+        countElement.textContent = `${currentCount + increment} total`;
+    }
+}
+
+// Handle validation errors
+function handleValidationErrors(errors) {
+    for (const field in errors) {
+        const errorElement = document.getElementById(`${field}Error`);
+        if (errorElement) {
+            errorElement.textContent = errors[field][0];
+            errorElement.classList.remove('hidden');
+            
+            // Add error styling to input
+            const inputElement = document.getElementById(`newUser${field.charAt(0).toUpperCase() + field.slice(1)}`);
+            if (inputElement) {
+                inputElement.classList.add('border-red-500');
+                inputElement.classList.remove('border-gray-300');
+            }
+        }
+    }
+}
+
+// Clear form errors
+function clearFormErrors() {
+    const errorElements = document.querySelectorAll('[id$="Error"]');
+    errorElements.forEach(element => {
+        element.classList.add('hidden');
+        element.textContent = '';
+    });
+    
+    const inputs = document.querySelectorAll('#addUserForm input');
+    inputs.forEach(input => {
+        input.classList.remove('border-red-500');
+        input.classList.add('border-gray-300');
+    });
+}
+
+// Apply filters to the table
+function applyFilters() {
+    const statusFilter = document.getElementById('statusFilter');
+    const searchInput = document.getElementById('searchInput');
+    
+    if (statusFilter && statusFilter.value) {
+        filterUsers();
+    }
+    
+    if (searchInput && searchInput.value) {
+        searchUsers();
+    }
+}
+
 // Show notification
 function showNotification(message, type) {
     // Remove any existing notification
@@ -226,12 +437,84 @@ function closeModal() {
     }, 300);
 }
 
+// Add New User Modal Functions
+function addNewUser() {
+    clearFormErrors();
+    const modal = document.getElementById('addUserModal');
+    const modalContent = document.getElementById('addUserModalContent');
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modalContent.classList.add('modal-show');
+        modalContent.style.opacity = '1';
+        modalContent.style.transform = 'scale(1)';
+    }, 10);
+}
+
+function closeAddUserModal() {
+    const modal = document.getElementById('addUserModal');
+    const modalContent = document.getElementById('addUserModalContent');
+    const form = document.getElementById('addUserForm');
+    
+    // Reset form
+    form.reset();
+    clearFormErrors();
+    
+    modalContent.style.opacity = '0';
+    modalContent.style.transform = 'scale(0.95)';
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 300);
+}
+
+// Search and Filter Functions
+function searchUsers() {
+    const searchInput = document.getElementById('searchInput');
+    const filter = searchInput.value.toLowerCase();
+    const rows = document.querySelectorAll('.user-row');
+    
+    rows.forEach(row => {
+        const name = row.getAttribute('data-name');
+        const email = row.getAttribute('data-email');
+        
+        if (name.includes(filter) || email.includes(filter)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function filterUsers() {
+    const statusFilter = document.getElementById('statusFilter');
+    const selectedStatus = statusFilter.value;
+    const rows = document.querySelectorAll('.user-row');
+    
+    rows.forEach(row => {
+        const status = row.getAttribute('data-status');
+        
+        if (!selectedStatus || status === selectedStatus) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    // Update the search input if it has value
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput.value) {
+        searchUsers(); // Reapply search filter after status filter
+    }
+}
+
 // Initialize event listeners
 function initUserManagement() {
     // Modal event handlers
     const cancelBtn = document.getElementById('cancelBtn');
     const confirmDeactivateBtn = document.getElementById('confirmDeactivateBtn');
     const modal = document.getElementById('confirmationModal');
+    const addUserForm = document.getElementById('addUserForm');
     
     if (cancelBtn) {
         cancelBtn.addEventListener('click', closeModal);
@@ -247,7 +530,15 @@ function initUserManagement() {
         });
     }
     
-    // Close modal when clicking outside
+    // Add User Form submission
+    if (addUserForm) {
+        addUserForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            createNewUser();
+        });
+    }
+    
+    // Close modals when clicking outside
     if (modal) {
         modal.addEventListener('click', function(e) {
             if (e.target.id === 'confirmationModal') {
@@ -256,10 +547,24 @@ function initUserManagement() {
         });
     }
     
-    // Close modal with Escape key
+    const addUserModal = document.getElementById('addUserModal');
+    if (addUserModal) {
+        addUserModal.addEventListener('click', function(e) {
+            if (e.target.id === 'addUserModal') {
+                closeAddUserModal();
+            }
+        });
+    }
+    
+    // Close modals with Escape key
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
-            closeModal();
+        if (e.key === 'Escape') {
+            if (modal && !modal.classList.contains('hidden')) {
+                closeModal();
+            }
+            if (addUserModal && !addUserModal.classList.contains('hidden')) {
+                closeAddUserModal();
+            }
         }
     });
     
@@ -281,113 +586,14 @@ function initUserManagement() {
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', initUserManagement);
 
-        // Search and Filter Functions
-        function searchUsers() {
-            const searchInput = document.getElementById('searchInput');
-            const filter = searchInput.value.toLowerCase();
-            const rows = document.querySelectorAll('.user-row');
-            
-            rows.forEach(row => {
-                const name = row.getAttribute('data-name');
-                const email = row.getAttribute('data-email');
-                
-                if (name.includes(filter) || email.includes(filter)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        }
-        
-        function filterUsers() {
-            const statusFilter = document.getElementById('statusFilter');
-            const selectedStatus = statusFilter.value;
-            const rows = document.querySelectorAll('.user-row');
-            
-            rows.forEach(row => {
-                const status = row.getAttribute('data-status');
-                
-                if (!selectedStatus || status === selectedStatus) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Update the search input if it has value
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput.value) {
-                searchUsers(); // Reapply search filter after status filter
-            }
-        }
-        
-        // Update status and refresh filter display
-        function updateUserStatusAndRefresh(userId, newStatus) {
-            // First update the user status via AJAX
-            updateUserStatus(userId, newStatus);
-            
-            // Then update the data-status attribute for filtering
-            const row = document.querySelector(`.user-row[data-user-id="${userId}"]`);
-            if (row) {
-                row.setAttribute('data-status', newStatus);
-                
-                // Reapply filters if any are active
-                const statusFilter = document.getElementById('statusFilter');
-                const selectedStatus = statusFilter.value;
-                
-                if (selectedStatus && selectedStatus !== newStatus) {
-                    row.style.display = 'none';
-                }
-            }
-        }
-        
-        // Add New User Modal Functions
-        function addNewUser() {
-            const modal = document.getElementById('addUserModal');
-            const modalContent = document.getElementById('addUserModalContent');
-            
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modalContent.classList.add('modal-show');
-                modalContent.style.opacity = '1';
-                modalContent.style.transform = 'scale(1)';
-            }, 10);
-        }
-        
-        function closeAddUserModal() {
-            const modal = document.getElementById('addUserModal');
-            const modalContent = document.getElementById('addUserModalContent');
-            
-            modalContent.style.opacity = '0';
-            modalContent.style.transform = 'scale(0.95)';
-            
-            setTimeout(() => {
-                modal.classList.add('hidden');
-            }, 300);
-        }
-        
-        // Close modal when clicking outside
-        document.getElementById('addUserModal').addEventListener('click', function(e) {
-            if (e.target.id === 'addUserModal') {
-                closeAddUserModal();
-            }
-        });
-        
-        // Close modal with Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && !document.getElementById('addUserModal').classList.contains('hidden')) {
-                closeAddUserModal();
-            }
-        });
-        
-        // Initialize status filter based on URL parameter if present
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const statusParam = urlParams.get('status');
-            
-            if (statusParam && (statusParam === 'Activated' || statusParam === 'Deactivated')) {
-                const statusFilter = document.getElementById('statusFilter');
-                statusFilter.value = statusParam;
-                filterUsers();
-            }
-        });
+// Initialize status filter based on URL parameter if present
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusParam = urlParams.get('status');
+    
+    if (statusParam && (statusParam === 'Activated' || statusParam === 'Deactivated')) {
+        const statusFilter = document.getElementById('statusFilter');
+        statusFilter.value = statusParam;
+        filterUsers();
+    }
+});
