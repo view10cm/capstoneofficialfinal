@@ -371,11 +371,11 @@
         </div>
     </div>
 
-    <!-- Add User Modal (Placeholder - you'll need to implement this) -->
+    <!-- Add User Modal -->
     <div id="addUserModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="addUserModalContent">
             <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center justify-between mb-6">
                     <h3 class="text-xl font-bold text-gray-900">Add New User</h3>
                     <button onclick="closeAddUserModal()" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,13 +383,87 @@
                         </svg>
                     </button>
                 </div>
-                <p class="text-gray-600 mb-6">This feature is coming soon. You'll be able to add new users here.</p>
-                <div class="flex justify-end">
-                    <button onclick="closeAddUserModal()"
-                            class="px-5 py-2.5 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200">
-                        OK
-                    </button>
-                </div>
+                
+                <!-- Add User Form -->
+                <form id="addUserForm">
+                    @csrf
+                    <div class="space-y-4">
+                        <!-- Name Field -->
+                        <div>
+                            <label for="newUserName" class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                            <input type="text" 
+                                   id="newUserName" 
+                                   name="name"
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors"
+                                   placeholder="Enter full name">
+                            <div id="nameError" class="text-red-500 text-xs mt-1 hidden"></div>
+                        </div>
+                        
+                        <!-- Email Field -->
+                        <div>
+                            <label for="newUserEmail" class="block text-sm font-medium text-gray-700 mb-1">Email Address *</label>
+                            <input type="email" 
+                                   id="newUserEmail" 
+                                   name="email"
+                                   required
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors"
+                                   placeholder="Enter email address">
+                            <div id="emailError" class="text-red-500 text-xs mt-1 hidden"></div>
+                        </div>
+                        
+                        <!-- Password Field -->
+                        <div>
+                            <label for="newUserPassword" class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                            <input type="password" 
+                                   id="newUserPassword" 
+                                   name="password"
+                                   required
+                                   minlength="6"
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors"
+                                   placeholder="Enter password (min. 6 characters)">
+                            <div id="passwordError" class="text-red-500 text-xs mt-1 hidden"></div>
+                        </div>
+                        
+                        <!-- Confirm Password Field -->
+                        <div>
+                            <label for="newUserPasswordConfirmation" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password *</label>
+                            <input type="password" 
+                                   id="newUserPasswordConfirmation" 
+                                   name="password_confirmation"
+                                   required
+                                   minlength="6"
+                                   class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors"
+                                   placeholder="Confirm password">
+                            <div id="passwordConfirmationError" class="text-red-500 text-xs mt-1 hidden"></div>
+                        </div>
+                        
+                        <!-- Role Information -->
+                        <div class="p-3 bg-amber-50 rounded-lg border border-amber-100">
+                            <p class="text-sm text-gray-600">
+                                <span class="font-medium text-amber-700">Note:</span> New users will automatically be assigned the <span class="font-semibold text-amber-800">Staff</span> role.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Buttons -->
+                    <div class="flex justify-end space-x-3 pt-6 mt-6 border-t border-gray-100">
+                        <button type="button" 
+                                onclick="closeAddUserModal()"
+                                class="px-5 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all duration-200">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                id="createAccountBtn"
+                                class="px-5 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg text-sm font-medium hover:from-amber-700 hover:to-amber-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm hover:shadow transition-all duration-200 flex items-center">
+                            <svg id="createAccountSpinner" class="hidden w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span id="createAccountText">Create Account</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -462,6 +536,15 @@
                 font-size: 0.875rem;
                 padding: 0.5rem 0.75rem;
             }
+        }
+
+        /* Form validation styles */
+        .border-red-500 {
+            border-color: #ef4444 !important;
+        }
+
+        .border-green-500 {
+            border-color: #10b981 !important;
         }
     </style>
 
