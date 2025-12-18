@@ -28,6 +28,10 @@ class AuthController extends Controller
         }
 
         if (Auth::attempt($credentials)) {
+            // Update last login timestamp
+            $user->last_login = now();
+            $user->save();
+            
             $request->session()->regenerate();
 
             // Get authenticated user
