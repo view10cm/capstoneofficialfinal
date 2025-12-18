@@ -120,9 +120,148 @@
                         </table>
                     </div>
 
-                    <!-- Pagination (Keep existing pagination code) -->
+                    <!-- Orange-themed Pagination -->
                     <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                        <!-- ... existing pagination code ... -->
+                        <div class="flex-1 flex justify-between sm:hidden">
+                            @if($users->onFirstPage())
+                                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-white cursor-not-allowed">
+                                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                    Previous
+                                </span>
+                            @else
+                                <a href="{{ $users->previousPageUrl() }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-all duration-200">
+                                    <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                    Previous
+                                </a>
+                            @endif
+                            
+                            @if($users->hasMorePages())
+                                <a href="{{ $users->nextPageUrl() }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-all duration-200">
+                                    Next
+                                    <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </a>
+                            @else
+                                <span class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-white cursor-not-allowed">
+                                    Next
+                                    <svg class="w-5 h-5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </span>
+                            @endif
+                        </div>
+                        
+                        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                            <div>
+                                <p class="text-sm text-gray-700">
+                                    Showing <span class="font-medium text-amber-700">{{ $users->firstItem() }}</span> to 
+                                    <span class="font-medium text-amber-700">{{ $users->lastItem() }}</span> of 
+                                    <span class="font-medium text-amber-700">{{ $users->total() }}</span> users
+                                </p>
+                            </div>
+                            <div>
+                                <nav class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px" aria-label="Pagination">
+                                    <!-- Previous Page Link -->
+                                    @if($users->onFirstPage())
+                                        <span class="relative inline-flex items-center px-3 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-400 cursor-not-allowed">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                            </svg>
+                                            <span class="ml-1 hidden sm:inline">Previous</span>
+                                        </span>
+                                    @else
+                                        <a href="{{ $users->previousPageUrl() }}" 
+                                           class="relative inline-flex items-center px-3 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-all duration-200 group">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                            </svg>
+                                            <span class="ml-1 hidden sm:inline">Previous</span>
+                                        </a>
+                                    @endif
+                                    
+                                    <!-- Page Numbers -->
+                                    @php
+                                        $current = $users->currentPage();
+                                        $last = $users->lastPage();
+                                        $start = max(1, $current - 2);
+                                        $end = min($last, $current + 2);
+                                        
+                                        // Adjust if we're near the beginning
+                                        if ($current <= 3) {
+                                            $end = min($last, 5);
+                                        }
+                                        
+                                        // Adjust if we're near the end
+                                        if ($current >= $last - 2) {
+                                            $start = max(1, $last - 4);
+                                        }
+                                    @endphp
+                                    
+                                    <!-- First Page -->
+                                    @if($start > 1)
+                                        <a href="{{ $users->url(1) }}" 
+                                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-all duration-200">
+                                            1
+                                        </a>
+                                        @if($start > 2)
+                                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                                                ...
+                                            </span>
+                                        @endif
+                                    @endif
+                                    
+                                    <!-- Page Links -->
+                                    @for ($page = $start; $page <= $end; $page++)
+                                        @if ($page == $current)
+                                            <span class="relative inline-flex items-center px-4 py-2 border border-amber-500 bg-amber-50 text-sm font-medium text-amber-700">
+                                                {{ $page }}
+                                            </span>
+                                        @else
+                                            <a href="{{ $users->url($page) }}" 
+                                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-all duration-200">
+                                                {{ $page }}
+                                            </a>
+                                        @endif
+                                    @endfor
+                                    
+                                    <!-- Last Page -->
+                                    @if($end < $last)
+                                        @if($end < $last - 1)
+                                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500">
+                                                ...
+                                            </span>
+                                        @endif
+                                        <a href="{{ $users->url($last) }}" 
+                                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-all duration-200">
+                                            {{ $last }}
+                                        </a>
+                                    @endif
+                                    
+                                    <!-- Next Page Link -->
+                                    @if($users->hasMorePages())
+                                        <a href="{{ $users->nextPageUrl() }}" 
+                                           class="relative inline-flex items-center px-3 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-600 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-700 transition-all duration-200 group">
+                                            <span class="mr-1 hidden sm:inline">Next</span>
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </a>
+                                    @else
+                                        <span class="relative inline-flex items-center px-3 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-400 cursor-not-allowed">
+                                            <span class="mr-1 hidden sm:inline">Next</span>
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                            </svg>
+                                        </span>
+                                    @endif
+                                </nav>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -197,243 +336,51 @@
             opacity: 1;
             transform: scale(1);
         }
+        
+        /* Orange-themed pagination enhancements */
+        .pagination-link {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .pagination-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(249, 115, 22, 0.1);
+        }
+
+        .current-page {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .current-page::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 25%;
+            width: 50%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f97316, transparent);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.7;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        /* Mobile pagination buttons */
+        @media (max-width: 640px) {
+            .pagination-sm {
+                font-size: 0.875rem;
+                padding: 0.5rem 0.75rem;
+            }
+        }
     </style>
 
-    <script>
-    let currentUserId = null;
-    let currentUserName = null;
-    let currentUserRole = null;
-    let currentStatus = null;
-    let openDropdownId = null;
-    
-    // Toggle dropdown visibility
-    function toggleDropdown(userId) {
-        const dropdown = document.getElementById(`status-dropdown-${userId}`);
-        const arrow = document.getElementById(`dropdown-arrow-${userId}`);
-        const badge = document.getElementById(`status-badge-${userId}`);
-        
-        // Close any other open dropdown
-        if (openDropdownId && openDropdownId !== userId) {
-            closeDropdown(openDropdownId);
-        }
-        
-        if (dropdown.classList.contains('hidden')) {
-            // Open dropdown
-            dropdown.classList.remove('hidden');
-            arrow.classList.add('rotate-180');
-            badge.classList.add('shadow-md');
-            openDropdownId = userId;
-            
-            // Add animation classes
-            dropdown.classList.add('dropdown-enter-active');
-            setTimeout(() => {
-                dropdown.classList.remove('dropdown-enter-active');
-            }, 200);
-        } else {
-            closeDropdown(userId);
-        }
-    }
-    
-    function closeDropdown(userId) {
-        const dropdown = document.getElementById(`status-dropdown-${userId}`);
-        const arrow = document.getElementById(`dropdown-arrow-${userId}`);
-        const badge = document.getElementById(`status-badge-${userId}`);
-        
-        if (dropdown && !dropdown.classList.contains('hidden')) {
-            dropdown.classList.add('dropdown-leave-active');
-            setTimeout(() => {
-                dropdown.classList.add('hidden');
-                dropdown.classList.remove('dropdown-leave-active');
-            }, 200);
-        }
-        
-        if (arrow) arrow.classList.remove('rotate-180');
-        if (badge) badge.classList.remove('shadow-md');
-        openDropdownId = null;
-    }
-    
-    // Handle status selection
-    function selectStatus(userId, newStatus, userName, userRole) {
-        const badge = document.getElementById(`status-badge-${userId}`);
-        const currentStatus = badge.textContent.trim();
-        
-        // Close dropdown
-        closeDropdown(userId);
-        
-        // If status didn't change, do nothing
-        if (newStatus === currentStatus) {
-            return;
-        }
-        
-        // If changing from Activated to Deactivated, show confirmation modal
-        if (currentStatus === 'Activated' && newStatus === 'Deactivated') {
-            currentUserId = userId;
-            currentUserName = userName;
-            currentUserRole = userRole;
-            
-            // Show modal with user details
-            document.getElementById('userName').textContent = userName;
-            document.getElementById('userRole').textContent = userRole;
-            
-            const modal = document.getElementById('confirmationModal');
-            const modalContent = document.getElementById('modalContent');
-            
-            modal.classList.remove('hidden');
-            setTimeout(() => {
-                modalContent.classList.add('modal-show');
-                modalContent.style.opacity = '1';
-                modalContent.style.transform = 'scale(1)';
-            }, 10);
-        } else {
-            // For other changes (Deactivated to Activated), update immediately
-            updateUserStatus(userId, newStatus);
-        }
-    }
-    
-    // Update user status via AJAX
-    function updateUserStatus(userId, newStatus) {
-        const badge = document.getElementById(`status-badge-${userId}`);
-        
-        // Update UI immediately for better UX
-        badge.innerHTML = `<span>${newStatus}</span>
-                          <svg class="ml-2 w-4 h-4 transition-transform duration-200" 
-                               id="dropdown-arrow-${userId}"
-                               fill="none" 
-                               stroke="currentColor" 
-                               viewBox="0 0 24 24">
-                            <path stroke-linecap="round" 
-                                  stroke-linejoin="round" 
-                                  stroke-width="2" 
-                                  d="M19 9l-7 7-7-7" />
-                          </svg>`;
-        
-        if (newStatus === 'Activated') {
-            badge.className = 'inline-flex items-center justify-between px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all duration-200 hover:shadow-md bg-green-100 text-green-800 border border-green-200 hover:bg-green-50';
-        } else {
-            badge.className = 'inline-flex items-center justify-between px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all duration-200 hover:shadow-md bg-red-100 text-red-800 border border-red-200 hover:bg-red-50';
-        }
-        
-        // Reattach click event to the badge
-        badge.onclick = () => toggleDropdown(userId);
-        
-        // Make AJAX call to update the user status in the database
-        fetch("{{ route('admin.users.updateStatus', ['user' => 'USER_ID']) }}".replace('USER_ID', userId), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                status: newStatus
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('Status updated successfully:', data);
-            showNotification(`User status updated to ${newStatus} successfully!`, 'success');
-        })
-        .catch(error => {
-            console.error('Error updating status:', error);
-            // Revert changes on error
-            showNotification('Failed to update user status. Please try again.', 'error');
-        });
-    }
-    
-    // Show notification
-    function showNotification(message, type) {
-        // Remove any existing notification
-        const existingNotification = document.querySelector('.notification-toast');
-        if (existingNotification) {
-            existingNotification.remove();
-        }
-        
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification-toast fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white font-medium z-50 transform transition-all duration-300 translate-x-full ${
-            type === 'success' ? 'bg-green-500' : 'bg-red-500'
-        }`;
-        notification.textContent = message;
-        
-        // Add to page
-        document.body.appendChild(notification);
-        
-        // Animate in
-        setTimeout(() => {
-            notification.classList.remove('translate-x-full');
-            notification.classList.add('translate-x-0');
-        }, 10);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            notification.classList.remove('translate-x-0');
-            notification.classList.add('translate-x-full');
-            setTimeout(() => {
-                notification.remove();
-            }, 300);
-        }, 3000);
-    }
-    
-    // Modal event handlers
-    document.getElementById('cancelBtn').addEventListener('click', function() {
-        closeModal();
-    });
-    
-    document.getElementById('confirmDeactivateBtn').addEventListener('click', function() {
-        if (currentUserId) {
-            // Update status to Deactivated
-            updateUserStatus(currentUserId, 'Deactivated');
-            closeModal();
-        }
-    });
-    
-    // Close modal
-    function closeModal() {
-        const modal = document.getElementById('confirmationModal');
-        const modalContent = document.getElementById('modalContent');
-        
-        modalContent.style.opacity = '0';
-        modalContent.style.transform = 'scale(0.95)';
-        
-        setTimeout(() => {
-            modal.classList.add('hidden');
-            currentUserId = null;
-            currentUserName = null;
-            currentUserRole = null;
-        }, 300);
-    }
-    
-    // Close modal when clicking outside
-    document.getElementById('confirmationModal').addEventListener('click', function(e) {
-        if (e.target.id === 'confirmationModal') {
-            closeModal();
-        }
-    });
-    
-    // Close modal with Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && !document.getElementById('confirmationModal').classList.contains('hidden')) {
-            closeModal();
-        }
-    });
-    
-    // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        if (openDropdownId && !e.target.closest(`#status-badge-${openDropdownId}`) && !e.target.closest(`#status-dropdown-${openDropdownId}`)) {
-            closeDropdown(openDropdownId);
-        }
-    });
-    
-    // Initialize click events for badges
-    document.addEventListener('DOMContentLoaded', function() {
-        @foreach($users as $user)
-            document.getElementById(`status-badge-{{ $user->id }}`).onclick = () => toggleDropdown({{ $user->id }});
-        @endforeach
-    });
-    </script>
+    <!-- Include external JavaScript file -->
+    <script src="{{ asset('js/admin-users.js') }}"></script>
 @endsection
