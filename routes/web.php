@@ -19,6 +19,11 @@ Route::get('/login', function () {
 
 Route::post('/login', [AuthController::class, 'login']);
 
+// Forgot Password route
+Route::get('/forgot-password', function () {
+    return view('forgot-password'); // Make sure this view exists
+})->name('forgot-password');
+
 // Admin dashboard route (protected)
 Route::get('/admin/dashboard', function () {
     return view('adminDashboard');

@@ -52,7 +52,8 @@
             </button>
         </form>
         <div class="m-2 text-center">
-            <a href="" class="text-amber-700 hover:underline text-sm">Forgot
+            <!-- Updated href to use the named route -->
+            <a href="{{ route('forgot-password') }}" class="text-amber-700 hover:underline text-sm">Forgot
                 Password?</a>
         </div>
     </div>
