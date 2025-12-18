@@ -27,5 +27,9 @@ class AppServiceProvider extends ServiceProvider
         // Register customer routes
         Route::middleware('web')
             ->group(base_path('routes/customer.php'));
+
+        // Register staff routes
+        Route::middleware('web')
+            ->group(base_path('routes/staff.php'));
     }
 }

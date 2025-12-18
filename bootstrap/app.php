@@ -11,9 +11,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Register alias for customer middleware
+        // Register alias for customer and staff middleware
         $middleware->alias([
             'customer' => \App\Http\Middleware\CustomerMiddleware::class,
+            'staff' => \App\Http\Middleware\StaffMiddleware::class,
+            'admin' => \App\Http\Middleware\AdminMiddleware::class, // Optional
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

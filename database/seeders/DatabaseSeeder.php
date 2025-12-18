@@ -21,6 +21,22 @@ class DatabaseSeeder extends Seeder
             'role' => 'Admin',
         ]);
 
+        // Create Staff Account
+        User::create([
+            'name' => 'Staff User',
+            'email' => 'staff@caffearabica.com',
+            'password' => Hash::make('staff123'),
+            'role' => 'Staff',
+        ]);
+
+        // Create Kitchen Staff Account
+        User::create([
+            'name' => 'Kitchen Staff',
+            'email' => 'kitchen@caffearabica.com',
+            'password' => Hash::make('kitchen123'),
+            'role' => 'Kitchen',
+        ]);
+
         // Create Customer Account
         User::create([
             'name' => 'Customer User',
