@@ -3,23 +3,22 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
+use App\Models\IngredientsCategory;
+use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
 {
     /**
-     * Display the admin dashboard.
+     * Show admin dashboard
      */
     public function dashboard()
     {
-        return view('admin.adminDashboard');
+        return view('admin.dashboard');
     }
 
     /**
-     * Display the inventory management page.
+     * Show inventory management page
      */
     public function inventory()
     {
@@ -27,100 +26,107 @@ class AdminController extends Controller
     }
 
     /**
-     * Display the menu management page.
+     * Show menu management page
      */
     public function menu()
     {
-        return view('admin.adminMenu');
+        return view('admin.menu');
     }
 
     /**
-     * Display the users management page.
+     * Show users management page
      */
     public function users()
     {
-        // Get users with pagination (7 per page as shown in the image)
-        $users = User::paginate(7);
-    
-        // Get counts for statistics
-        $activatedCount = User::where('status', 'Activated')->count();
-        $deactivatedCount = User::where('status', 'Deactivated')->count();
-    
-        return view('admin.adminUsers', compact('users', 'activatedCount', 'deactivatedCount'));
+        return view('admin.users');
     }
 
     /**
-     * Display the order history page.
+     * Update user status
      */
-    public function orderHistory()
+    public function updateStatus(Request $request, $user)
     {
-        return view('admin.adminOrderHistory');
+        // Logic to update user status
+        // You'll need to implement this based on your User model
     }
 
     /**
-     * Update user status.
-     */
-    public function updateStatus(Request $request, $id)
-    {
-        $request->validate([
-            'status' => 'required|in:Activated,Deactivated'
-        ]);
-
-        $user = User::findOrFail($id);
-        $user->status = $request->status;
-        $user->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'User status updated successfully'
-        ]);
-    }
-
-    /**
-     * Create a new user.
+     * Create new user
      */
     public function createUser(Request $request)
     {
-        // Validate the request
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
-
-        // Create the user with Staff role and Activated status
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'Staff', // Default role for new users
-            'status' => 'Activated', // Default status
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Account created successfully!',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->role,
-                'status' => $user->status,
-                'last_login' => null,
-            ]
-        ]);
+        // Logic to create new user
+        // You'll need to implement this based on your User model
     }
 
     /**
-     * Update user's last login time.
-     * This should be called when a user logs in.
+     * Show order history page
      */
-    public function updateLastLogin($userId)
+    public function orderHistory()
     {
-        $user = User::find($userId);
-        if ($user) {
-            $user->last_login = now();
-            $user->save();
+        return view('admin.order-history');
+    }
+
+    /**
+     * Create a new category
+     */
+    public function createCategory(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'category_name' => 'required|string|max:255|unique:ingredients_categories,ingredientCategoryName',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        try {
+            // Create the category
+            $category = IngredientsCategory::create([
+                'ingredientCategoryName' => $request->category_name,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Category created successfully!',
+                'category' => [
+                    'id' => $category->id,
+                    'name' => $category->ingredientCategoryName
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create category. Please try again.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all categories for dropdown
+     */
+public function getCategories()
+    {
+        try {
+            $categories = IngredientsCategory::select('id', 'ingredientCategoryName')
+                ->orderBy('ingredientCategoryName', 'asc')
+                ->get();
+                
+            return response()->json([
+                'success' => true,
+                'categories' => $categories
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load categories'
+            ], 500);
         }
     }
 }

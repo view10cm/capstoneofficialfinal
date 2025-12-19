@@ -18,7 +18,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Users
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     
-    // Update user status (for AJAX call) - make sure this route exists
+    // Update user status
     Route::post('/users/{user}/status', [AdminController::class, 'updateStatus'])->name('users.updateStatus');
     
     // Create new user
@@ -26,5 +26,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Order History
     Route::get('/order-history', [AdminController::class, 'orderHistory'])->name('order-history');
+    
+    // Add these new routes for categories
+    Route::get('/categories/list', [AdminController::class, 'getCategories'])->name('categories.list');
+    Route::post('/categories/create', [AdminController::class, 'createCategory'])->name('categories.create');
 
 });
