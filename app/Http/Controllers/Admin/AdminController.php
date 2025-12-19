@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\IngredientsCategory;
 use App\Models\Admin\Ingredient;
+use App\Models\User; // Add this line
 use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
@@ -31,7 +32,7 @@ class AdminController extends Controller
      */
     public function menu()
     {
-        return view('admin.menu');
+        return view('admin.adminMenu');
     }
 
     /**
@@ -39,7 +40,10 @@ class AdminController extends Controller
      */
     public function users()
     {
-        return view('admin.users');
+        // Fetch users from database with pagination
+        $users = User::orderBy('created_at', 'desc')->paginate(10);
+        
+        return view('admin.adminUsers', compact('users'));
     }
 
     /**
