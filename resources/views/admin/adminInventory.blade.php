@@ -174,8 +174,165 @@
             </div>
         </div>
     </div>
-@endsection
 
-@push('scripts')
-<script src="{{ asset('js/admin-inventory.js') }}"></script>
-@endpush
+<!-- Add Product Modal -->
+<div id="addProductModal" class="fixed inset-0 bg-transparent bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 w-full max-w-md">
+        <!-- Modal Content -->
+        <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-2xl rounded-2xl">
+            <!-- Modal Header -->
+            <div class="px-6 py-5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-white">Products</h3>
+                    <button onclick="closeAddProductModal()" 
+                            class="text-white hover:text-amber-100 transition-colors duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6">
+                <form id="addIngredientForm" class="space-y-5">
+                    @csrf
+                    <!-- Product Name -->
+                    <div class="space-y-2">
+                        <label for="productName" class="block text-sm font-semibold text-amber-900">
+                            Product Name *
+                        </label>
+                        <input type="text" 
+                               id="productName" 
+                               name="name"
+                               required
+                               class="w-full px-4 py-3 border-2 border-amber-200 bg-white text-gray-800 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-all duration-300 shadow-sm hover:border-amber-300"
+                               placeholder="Enter product name">
+                    </div>
+
+                    <!-- Quantity -->
+                    <div class="space-y-2">
+                        <label for="quantity" class="block text-sm font-semibold text-amber-900">
+                            Quantity *
+                        </label>
+                        <div class="relative">
+                            <input type="number" 
+                                   id="quantity" 
+                                   name="quantity"
+                                   required
+                                   min="0"
+                                   step="1"
+                                   class="w-full px-4 py-3 border-2 border-amber-200 bg-white text-gray-800 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-all duration-300 shadow-sm hover:border-amber-300 pr-12"
+                                   placeholder="0"
+                                   oninput="updateAvailabilityStatus()">
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-amber-600 font-medium text-sm">units</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Category -->
+                    <div class="space-y-2">
+                        <label for="productCategory" class="block text-sm font-semibold text-amber-900">
+                            Category *
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <select id="productCategory" 
+                                    name="category"
+                                    required
+                                    class="flex-1 px-4 py-3 border-2 border-amber-200 bg-white text-gray-800 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-all duration-300 shadow-sm hover:border-amber-300 appearance-none">
+                                <option value="" disabled selected>Select a category</option>
+                                <!-- Categories will be populated dynamically -->
+                            </select>
+                            <button type="button" 
+                                    onclick="openAddCategoryModal()"
+                                    class="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 shadow-md hover:shadow-lg">
+                                + Add
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Availability (Read-only) -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-semibold text-amber-900">
+                            Availability
+                        </label>
+                        <input type="text" 
+                               id="availabilityStatus"
+                               readonly
+                               class="w-full px-4 py-3 border-2 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 text-gray-800 rounded-xl focus:outline-none transition-all duration-300 font-semibold text-center shadow-inner">
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-amber-200">
+                        <button type="button"
+                                onclick="closeAddProductModal()"
+                                class="px-5 py-2.5 border-2 border-amber-300 text-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl font-semibold hover:from-amber-100 hover:to-orange-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 shadow-sm hover:shadow">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                            + Add Product
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Category Modal -->
+<div id="addCategoryModal" class="fixed inset-0 bg-transparent bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 w-full max-w-md">
+        <!-- Modal Content -->
+        <div class="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 shadow-2xl rounded-2xl">
+            <!-- Modal Header -->
+            <div class="px-6 py-5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-2xl">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-white">Add New Category</h3>
+                    <button onclick="closeAddCategoryModal()" 
+                            class="text-white hover:text-amber-100 transition-colors duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6">
+                <form id="addCategoryForm" class="space-y-5">
+                    @csrf
+                    <!-- Category Name -->
+                    <div class="space-y-2">
+                        <label for="newCategoryName" class="block text-sm font-semibold text-amber-900">
+                            Category Name *
+                        </label>
+                        <input type="text" 
+                               id="newCategoryName" 
+                               name="category_name"
+                               required
+                               class="w-full px-4 py-3 border-2 border-amber-200 bg-white text-gray-800 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-all duration-300 shadow-sm hover:border-amber-300"
+                               placeholder="Enter category name">
+                    </div>
+
+                    <!-- Modal Footer -->
+                    <div class="flex justify-end space-x-3 pt-6 border-t border-amber-200">
+                        <button type="button"
+                                onclick="closeAddCategoryModal()"
+                                class="px-5 py-2.5 border-2 border-amber-300 text-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl font-semibold hover:from-amber-100 hover:to-orange-100 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 shadow-sm hover:shadow">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                                class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                            Add Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <script src="{{ asset('js/admin-inventory.js') }}"></script>
+@endsection
