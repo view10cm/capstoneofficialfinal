@@ -45,6 +45,37 @@ class InventoryController extends Controller
     }
 
     /**
+     * Get ingredient details for editing
+     */
+    public function show($id)
+    {
+        try {
+            $ingredient = Ingredient::with('category')
+                ->where('id', $id)
+                ->firstOrFail();
+
+            return response()->json([
+                'success' => true,
+                'ingredient' => [
+                    'id' => $ingredient->id,
+                    'ingredientName' => $ingredient->ingredientName,
+                    'ingredientQuantity' => $ingredient->ingredientQuantity,
+                    'ingredientCategory' => $ingredient->ingredientCategory, // category ID
+                    'ingredientCategoryName' => $ingredient->category->ingredientCategoryName ?? 'Uncategorized',
+                    'ingredientAvailability' => $ingredient->ingredientAvailability,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ingredient not found',
+                'error' => $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
      * Create a new ingredient
      */
     public function store(Request $request)
@@ -94,6 +125,86 @@ class InventoryController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to add ingredient. Please try again.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update an ingredient
+     */
+    public function update(Request $request, $id)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:0',
+            'category' => 'required|exists:ingredients_categories,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        try {
+            $ingredient = Ingredient::where('id', $id)->firstOrFail();
+            
+            // Calculate availability based on new quantity
+            $availability = Ingredient::calculateAvailability($request->quantity);
+
+            // Update the ingredient
+            $ingredient->update([
+                'ingredientName' => $request->name,
+                'ingredientQuantity' => $request->quantity,
+                'ingredientCategory' => $request->category,
+                'ingredientAvailability' => $availability,
+            ]);
+
+            // Load category name for response
+            $ingredient->load('category');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ingredient updated successfully!',
+                'ingredient' => [
+                    'id' => $ingredient->id,
+                    'name' => $ingredient->ingredientName,
+                    'quantity' => $ingredient->ingredientQuantity,
+                    'category' => $ingredient->category->ingredientCategoryName,
+                    'availability' => $ingredient->ingredientAvailability
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update ingredient. Please try again.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete an ingredient
+     */
+    public function destroy($id)
+    {
+        try {
+            $ingredient = Ingredient::where('id', $id)->firstOrFail();
+            $ingredient->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ingredient deleted successfully!'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete ingredient. Please try again.',
                 'error' => $e->getMessage()
             ], 500);
         }
