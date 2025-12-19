@@ -69,7 +69,7 @@ class AdminController extends Controller
      */
     public function orderHistory()
     {
-        return view('admin.order-history');
+        return view('admin.adminOrderHistory');
     }
 
     /**
