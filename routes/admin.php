@@ -19,6 +19,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/create', [InventoryController::class, 'store'])->name('inventory.create');
         Route::get('/search', [InventoryController::class, 'search'])->name('inventory.search');
         Route::get('/export', [InventoryController::class, 'export'])->name('inventory.export');
+        Route::get('/inventory/next-id', [InventoryController::class, 'getNextId'])->name('inventory.next-id');
     });
 
     // Menu

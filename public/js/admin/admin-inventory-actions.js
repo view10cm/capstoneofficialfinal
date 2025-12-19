@@ -282,3 +282,61 @@ function debounce(func, wait) {
         timeout = setTimeout(later, wait);
     };
 }
+
+// Get and display next ingredient ID
+async function loadNextIngredientId() {
+    try {
+        const response = await fetch('/admin/inventory/next-id', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.next_id) {
+                // Update modal title or add a display element
+                const modalTitle = document.querySelector('#addProductModal h3');
+                if (modalTitle) {
+                    modalTitle.textContent = `Add Ingredients (${data.next_id})`;
+                }
+                
+                // You could also add a small badge or text showing the ID
+                addNextIdBadge(data.next_id);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading next ID:', error);
+    }
+}
+
+// Add a badge showing the next ID
+function addNextIdBadge(nextId) {
+    // Remove existing badge if any
+    const existingBadge = document.querySelector('.next-id-badge');
+    if (existingBadge) {
+        existingBadge.remove();
+    }
+    
+    // Create and add badge
+    const badge = document.createElement('div');
+    badge.className = 'next-id-badge absolute -top-2 -right-2 bg-amber-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg';
+    badge.textContent = `ID: ${nextId}`;
+    
+    const modalHeader = document.querySelector('#addProductModal .px-6.py-5');
+    if (modalHeader) {
+        modalHeader.style.position = 'relative';
+        modalHeader.appendChild(badge);
+    }
+}
+
+// Update the openAddProductModal function
+function openAddProductModal() {
+    addProductModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Load the next ID
+    loadNextIngredientId();
+}
