@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\InventoryController;
 
 // Admin routes group
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -11,6 +12,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     // Inventory
     Route::get('/inventory', [AdminController::class, 'inventory'])->name('inventory');
+    
+    // Inventory API routes
+    Route::prefix('inventory')->group(function () {
+        Route::get('/list', [InventoryController::class, 'index'])->name('inventory.list');
+        Route::post('/create', [InventoryController::class, 'store'])->name('inventory.create');
+        Route::get('/search', [InventoryController::class, 'search'])->name('inventory.search');
+        Route::get('/export', [InventoryController::class, 'export'])->name('inventory.export');
+    });
 
     // Menu
     Route::get('/menu', [AdminController::class, 'menu'])->name('menu');
@@ -27,8 +36,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Order History
     Route::get('/order-history', [AdminController::class, 'orderHistory'])->name('order-history');
     
-    // Add these new routes for categories
+    // Categories routes
     Route::get('/categories/list', [AdminController::class, 'getCategories'])->name('categories.list');
     Route::post('/categories/create', [AdminController::class, 'createCategory'])->name('categories.create');
-
 });

@@ -1,0 +1,173 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Admin\Ingredient;
+use Illuminate\Support\Facades\Validator;
+
+class InventoryController extends Controller
+{
+    /**
+     * Get all ingredients
+     */
+    public function index()
+    {
+        try {
+            $ingredients = Ingredient::with('category')
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($ingredient) {
+                    return [
+                        'id' => $ingredient->id,
+                        'ingredientName' => $ingredient->ingredientName,
+                        'ingredientQuantity' => $ingredient->ingredientQuantity,
+                        'ingredientCategory' => $ingredient->category->ingredientCategoryName ?? 'Uncategorized',
+                        'ingredientAvailability' => $ingredient->ingredientAvailability,
+                        'created_at' => $ingredient->created_at->format('Y-m-d H:i:s'),
+                        'updated_at' => $ingredient->updated_at->format('Y-m-d H:i:s'),
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'ingredients' => $ingredients
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load ingredients'
+            ], 500);
+        }
+    }
+
+    /**
+     * Create a new ingredient
+     */
+    public function store(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'quantity' => 'required|integer|min:0',
+            'category' => 'required|exists:ingredients_categories,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
+
+        try {
+            // Calculate availability based on quantity
+            $availability = Ingredient::calculateAvailability($request->quantity);
+
+            // Create the ingredient
+            $ingredient = Ingredient::create([
+                'ingredientName' => $request->name,
+                'ingredientQuantity' => $request->quantity,
+                'ingredientCategory' => $request->category,
+                'ingredientAvailability' => $availability,
+            ]);
+
+            // Load category name for response
+            $ingredient->load('category');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ingredient added successfully!',
+                'ingredient' => [
+                    'id' => $ingredient->id,
+                    'name' => $ingredient->ingredientName,
+                    'quantity' => $ingredient->ingredientQuantity,
+                    'category' => $ingredient->category->ingredientCategoryName,
+                    'availability' => $ingredient->ingredientAvailability
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add ingredient. Please try again.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Search ingredients
+     */
+    public function search(Request $request)
+    {
+        try {
+            $searchTerm = $request->get('search', '');
+            
+            $ingredients = Ingredient::with('category')
+                ->where('ingredientName', 'like', "%{$searchTerm}%")
+                ->orWhereHas('category', function ($query) use ($searchTerm) {
+                    $query->where('ingredientCategoryName', 'like', "%{$searchTerm}%");
+                })
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function ($ingredient) {
+                    return [
+                        'id' => $ingredient->id,
+                        'ingredientName' => $ingredient->ingredientName,
+                        'ingredientQuantity' => $ingredient->ingredientQuantity,
+                        'ingredientCategory' => $ingredient->category->ingredientCategoryName ?? 'Uncategorized',
+                        'ingredientAvailability' => $ingredient->ingredientAvailability,
+                        'created_at' => $ingredient->created_at->format('Y-m-d H:i:s'),
+                        'updated_at' => $ingredient->updated_at->format('Y-m-d H:i:s'),
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'ingredients' => $ingredients
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to search ingredients'
+            ], 500);
+        }
+    }
+
+    /**
+     * Export ingredients
+     */
+    public function export()
+    {
+        try {
+            $ingredients = Ingredient::with('category')->get();
+            
+            $csvData = "ID,Name,Quantity,Category,Availability,Created At\n";
+            
+            foreach ($ingredients as $ingredient) {
+                $csvData .= implode(',', [
+                    $ingredient->id,
+                    '"' . str_replace('"', '""', $ingredient->ingredientName) . '"',
+                    $ingredient->ingredientQuantity,
+                    '"' . str_replace('"', '""', $ingredient->category->ingredientCategoryName ?? 'Uncategorized') . '"',
+                    $ingredient->ingredientAvailability,
+                    $ingredient->created_at->format('Y-m-d H:i:s')
+                ]) . "\n";
+            }
+            
+            return response($csvData)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', 'attachment; filename="inventory_' . date('Y-m-d') . '.csv"');
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to export inventory'
+            ], 500);
+        }
+    }
+}
