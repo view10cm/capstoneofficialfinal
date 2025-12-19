@@ -241,7 +241,6 @@
                                     name="category"
                                     required
                                     class="flex-1 px-4 py-3 border-2 border-amber-200 bg-white text-gray-800 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-all duration-300 shadow-sm hover:border-amber-300 appearance-none">
-                                <option value="" disabled selected>Select a category</option>
                                 <!-- Categories will be populated dynamically -->
                             </select>
                             <button type="button" 

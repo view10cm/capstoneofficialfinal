@@ -129,14 +129,6 @@ function loadCategories() {
         categorySelect.remove(1);
     }
     
-    // Load categories from localStorage or use default ones
-    let categories = JSON.parse(localStorage.getItem('productCategories')) || [
-        'Vegetable',
-        'Meat',
-        'Coffee Base',
-        'Syrup/Flavoring'
-    ];
-    
     // Add categories to select
     categories.forEach(category => {
         const option = document.createElement('option');
