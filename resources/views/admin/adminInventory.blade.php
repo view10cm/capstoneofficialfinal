@@ -334,4 +334,5 @@
 </div>
 
     <script src="{{ asset('js/admin-inventory.js') }}"></script>
+<script src="{{ asset('js/admin/admin-inventory-actions.js') }}"></script>
 @endsection

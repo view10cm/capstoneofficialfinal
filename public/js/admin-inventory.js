@@ -374,3 +374,8 @@ function refreshInventory() {
     //         // Update table with new data
     //     });
 }
+
+// Load additional inventory functionality
+const script = document.createElement('script');
+script.src = "{{ asset('js/admin/admin-inventory-actions.js') }}";
+document.body.appendChild(script);

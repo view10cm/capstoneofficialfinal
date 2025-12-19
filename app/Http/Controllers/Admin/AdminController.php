@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\IngredientsCategory;
+use App\Models\Admin\Ingredient;
 use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
@@ -110,7 +111,7 @@ class AdminController extends Controller
     /**
      * Get all categories for dropdown
      */
-public function getCategories()
+    public function getCategories()
     {
         try {
             $categories = IngredientsCategory::select('id', 'ingredientCategoryName')
