@@ -68,13 +68,13 @@
                                     Export
                                 </button>
 
-                                <!-- Add Product Button -->
+                                <!-- Add Ingredient Button -->
                                 <button onclick="openAddProductModal()"
                                         class="flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-lg font-medium hover:from-amber-700 hover:to-amber-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 shadow-sm hover:shadow transition-all duration-200">
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                     </svg>
-                                    Add Product
+                                    Add Ingredient
                                 </button>
                             </div>
                         </div>
@@ -123,7 +123,7 @@
                                         Item ID
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Product Name
+                                        Ingredient Name
                                     </th>
                                     <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Category
@@ -175,7 +175,7 @@
         </div>
     </div>
 
-<!-- Add Product Modal -->
+<!-- Add Ingredient Modal -->
 <div id="addProductModal" class="fixed inset-0 bg-transparent bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50">
     <div class="relative top-20 mx-auto p-5 w-full max-w-md">
         <!-- Modal Content -->
@@ -183,7 +183,7 @@
             <!-- Modal Header -->
             <div class="px-6 py-5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-2xl">
                 <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-bold text-white">Products</h3>
+                    <h3 class="text-xl font-bold text-white">Add Ingredients</h3>
                     <button onclick="closeAddProductModal()" 
                             class="text-white hover:text-amber-100 transition-colors duration-200">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,10 +197,10 @@
             <div class="p-6">
                 <form id="addIngredientForm" class="space-y-5">
                     @csrf
-                    <!-- Product Name -->
+                    <!-- Ingredient Name -->
                     <div class="space-y-2">
                         <label for="productName" class="block text-sm font-semibold text-amber-900">
-                            Product Name *
+                            Ingredient Name *
                         </label>
                         <input type="text" 
                                id="productName" 
@@ -271,7 +271,7 @@
                         </button>
                         <button type="submit"
                                 class="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold hover:from-amber-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                            + Add Product
+                            + Add Ingredient
                         </button>
                     </div>
                 </form>
