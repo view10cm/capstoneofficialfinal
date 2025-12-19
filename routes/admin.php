@@ -14,13 +14,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/inventory', [AdminController::class, 'inventory'])->name('inventory');
     
     // Inventory API routes
-    Route::prefix('inventory')->group(function () {
-        Route::get('/list', [InventoryController::class, 'index'])->name('inventory.list');
-        Route::post('/create', [InventoryController::class, 'store'])->name('inventory.create');
-        Route::get('/search', [InventoryController::class, 'search'])->name('inventory.search');
-        Route::get('/export', [InventoryController::class, 'export'])->name('inventory.export');
-        Route::get('/inventory/next-id', [InventoryController::class, 'getNextId'])->name('inventory.next-id');
-    });
+Route::prefix('inventory')->group(function () {
+    Route::get('/list', [InventoryController::class, 'index'])->name('inventory.list');
+    Route::post('/create', [InventoryController::class, 'store'])->name('inventory.create');
+    Route::get('/search', [InventoryController::class, 'search'])->name('inventory.search');
+    Route::get('/export', [InventoryController::class, 'export'])->name('inventory.export');
+    Route::get('/next-id', [InventoryController::class, 'getNextId'])->name('inventory.next-id');
+    
+    // Add these new routes for edit functionality
+    Route::get('/{id}', [InventoryController::class, 'show'])->name('inventory.show');
+    Route::post('/{id}/update', [InventoryController::class, 'update'])->name('inventory.update');
+});
 
     // Menu
     Route::get('/menu', [AdminController::class, 'menu'])->name('menu');
