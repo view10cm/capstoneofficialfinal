@@ -1,6 +1,8 @@
 // Global variables
 let currentEditId = null;
 const editModal = document.createElement('div');
+let isJsPDFLoaded = false;
+let isHtml2CanvasLoaded = false;
 
 // Initialize edit modal
 function initializeEditModal() {
@@ -440,33 +442,306 @@ function updateInventoryTable(ingredients) {
     });
 }
 
-// Export inventory functionality
-async function exportInventory() {
+// Export inventory to PDF functionality
+async function exportInventoryToPDF() {
     try {
-        showNotification('Exporting inventory data...', 'info');
+        showNotification('Generating PDF...', 'info');
         
-        const response = await fetch('/admin/inventory/export');
+        // Get table data
+        const response = await fetch('/admin/inventory/list');
+        const data = await response.json();
         
-        if (response.ok) {
-            // Create blob and download
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `inventory_${new Date().toISOString().split('T')[0]}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            
-            showNotification('Inventory exported successfully!', 'success');
-        } else {
-            showNotification('Failed to export inventory', 'error');
+        if (!data.success || !data.ingredients || data.ingredients.length === 0) {
+            showNotification('No data to export', 'error');
+            return;
         }
+        
+        // Load jsPDF library
+        if (!window.jspdf) {
+            await loadJsPDF();
+        }
+        
+        // Create PDF document
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+        
+        // Add title
+        const title = "Caffe Arabica - Inventory Report";
+        const currentDate = new Date().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        // Add header
+        doc.setFontSize(18);
+        doc.text(title, 14, 15);
+        doc.setFontSize(10);
+        doc.text(`Generated on: ${currentDate}`, 14, 22);
+        
+        // Create table data
+        const tableData = data.ingredients.map(item => [
+            item.id,
+            item.ingredientName,
+            item.ingredientCategory,
+            item.ingredientQuantity.toString(),
+            item.ingredientAvailability
+        ]);
+        
+        // Define table headers
+        const headers = [
+            ['ID', 'Ingredient Name', 'Category', 'Quantity', 'Availability']
+        ];
+        
+        // Create table using jsPDF autoTable
+        if (typeof doc.autoTable !== 'undefined') {
+            doc.autoTable({
+                head: headers,
+                body: tableData,
+                startY: 30,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [245, 158, 11], // Amber color
+                    textColor: [255, 255, 255],
+                    fontSize: 10,
+                    fontStyle: 'bold'
+                },
+                bodyStyles: {
+                    fontSize: 9
+                },
+                columnStyles: {
+                    0: { cellWidth: 25 }, // ID
+                    1: { cellWidth: 60 }, // Name
+                    2: { cellWidth: 40 }, // Category
+                    3: { cellWidth: 25 }, // Quantity
+                    4: { cellWidth: 30 }  // Availability
+                },
+                didDrawPage: function (data) {
+                    // Footer
+                    doc.setFontSize(8);
+                    doc.text(
+                        'Page ' + doc.internal.getNumberOfPages(),
+                        data.settings.margin.left,
+                        doc.internal.pageSize.height - 10
+                    );
+                }
+            });
+        } else {
+            // Fallback: Create simple table if autoTable is not available
+            createSimpleTable(doc, headers, tableData);
+        }
+        
+        // Add summary statistics
+        const finalY = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : 100;
+        
+        // Calculate statistics
+        const totalItems = data.ingredients.length;
+        const inStock = data.ingredients.filter(item => item.ingredientAvailability === 'Available').length;
+        const lowStock = data.ingredients.filter(item => item.ingredientAvailability === 'Low Stock').length;
+        const outOfStock = data.ingredients.filter(item => item.ingredientAvailability === 'Out of Stock').length;
+        
+        doc.setFontSize(12);
+        doc.text('Summary Statistics', 14, finalY);
+        doc.setFontSize(10);
+        doc.text(`Total Items: ${totalItems}`, 14, finalY + 8);
+        doc.text(`In Stock: ${inStock}`, 14, finalY + 16);
+        doc.text(`Low Stock: ${lowStock}`, 14, finalY + 24);
+        doc.text(`Out of Stock: ${outOfStock}`, 14, finalY + 32);
+        
+        // Add current time
+        const currentTime = new Date().toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+        doc.setFontSize(8);
+        doc.text(`Report generated at: ${currentTime}`, 14, finalY + 40);
+        
+        // Save PDF
+        const fileName = `inventory_report_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        
+        showNotification('PDF exported successfully!', 'success');
+        
     } catch (error) {
-        console.error('Export error:', error);
-        showNotification('Failed to export inventory', 'error');
+        console.error('Error exporting PDF:', error);
+        showNotification('Failed to export PDF. Please try again.', 'error');
     }
+}
+
+// Simple table creation fallback
+function createSimpleTable(doc, headers, tableData) {
+    let y = 30;
+    const lineHeight = 7;
+    const colWidths = [25, 60, 40, 25, 30];
+    const startX = 14;
+    
+    // Draw headers
+    headers[0].forEach((header, i) => {
+        doc.setFillColor(245, 158, 11); // Amber
+        doc.rect(startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0), y, colWidths[i], 10, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(header, startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0) + 2, y + 7);
+    });
+    
+    y += 10;
+    
+    // Draw data rows
+    tableData.forEach((row, rowIndex) => {
+        if (y > 190) { // Start new page if near bottom
+            doc.addPage();
+            y = 20;
+        }
+        
+        row.forEach((cell, i) => {
+            doc.setFillColor(255, 255, 255);
+            doc.rect(startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0), y, colWidths[i], 10);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.text(cell, startX + colWidths.slice(0, i).reduce((a, b) => a + b, 0) + 2, y + 7);
+        });
+        
+        y += 10;
+    });
+}
+
+// Alternative: Export current table view to PDF (captures exactly what's on screen)
+async function exportTableViewToPDF() {
+    try {
+        showNotification('Generating PDF from table view...', 'info');
+        
+        // Get the table container
+        const tableContainer = document.querySelector('.overflow-x-auto');
+        if (!tableContainer || tableContainer.classList.contains('hidden')) {
+            showNotification('No table data to export', 'error');
+            return;
+        }
+        
+        // Load html2canvas library
+        if (!window.html2canvas) {
+            await loadHtml2Canvas();
+        }
+        
+        // Create a temporary container for the PDF
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'absolute';
+        tempContainer.style.left = '-9999px';
+        tempContainer.style.top = '0';
+        tempContainer.style.width = '800px';
+        tempContainer.style.backgroundColor = 'white';
+        tempContainer.style.padding = '20px';
+        
+        // Clone the table and add additional info
+        const tableClone = tableContainer.cloneNode(true);
+        
+        // Create header for PDF
+        const header = document.createElement('div');
+        header.innerHTML = `
+            <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: #d97706; margin: 0;">Caffe Arabica</h1>
+                <h2 style="color: #333; margin: 5px 0 10px 0;">Inventory Report</h2>
+                <p style="color: #666; margin: 0;">
+                    Generated on: ${new Date().toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    })}
+                </p>
+                <p style="color: #666; margin: 0;">
+                    Generated at: ${new Date().toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    })}
+                </p>
+            </div>
+        `;
+        
+        tempContainer.appendChild(header);
+        tempContainer.appendChild(tableClone);
+        document.body.appendChild(tempContainer);
+        
+        // Use html2canvas to capture the table
+        const canvas = await html2canvas(tempContainer, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff'
+        });
+        
+        // Remove temporary container
+        document.body.removeChild(tempContainer);
+        
+        // Load jsPDF if not already loaded
+        if (!window.jspdf) {
+            await loadJsPDF();
+        }
+        
+        // Create PDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p', 'mm', 'a4');
+        
+        const imgWidth = 190;
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+        
+        // Add image to PDF
+        doc.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, imgWidth, imgHeight);
+        
+        // Save PDF
+        const fileName = `inventory_table_${new Date().toISOString().split('T')[0]}.pdf`;
+        doc.save(fileName);
+        
+        showNotification('PDF exported successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error exporting table to PDF:', error);
+        showNotification('Failed to export PDF. Please try again.', 'error');
+    }
+}
+
+// Load jsPDF library
+async function loadJsPDF() {
+    return new Promise((resolve, reject) => {
+        if (window.jspdf) {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script.onload = () => {
+            // Also load autoTable plugin
+            const autoTableScript = document.createElement('script');
+            autoTableScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js';
+            autoTableScript.onload = resolve;
+            autoTableScript.onerror = resolve; // Resolve even if autoTable fails
+            document.head.appendChild(autoTableScript);
+        };
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+// Load html2canvas library
+async function loadHtml2Canvas() {
+    return new Promise((resolve, reject) => {
+        if (window.html2canvas) {
+            resolve();
+            return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+// Export inventory functionality (main function)
+async function exportInventory() {
+    // Use the first method (structured PDF) by default
+    await exportInventoryToPDF();
 }
 
 // Search inventory functionality
@@ -499,8 +774,6 @@ async function searchInventory() {
         showNotification('Failed to search inventory', 'error');
     }
 }
-
-// REMOVED: deleteIngredient function has been removed
 
 // Helper function to escape HTML
 function escapeHtml(text) {
@@ -676,10 +949,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load initial inventory data
     refreshInventoryTable();
     
-    // Update export button functionality
+    // Update export button functionality to use PDF export
     const exportBtn = document.querySelector('button[onclick="exportInventory()"]');
     if (exportBtn) {
         exportBtn.onclick = exportInventory;
+        // Update icon to PDF icon
+        const svg = exportBtn.querySelector('svg');
+        if (svg) {
+            svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />';
+        }
+        // Optional: Update button text
+        const buttonText = exportBtn.querySelector('span');
+        if (buttonText) {
+            buttonText.textContent = 'Export PDF';
+        }
     }
     
     // Update search functionality

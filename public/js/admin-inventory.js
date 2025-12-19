@@ -1,5 +1,3 @@
-// public/js/admin-inventory.js
-
 // DOM Elements
 const addProductModal = document.getElementById('addProductModal');
 const addCategoryModal = document.getElementById('addCategoryModal');
@@ -260,11 +258,11 @@ function toggleSelectAll() {
     });
 }
 
-// Export inventory functionality
+// Export inventory functionality - REMOVED as it's handled in admin-inventory-actions.js
 function exportInventory() {
-    showNotification('Exporting inventory data...', 'info');
-    // In a real application, this would trigger a file download
-    // window.location.href = '/admin/inventory/export';
+    // This function is now handled in admin-inventory-actions.js
+    // Keep it for compatibility but don't implement it here
+    console.log('Export function called from admin-inventory.js');
 }
 
 // Show notification function
