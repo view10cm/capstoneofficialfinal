@@ -556,20 +556,6 @@
                     </div>
                 </div>
                 
-                <!-- Status -->
-                <div>
-                    <label for="editMenuStatus" class="block text-sm font-medium text-gray-700 mb-1">
-                        Status <span class="text-red-500">*</span>
-                    </label>
-                    <select id="editMenuStatus" 
-                            name="menuStatus" 
-                            class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors text-sm">
-                        <option value="Available">Available</option>
-                        <option value="Out of Stock">Out of Stock</option>
-                        <option value="Discontinued">Discontinued</option>
-                    </select>
-                </div>
-                
                 <!-- Popup footer -->
                 <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                     <button type="button" 
@@ -839,79 +825,79 @@
             return subcategories[category] || [];
         }
 
-// Create form submission
-document.getElementById('createMenuItemForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    console.log('Form submission started');
-    
-    // Show loading state
-    const submitBtn = document.getElementById('createSubmitBtn');
-    const originalText = submitBtn.textContent;
-    submitBtn.textContent = 'Creating...';
-    submitBtn.disabled = true;
-    
-    try {
-        // Collect form data
-        const formData = new FormData();
-        formData.append('productName', document.getElementById('productName').value);
-        formData.append('productCategory', document.getElementById('productCategory').value);
-        formData.append('productSubcategory', document.getElementById('productSubcategory').value);
-        formData.append('productPrice', document.getElementById('productPrice').value);
-        
-        // Add image if selected
-        const imageInput = document.getElementById('productImage');
-        console.log('Image input:', imageInput);
-        console.log('Files:', imageInput.files);
-        
-        if (imageInput.files[0]) {
-            console.log('File selected:', imageInput.files[0]);
-            console.log('File size:', imageInput.files[0].size);
-            console.log('File type:', imageInput.files[0].type);
-            formData.append('productImage', imageInput.files[0]);
-        } else {
-            console.log('No image selected');
-        }
-        
-        // Send request to server
-        console.log('Sending request...');
-        const response = await fetch('{{ route("admin.menu.create") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-                // Don't set Content-Type for FormData, let browser set it
-            },
-            body: formData
+        // Create form submission
+        document.getElementById('createMenuItemForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            console.log('Form submission started');
+            
+            // Show loading state
+            const submitBtn = document.getElementById('createSubmitBtn');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Creating...';
+            submitBtn.disabled = true;
+            
+            try {
+                // Collect form data
+                const formData = new FormData();
+                formData.append('productName', document.getElementById('productName').value);
+                formData.append('productCategory', document.getElementById('productCategory').value);
+                formData.append('productSubcategory', document.getElementById('productSubcategory').value);
+                formData.append('productPrice', document.getElementById('productPrice').value);
+                
+                // Add image if selected
+                const imageInput = document.getElementById('productImage');
+                console.log('Image input:', imageInput);
+                console.log('Files:', imageInput.files);
+                
+                if (imageInput.files[0]) {
+                    console.log('File selected:', imageInput.files[0]);
+                    console.log('File size:', imageInput.files[0].size);
+                    console.log('File type:', imageInput.files[0].type);
+                    formData.append('productImage', imageInput.files[0]);
+                } else {
+                    console.log('No image selected');
+                }
+                
+                // Send request to server
+                console.log('Sending request...');
+                const response = await fetch('{{ route("admin.menu.create") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        // Don't set Content-Type for FormData, let browser set it
+                    },
+                    body: formData
+                });
+                
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('Response result:', result);
+                
+                if (result.success) {
+                    // Show success message
+                    showNotification('Menu item created successfully!', 'success');
+                    
+                    // Close popup
+                    closeCreatePopup();
+                    
+                    // Reload the table data
+                    loadMenuItems(currentSearch, currentCategory, currentPage);
+                } else {
+                    // Show error message
+                    showNotification(result.message || 'Failed to create menu item', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('An error occurred. Please try again.', 'error');
+            } finally {
+                // Reset button state
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
         });
-        
-        console.log('Response status:', response.status);
-        const result = await response.json();
-        console.log('Response result:', result);
-        
-        if (result.success) {
-            // Show success message
-            showNotification('Menu item created successfully!', 'success');
-            
-            // Close popup
-            closeCreatePopup();
-            
-            // Reload the table data
-            loadMenuItems(currentSearch, currentCategory, currentPage);
-        } else {
-            // Show error message
-            showNotification(result.message || 'Failed to create menu item', 'error');
-        }
-        
-    } catch (error) {
-        console.error('Error:', error);
-        showNotification('An error occurred. Please try again.', 'error');
-    } finally {
-        // Reset button state
-        submitBtn.textContent = originalText;
-        submitBtn.disabled = false;
-    }
-});
 
         // Edit form submission
         document.getElementById('editMenuItemForm').addEventListener('submit', async function(e) {
@@ -932,7 +918,6 @@ document.getElementById('createMenuItemForm').addEventListener('submit', async f
                 formData.append('productCategory', document.getElementById('editProductCategory').value);
                 formData.append('productSubcategory', document.getElementById('editProductSubcategory').value);
                 formData.append('productPrice', document.getElementById('editProductPrice').value);
-                formData.append('menuStatus', document.getElementById('editMenuStatus').value);
                 
                 // Add image if selected
                 const imageInput = document.getElementById('editProductImage');
@@ -1025,142 +1010,142 @@ document.getElementById('createMenuItemForm').addEventListener('submit', async f
         }
 
         // Function to update table with data
-function updateTableWithData(data) {
-    const tableBody = document.getElementById('menuTableBody');
-    
-    if (!data.data || data.data.length === 0) {
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="8" class="px-6 py-8 text-center text-gray-500 italic">
-                    No menu items found. Click "Add Menu Item" to create your first item.
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let html = '';
-    
-    data.data.forEach(item => {
-        // Get category display name
-        const categoryNames = {
-            'main-course': 'Main Course',
-            'appetizers': 'Appetizers',
-            'drinks': 'Drinks'
-        };
-        
-        // Get subcategory display name
-        const subcategoryNames = {
-            'pork': 'Pork',
-            'chicken': 'Chicken',
-            'beef': 'Beef',
-            'fish-seafood': 'Fish & Seafood',
-            'pasta': 'Pasta',
-            'noodles': 'Noodles',
-            'knick-knacks': 'Knick/Knacks',
-            'sandwiches': 'Sandwiches',
-            'salads': 'Salads',
-            'hot': 'Hot',
-            'iced': 'Iced',
-            'frappe': 'Frappe',
-            'milktea': 'Milktea'
-        };
-        
-        // Status badge classes
-        const statusClasses = {
-            'Available': 'bg-green-100 text-green-800',
-            'Out of Stock': 'bg-red-100 text-red-800',
-            'Discontinued': 'bg-gray-100 text-gray-800'
-        };
-        
-        // FIXED: Image path - Use the correct storage URL
-        let imageUrl = '{{ asset("images/default-menu.png") }}';
-        
-        if (item.menuImage) {
-            // Check if the path already contains 'storage/'
-            if (item.menuImage.includes('storage/')) {
-                imageUrl = `{{ asset('') }}${item.menuImage}`;
-            } else if (item.menuImage.includes('menu-images/')) {
-                // If it's just 'menu-images/filename.png'
-                imageUrl = `{{ asset('storage') }}/${item.menuImage}`;
-            } else {
-                // For any other format
-                imageUrl = `{{ asset('storage/menu-images') }}/${item.menuImage}`;
-            }
-        }
-        
-        console.log('Image path for', item.menuName, ':', item.menuImage);
-        console.log('Image URL:', imageUrl);
-        
-        html += `
-            <tr class="hover:bg-gray-50 transition-colors">
-                <!-- Checkbox -->
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                        <input type="checkbox" class="item-checkbox h-5 w-5 text-amber-500 focus:ring-amber-400 border-gray-300 rounded" value="${item.menuID}">
-                    </div>
-                </td>
-                
-                <!-- Image -->
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="h-10 w-10 rounded-lg overflow-hidden">
-                        <img src="${imageUrl}" 
-                             alt="${item.menuName}" 
-                             class="h-full w-full object-cover"
-                             onerror="this.onerror=null; this.src='{{ asset('images/default-menu.png') }}'">
-                    </div>
-                </td>
-                
-                <!-- Menu Name -->
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">${item.menuName}</div>
-                    <div class="text-sm text-gray-500">${item.menuID}</div>
-                </td>
-                
-                <!-- Category -->
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">${categoryNames[item.menuCategory] || item.menuCategory}</div>
-                </td>
-                
-                <!-- Subcategory -->
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm text-gray-900">${subcategoryNames[item.menuSubcategory] || item.menuSubcategory}</div>
-                </td>
-                
-                <!-- Price -->
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">PHP ${parseFloat(item.menuPrice).toFixed(2)}</div>
-                </td>
-                
-                <!-- Status -->
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <button onclick="openStatusModal('${item.menuID}', '${item.menuName}')" 
-                            class="px-2.5 py-1 text-xs font-medium rounded-full ${statusClasses[item.menuStatus]} hover:opacity-80 transition-opacity">
-                        ${item.menuStatus}
-                    </button>
-                </td>
-                
-                <!-- Actions -->
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div class="flex items-center space-x-3">
-                        <button onclick="editMenuItem('${item.menuID}')" class="text-blue-600 hover:text-blue-900 transition-colors">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                        </button>
-                        <button onclick="deleteMenuItem('${item.menuID}')" class="text-red-600 hover:text-red-900 transition-colors">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tableBody.innerHTML = html;
+        function updateTableWithData(data) {
+            const tableBody = document.getElementById('menuTableBody');
             
+            if (!data.data || data.data.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="px-6 py-8 text-center text-gray-500 italic">
+                            No menu items found. Click "Add Menu Item" to create your first item.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            data.data.forEach(item => {
+                // Get category display name
+                const categoryNames = {
+                    'main-course': 'Main Course',
+                    'appetizers': 'Appetizers',
+                    'drinks': 'Drinks'
+                };
+                
+                // Get subcategory display name
+                const subcategoryNames = {
+                    'pork': 'Pork',
+                    'chicken': 'Chicken',
+                    'beef': 'Beef',
+                    'fish-seafood': 'Fish & Seafood',
+                    'pasta': 'Pasta',
+                    'noodles': 'Noodles',
+                    'knick-knacks': 'Knick/Knacks',
+                    'sandwiches': 'Sandwiches',
+                    'salads': 'Salads',
+                    'hot': 'Hot',
+                    'iced': 'Iced',
+                    'frappe': 'Frappe',
+                    'milktea': 'Milktea'
+                };
+                
+                // Status badge classes
+                const statusClasses = {
+                    'Available': 'bg-green-100 text-green-800',
+                    'Out of Stock': 'bg-red-100 text-red-800',
+                    'Discontinued': 'bg-gray-100 text-gray-800'
+                };
+                
+                // FIXED: Image path - Use the correct storage URL
+                let imageUrl = '{{ asset("images/default-menu.png") }}';
+                
+                if (item.menuImage) {
+                    // Check if the path already contains 'storage/'
+                    if (item.menuImage.includes('storage/')) {
+                        imageUrl = `{{ asset('') }}${item.menuImage}`;
+                    } else if (item.menuImage.includes('menu-images/')) {
+                        // If it's just 'menu-images/filename.png'
+                        imageUrl = `{{ asset('storage') }}/${item.menuImage}`;
+                    } else {
+                        // For any other format
+                        imageUrl = `{{ asset('storage/menu-images') }}/${item.menuImage}`;
+                    }
+                }
+                
+                console.log('Image path for', item.menuName, ':', item.menuImage);
+                console.log('Image URL:', imageUrl);
+                
+                html += `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <!-- Checkbox -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <input type="checkbox" class="item-checkbox h-5 w-5 text-amber-500 focus:ring-amber-400 border-gray-300 rounded" value="${item.menuID}">
+                            </div>
+                        </td>
+                        
+                        <!-- Image -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="h-10 w-10 rounded-lg overflow-hidden">
+                                <img src="${imageUrl}" 
+                                     alt="${item.menuName}" 
+                                     class="h-full w-full object-cover"
+                                     onerror="this.onerror=null; this.src='{{ asset('images/default-menu.png') }}'">
+                            </div>
+                        </td>
+                        
+                        <!-- Menu Name -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">${item.menuName}</div>
+                            <div class="text-sm text-gray-500">${item.menuID}</div>
+                        </td>
+                        
+                        <!-- Category -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${categoryNames[item.menuCategory] || item.menuCategory}</div>
+                        </td>
+                        
+                        <!-- Subcategory -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${subcategoryNames[item.menuSubcategory] || item.menuSubcategory}</div>
+                        </td>
+                        
+                        <!-- Price -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">PHP ${parseFloat(item.menuPrice).toFixed(2)}</div>
+                        </td>
+                        
+                        <!-- Status -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <button onclick="openStatusModal('${item.menuID}', '${item.menuName}')" 
+                                    class="px-2.5 py-1 text-xs font-medium rounded-full ${statusClasses[item.menuStatus]} hover:opacity-80 transition-opacity">
+                                ${item.menuStatus}
+                            </button>
+                        </td>
+                        
+                        <!-- Actions -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center space-x-3">
+                                <button onclick="editMenuItem('${item.menuID}')" class="text-blue-600 hover:text-blue-900 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button onclick="deleteMenuItem('${item.menuID}')" class="text-red-600 hover:text-red-900 transition-colors">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tableBody.innerHTML = html;
+                    
             // Add event listener to select all checkbox
             const selectAllCheckbox = document.getElementById('selectAll');
             const itemCheckboxes = document.querySelectorAll('.item-checkbox');
@@ -1246,58 +1231,57 @@ function updateTableWithData(data) {
         }
 
         // Function to edit menu item
-async function editMenuItem(menuID) {
-    try {
-        const response = await fetch(`{{ route("admin.menu.show", ":id") }}`.replace(':id', menuID));
-        const result = await response.json();
-        
-        if (result.success) {
-            const item = result.data;
-            
-            // Populate edit form
-            document.getElementById('editMenuID').value = item.menuID;
-            document.getElementById('editProductName').value = item.menuName;
-            document.getElementById('editProductCategory').value = item.menuCategory;
-            document.getElementById('editProductPrice').value = item.menuPrice;
-            document.getElementById('editMenuStatus').value = item.menuStatus;
-            
-            // Populate subcategory options
-            populateSubcategoryOptions(item.menuCategory, 'editProductSubcategory');
-            document.getElementById('editProductSubcategory').value = item.menuSubcategory;
-            
-            // Handle image display - FIXED
-            const currentImageContainer = document.getElementById('currentImageContainer');
-            const currentImage = document.getElementById('currentImage');
-            
-            if (item.menuImage) {
-                // Build the correct image URL
-                let imageUrl;
-                if (item.menuImage.includes('storage/')) {
-                    imageUrl = `{{ asset('') }}${item.menuImage}`;
-                } else if (item.menuImage.includes('menu-images/')) {
-                    imageUrl = `{{ asset('storage') }}/${item.menuImage}`;
-                } else {
-                    imageUrl = `{{ asset('storage/menu-images') }}/${item.menuImage}`;
-                }
+        async function editMenuItem(menuID) {
+            try {
+                const response = await fetch(`{{ route("admin.menu.show", ":id") }}`.replace(':id', menuID));
+                const result = await response.json();
                 
-                currentImage.src = imageUrl;
-                currentImage.onerror = function() {
-                    this.src = '{{ asset("images/default-menu.png") }}';
-                };
-                currentImageContainer.classList.remove('hidden');
-            } else {
-                currentImageContainer.classList.add('hidden');
+                if (result.success) {
+                    const item = result.data;
+                    
+                    // Populate edit form
+                    document.getElementById('editMenuID').value = item.menuID;
+                    document.getElementById('editProductName').value = item.menuName;
+                    document.getElementById('editProductCategory').value = item.menuCategory;
+                    document.getElementById('editProductPrice').value = item.menuPrice;
+                    
+                    // Populate subcategory options
+                    populateSubcategoryOptions(item.menuCategory, 'editProductSubcategory');
+                    document.getElementById('editProductSubcategory').value = item.menuSubcategory;
+                    
+                    // Handle image display
+                    const currentImageContainer = document.getElementById('currentImageContainer');
+                    const currentImage = document.getElementById('currentImage');
+                    
+                    if (item.menuImage) {
+                        // Build the correct image URL
+                        let imageUrl;
+                        if (item.menuImage.includes('storage/')) {
+                            imageUrl = `{{ asset('') }}${item.menuImage}`;
+                        } else if (item.menuImage.includes('menu-images/')) {
+                            imageUrl = `{{ asset('storage') }}/${item.menuImage}`;
+                        } else {
+                            imageUrl = `{{ asset('storage/menu-images') }}/${item.menuImage}`;
+                        }
+                        
+                        currentImage.src = imageUrl;
+                        currentImage.onerror = function() {
+                            this.src = '{{ asset("images/default-menu.png") }}';
+                        };
+                        currentImageContainer.classList.remove('hidden');
+                    } else {
+                        currentImageContainer.classList.add('hidden');
+                    }
+                    
+                    // Open edit popup
+                    openEditPopup();
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Failed to fetch menu item details', 'error');
             }
-            
-            // Open edit popup
-            openEditPopup();
-        } else {
-            showNotification(result.message, 'error');
         }
-    } catch (error) {
-        showNotification('Failed to fetch menu item details', 'error');
-    }
-}
 
         // Function to delete menu item
         async function deleteMenuItem(menuID) {
