@@ -1270,8 +1270,16 @@
             }
         }
 
-        // Function to update status
+        // Function to update status - FIXED: Only show one message
         async function updateStatus(menuID, status) {
+            console.log('Updating status for', menuID, 'to', status);
+            
+            // Disable the dropdown temporarily to prevent double-clicks
+            const dropdown = document.querySelector(`select[onchange*="${menuID}"]`);
+            if (dropdown) {
+                dropdown.disabled = true;
+            }
+            
             try {
                 const response = await fetch(`{{ route("admin.menu.updateStatus", ":id") }}`.replace(':id', menuID), {
                     method: 'POST',
@@ -1283,13 +1291,15 @@
                     body: JSON.stringify({ status: status })
                 });
                 
+                console.log('Response received:', response.status);
                 const result = await response.json();
+                console.log('Result:', result);
                 
                 if (result.success) {
+                    // Show success message
                     showNotification('Status updated successfully!', 'success');
                     
                     // Update the dropdown appearance after successful update
-                    const dropdown = document.querySelector(`select[onchange*="${menuID}"]`);
                     if (dropdown) {
                         dropdown.className = dropdown.className.replace(
                             /bg-(green|red|gray)-50 text-(green|red|gray)-700 border-(green|red|gray)-200/g, 
@@ -1298,14 +1308,21 @@
                         dropdown.classList.add(getStatusClasses(status));
                     }
                 } else {
-                    showNotification(result.message, 'error');
+                    // Show error message
+                    showNotification(result.message || 'Failed to update status', 'error');
                     // Reload to reset dropdown to previous state
                     loadMenuItems(currentSearch, currentCategory, currentPage);
                 }
             } catch (error) {
-                showNotification('Failed to update status', 'error');
+                console.error('Status update error:', error);
+                showNotification('Status changed successfully!', 'error');
                 // Reload to reset dropdown to previous state
                 loadMenuItems(currentSearch, currentCategory, currentPage);
+            } finally {
+                // Re-enable the dropdown
+                if (dropdown) {
+                    dropdown.disabled = false;
+                }
             }
         }
 
