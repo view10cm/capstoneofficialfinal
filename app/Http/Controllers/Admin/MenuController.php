@@ -204,7 +204,7 @@ if ($request->hasFile('productImage') && $request->file('productImage')->isValid
     public function updateStatus(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'required|in:Available,Out of Stock,Discontinued'
+            'status' => 'required|in:Available,Out of Stock'
         ]);
 
         if ($validator->fails()) {

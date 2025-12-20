@@ -573,46 +573,13 @@
         </div>
     </div>
 
-    <!-- Status Update Modal -->
-    <div id="statusModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black bg-opacity-50">
-        <div class="relative w-full max-w-sm bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all">
-            <div class="px-6 py-5">
-                <h3 class="text-lg font-bold text-gray-800 mb-2">Update Status</h3>
-                <p class="text-gray-600 mb-4">Select new status for <span id="statusItemName" class="font-semibold"></span></p>
-                
-                <input type="hidden" id="statusMenuID">
-                
-                <select id="statusSelect" 
-                        class="w-full border border-gray-300 rounded-lg px-3 py-2.5 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors mb-4">
-                    <option value="Available">Available</option>
-                    <option value="Out of Stock">Out of Stock</option>
-                    <option value="Discontinued">Discontinued</option>
-                </select>
-                
-                <div class="flex justify-end space-x-3">
-                    <button type="button" 
-                            onclick="closeStatusModal()" 
-                            class="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                        Cancel
-                    </button>
-                    <button type="button" 
-                            onclick="updateStatus()" 
-                            class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-medium rounded-lg hover:from-amber-600 hover:to-amber-700 transition-all duration-200 text-sm">
-                        Update Status
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <style>
-        #createMenuItemPopup, #editMenuItemPopup, #statusModal {
+        #createMenuItemPopup, #editMenuItemPopup {
             animation: fadeIn 0.2s ease-out;
         }
         
         #createMenuItemPopup > div,
-        #editMenuItemPopup > div,
-        #statusModal > div {
+        #editMenuItemPopup > div {
             animation: popupIn 0.3s ease-out;
         }
         
@@ -685,18 +652,6 @@
             document.body.style.overflow = 'auto';
             resetEditForm();
         }
-        
-        function openStatusModal(menuID, menuName) {
-            document.getElementById('statusModal').classList.remove('hidden');
-            document.getElementById('statusMenuID').value = menuID;
-            document.getElementById('statusItemName').textContent = menuName;
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeStatusModal() {
-            document.getElementById('statusModal').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
 
         // Image preview functions
         function previewImage(event) {
@@ -746,6 +701,16 @@
             document.getElementById('editPreviewImage').src = '';
         }
         
+        // Helper function for status dropdown classes
+        function getStatusClasses(status) {
+            const classes = {
+                'Available': 'bg-green-50 text-green-700 border-green-200',
+                'Out of Stock': 'bg-red-50 text-red-700 border-red-200',
+                'Discontinued': 'bg-gray-50 text-gray-700 border-gray-200'
+            };
+            return classes[status] || 'bg-gray-50 text-gray-700';
+        }
+
         // Category-Subcategory filtering for create form
         document.getElementById('productCategory').addEventListener('change', function() {
             const category = this.value;
@@ -1051,13 +1016,6 @@
                     'milktea': 'Milktea'
                 };
                 
-                // Status badge classes
-                const statusClasses = {
-                    'Available': 'bg-green-100 text-green-800',
-                    'Out of Stock': 'bg-red-100 text-red-800',
-                    'Discontinued': 'bg-gray-100 text-gray-800'
-                };
-                
                 // FIXED: Image path - Use the correct storage URL
                 let imageUrl = '{{ asset("images/default-menu.png") }}';
                 
@@ -1119,10 +1077,13 @@
                         
                         <!-- Status -->
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <button onclick="openStatusModal('${item.menuID}', '${item.menuName}')" 
-                                    class="px-2.5 py-1 text-xs font-medium rounded-full ${statusClasses[item.menuStatus]} hover:opacity-80 transition-opacity">
-                                ${item.menuStatus}
-                            </button>
+                            <div class="relative w-32">
+                                <select onchange="updateStatus('${item.menuID}', this.value)" 
+                                        class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors ${getStatusClasses(item.menuStatus)}">
+                                    <option value="Available" ${item.menuStatus === 'Available' ? 'selected' : ''} class="text-green-700">Available</option>
+                                    <option value="Out of Stock" ${item.menuStatus === 'Out of Stock' ? 'selected' : ''} class="text-red-700">Out of Stock</option>
+                                </select>
+                            </div>
                         </td>
                         
                         <!-- Actions -->
@@ -1310,10 +1271,7 @@
         }
 
         // Function to update status
-        async function updateStatus() {
-            const menuID = document.getElementById('statusMenuID').value;
-            const status = document.getElementById('statusSelect').value;
-            
+        async function updateStatus(menuID, status) {
             try {
                 const response = await fetch(`{{ route("admin.menu.updateStatus", ":id") }}`.replace(':id', menuID), {
                     method: 'POST',
@@ -1329,13 +1287,25 @@
                 
                 if (result.success) {
                     showNotification('Status updated successfully!', 'success');
-                    closeStatusModal();
-                    loadMenuItems(currentSearch, currentCategory, currentPage);
+                    
+                    // Update the dropdown appearance after successful update
+                    const dropdown = document.querySelector(`select[onchange*="${menuID}"]`);
+                    if (dropdown) {
+                        dropdown.className = dropdown.className.replace(
+                            /bg-(green|red|gray)-50 text-(green|red|gray)-700 border-(green|red|gray)-200/g, 
+                            ''
+                        );
+                        dropdown.classList.add(getStatusClasses(status));
+                    }
                 } else {
                     showNotification(result.message, 'error');
+                    // Reload to reset dropdown to previous state
+                    loadMenuItems(currentSearch, currentCategory, currentPage);
                 }
             } catch (error) {
                 showNotification('Failed to update status', 'error');
+                // Reload to reset dropdown to previous state
+                loadMenuItems(currentSearch, currentCategory, currentPage);
             }
         }
 
@@ -1399,9 +1369,6 @@
                 if (!document.getElementById('editMenuItemPopup').classList.contains('hidden')) {
                     closeEditPopup();
                 }
-                if (!document.getElementById('statusModal').classList.contains('hidden')) {
-                    closeStatusModal();
-                }
             }
         });
 
@@ -1415,12 +1382,6 @@
         document.getElementById('editMenuItemPopup').addEventListener('click', function(e) {
             if (e.target.id === 'editMenuItemPopup') {
                 closeEditPopup();
-            }
-        });
-        
-        document.getElementById('statusModal').addEventListener('click', function(e) {
-            if (e.target.id === 'statusModal') {
-                closeStatusModal();
             }
         });
     </script>
