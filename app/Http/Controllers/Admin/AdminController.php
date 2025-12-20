@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\IngredientsCategory;
 use App\Models\Admin\Ingredient;
-use App\Models\User; // Add this line
+use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 
 class AdminController extends Controller
