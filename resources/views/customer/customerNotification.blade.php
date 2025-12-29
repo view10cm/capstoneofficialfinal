@@ -79,19 +79,22 @@
                     audioIndicator.classList.remove('opacity-100');
                     audioIndicator.classList.add('opacity-0');
                     
-                    // Optional: Repeat after 30 seconds for kiosk mode
+                    // Redirect to customerOrderArea page after speech ends
                     setTimeout(() => {
-                        if (!speechSynthesis.speaking) {
-                            setVoice();
-                            speechSynthesis.speak(speech);
-                        }
-                    }, 30000); // Repeat every 30 seconds
+                        // Use Laravel route helper for the redirect
+                        window.location.href = "{{ route('customer.orderArea') }}";
+                    }, 1000); // 1 second delay before redirect
                 };
                 
                 speech.onerror = function(event) {
                     console.error('Speech synthesis error:', event);
                     audioIndicator.classList.remove('opacity-100');
                     audioIndicator.classList.add('opacity-0');
+                    
+                    // Even if speech fails, redirect after a delay
+                    setTimeout(() => {
+                        window.location.href = "{{ route('customer.orderArea') }}";
+                    }, 2000); // 2 second delay before redirect on error
                 };
                 
                 // Start speaking after a short delay to let page load
@@ -107,6 +110,11 @@
                 // Browser doesn't support speech synthesis
                 console.warn('Speech synthesis not supported in this browser.');
                 document.getElementById('audioIndicator').style.display = 'none';
+                
+                // Redirect immediately if no speech support
+                setTimeout(() => {
+                    window.location.href = "{{ route('customer.orderArea') }}";
+                }, 3000); // Wait 3 seconds then redirect
             }
             
             // Optional: Add CSS for audio bar animation
