@@ -17,5 +17,9 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::get('/customer/notification', [CustomerController::class, 'notification'])
         ->name('customer.notification');
 
+    // Customer Order Area Page
+    Route::get('/customer/order-area', [CustomerController::class, 'orderArea'])
+        ->name('customer.orderArea');
+
     // You can add more customer routes here
 });

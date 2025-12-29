@@ -45,4 +45,17 @@ class CustomerController extends Controller
 
         return view('customer.customerNotification');
     }
+
+    /**
+     * Display customer order area page
+     */
+    public function orderArea()
+    {
+        // Check if user is authenticated and is a customer
+        if (!Auth::check() || Auth::user()->role !== 'Customer') {
+            return redirect()->route('login');
+        }
+
+        return view('customer.customerOrderArea');
+    }
 }
