@@ -32,4 +32,17 @@ class CustomerController extends Controller
 
         return view('customerDashboard');
     }
+
+    /**
+     * Display customer notification page
+     */
+    public function notification()
+    {
+        // Check if user is authenticated and is a customer
+        if (!Auth::check() || Auth::user()->role !== 'Customer') {
+            return redirect()->route('login');
+        }
+
+        return view('customer.customerNotification');
+    }
 }
