@@ -2,225 +2,126 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Welcome to Caffe Arabica</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Dashboard - Caffe Arabica</title>
     @vite('resources/css/app.css')
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        /* Responsive typography for tablet */
+        @media (max-width: 1024px) {
+            .responsive-font {
+                font-size: clamp(0.875rem, 2vw + 0.5rem, 1.5rem);
+            }
+            
+            .responsive-heading {
+                font-size: clamp(1.5rem, 5vw + 1rem, 3rem);
+                line-height: 1.2;
+            }
+            
+            .responsive-subheading {
+                font-size: clamp(0.75rem, 2vw + 0.5rem, 1.25rem);
+                letter-spacing: 0.05em;
+            }
         }
-        .cinzel-font {
-            font-family: 'Cinzel', serif;
+        
+        @media (max-width: 768px) {
+            .responsive-font {
+                font-size: clamp(0.75rem, 3vw + 0.5rem, 1.25rem);
+            }
+            
+            .responsive-heading {
+                font-size: clamp(1.25rem, 6vw + 1rem, 2.5rem);
+                text-align: center;
+                padding: 0 1rem;
+            }
+            
+            .responsive-subheading {
+                font-size: clamp(0.625rem, 2.5vw + 0.5rem, 1rem);
+                text-align: center;
+                padding: 0 1rem;
+            }
+            
+            .bottom-overlay {
+                padding: 1rem 0;
+            }
+            
+            .bottom-overlay button {
+                font-size: clamp(1rem, 4vw + 0.5rem, 1.75rem);
+                margin-bottom: 0.5rem;
+            }
+            
+            .bottom-overlay span {
+                font-size: clamp(0.75rem, 2vw + 0.5rem, 0.875rem);
+            }
+        }
+        
+        /* Ensure proper spacing on tablets */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            body {
+                padding: 2rem;
+            }
+            
+            .top-quote {
+                top: 15%;
+                max-width: 80%;
+                text-align: center;
+            }
+            
+            .main-heading {
+                top: 45%;
+                max-width: 90%;
+                text-align: center;
+            }
+            
+            .sub-heading {
+                top: 58%;
+                max-width: 80%;
+                text-align: center;
+            }
+        }
+        
+        /* Prevent text overflow on all devices */
+        .text-container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
         }
     </style>
 </head>
-<body class="bg-amber-50 min-h-screen">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <h1 class="text-2xl font-bold cinzel-font" style="color: #92400e;">
-                        Caffe Arabica
-                    </h1>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-amber-700 font-medium">
-                        Welcome, {{ Auth::user()->name }}!
-                    </span>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 transition">
-                            Logout
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </nav>
+<body class="bg-amber-50 min-h-screen flex items-center justify-center relative"
+      style="background: url('{{ asset('/images/START (1).svg') }}') center center / cover no-repeat;">
 
-    <!-- Main Content -->
-    <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-        <div class="bg-white rounded-lg shadow-lg p-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold text-amber-800 mb-4 cinzel-font">
-                    Welcome to Caffe Arabica
-                </h2>
-                <p class="text-gray-600 text-lg">
-                    Your favorite coffee shop experience
-                </p>
-            </div>
-
-            <!-- Features Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Menu Card -->
-                <div class="bg-amber-50 rounded-lg p-6 shadow-md border border-amber-100">
-                    <div class="text-center">
-                        <div class="text-amber-600 mb-4">
-                            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-amber-800 mb-2">Browse Menu</h3>
-                        <p class="text-gray-600 mb-4">Explore our delicious coffee and pastry selection</p>
-                        <button class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 transition">
-                            View Menu
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Order Card -->
-                <div class="bg-amber-50 rounded-lg p-6 shadow-md border border-amber-100">
-                    <div class="text-center">
-                        <div class="text-amber-600 mb-4">
-                            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-amber-800 mb-2">Place Order</h3>
-                        <p class="text-gray-600 mb-4">Order your favorite items for pickup or delivery</p>
-                        <button class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 transition">
-                            Order Now
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Profile Card -->
-                <div class="bg-amber-50 rounded-lg p-6 shadow-md border border-amber-100">
-                    <div class="text-center">
-                        <div class="text-amber-600 mb-4">
-                            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                            </svg>
-                        </div>
-                        <h3 class="text-xl font-bold text-amber-800 mb-2">My Profile</h3>
-                        <p class="text-gray-600 mb-4">Manage your account and preferences</p>
-                        <button class="bg-amber-600 text-white px-4 py-2 rounded hover:bg-amber-700 transition">
-                            View Profile
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Orders Section -->
-            <div class="mt-12">
-                <h3 class="text-2xl font-bold text-amber-800 mb-6 cinzel-font">
-                    Recent Orders
-                </h3>
-                <div class="bg-white border border-amber-100 rounded-lg overflow-hidden">
-                    <table class="min-w-full divide-y divide-amber-100">
-                        <thead class="bg-amber-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">
-                                    Order #
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">
-                                    Date
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">
-                                    Items
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">
-                                    Total
-                                </th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-amber-800 uppercase tracking-wider">
-                                    Status
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-amber-100">
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    #CA-00123
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ date('M d, Y') }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    Arabica Latte, Croissant
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    $12.50
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Completed
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    #CA-00122
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ date('M d, Y', strtotime('-1 day')) }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    Cappuccino, Blueberry Muffin
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    $9.75
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Completed
-                                    </span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Special Offers Section -->
-            <div class="mt-12 bg-gradient-to-r from-amber-100 to-orange-100 rounded-lg p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-2xl font-bold text-amber-800 cinzel-font">Today's Special</h3>
-                        <p class="text-amber-700 mt-2">Get 20% off on all Espresso drinks!</p>
-                        <p class="text-amber-600 text-sm mt-1">Valid until end of day</p>
-                    </div>
-                    <div class="text-amber-600">
-                        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <!-- Top Quote -->
+    <div class="absolute top-20 left-1/2 -translate-x-1/2 text-white text-[24px] font-normal responsive-font top-quote text-container px-4"
+         style="font-family:'Times New Roman', Times, serif;">
+        <p class="text-center">A cup of coffee a day without God is tasteless</p>
+    </div>
+    
+    <!-- Main Heading -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white font-bold text-[48px] responsive-heading main-heading text-container px-4"
+         style="font-family: 'Cinzel', serif;">
+        <h1 class="text-center leading-tight">WELCOME TO<br>CAFFE ARABICA</h1>
+    </div>
+    
+    <!-- Sub Heading -->
+    <div class="absolute left-1/2 top-[53%] -translate-x-1/2 text-white text-[24px] font-normal responsive-subheading sub-heading text-container px-4"
+         style="font-family:'Times New Roman', Times, serif; letter-spacing: 0.1em;">
+        <p class="text-center">A PREMIUM DINING EXPERIENCE</p>
     </div>
 
-    <!-- Footer -->
-    <footer class="bg-amber-800 text-white py-8 mt-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <p class="text-amber-100">&copy; {{ date('Y') }} Caffe Arabica. All rights reserved.</p>
-                <p class="text-amber-200 mt-2">Enjoy your coffee experience!</p>
-                <div class="mt-4">
-                    <p class="text-amber-100 text-sm">Contact us: info@caffearabica.com | (123) 456-7890</p>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <script>
-        // Simple interactivity for buttons
-        document.addEventListener('DOMContentLoaded', function() {
-            const buttons = document.querySelectorAll('button');
-            buttons.forEach(button => {
-                button.addEventListener('click', function() {
-                    if (!this.closest('form')) { // Don't show alert for logout button
-                        alert('Feature coming soon!');
-                    }
-                });
-            });
-        });
-    </script>
+    <!-- Bottom "Touch to start" button overlay -->
+    <div class="fixed bottom-0 left-0 w-full bg-black bg-opacity-50 flex flex-col items-center py-6 cursor-pointer bottom-overlay"
+         style="cursor: pointer;">
+        <a href="{{ route('customer.notification') }}">
+            <button class="text-white text-3xl font-semibold mb-2 focus:outline-none responsive-font" 
+                    style="font-family: 'Cinzel', serif; cursor: pointer;">
+                Touch to start
+            </button>
+        </a>
+        <span class="text-white text-base opacity-80 responsive-font text-center px-4"
+              style="font-family:'Times New Roman', Times, serif; cursor: pointer;">
+            Ready to order? Tap to begin.
+        </span>
+    </div>
 </body>
 </html>
