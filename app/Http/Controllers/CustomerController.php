@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Admin\MenuProduct;
 
 class CustomerController extends Controller
 {
@@ -47,7 +48,7 @@ class CustomerController extends Controller
     }
 
     /**
-     * Display customer order area page
+     * Display customer order area page with menu products
      */
     public function orderArea()
     {
@@ -56,6 +57,13 @@ class CustomerController extends Controller
             return redirect()->route('login');
         }
 
-        return view('customer.customerOrderArea');
+        // Fetch all available menu products from database
+        $products = MenuProduct::where('menuStatus', 'Available')
+            ->orderBy('menuCategory')
+            ->orderBy('menuSubcategory')
+            ->orderBy('menuName')
+            ->get();
+        
+        return view('customer.customerOrderArea', compact('products'));
     }
 }
