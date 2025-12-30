@@ -185,7 +185,7 @@
     </div>
 
     <!-- Create Menu Item Popup -->
-    <div id="createMenuItemPopup" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black bg-opacity-50">
+    <div id="createMenuItemPopup" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-transparent backdrop-blur-sm bg-opacity-50">
         <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all">
             <!-- Popup header -->
             <div class="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600">
