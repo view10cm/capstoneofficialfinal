@@ -21,5 +21,7 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::get('/customer/order-area', [CustomerController::class, 'orderArea'])
         ->name('customer.orderArea');
 
-    // You can add more customer routes here
+    // AJAX route for filtering products
+    Route::post('/customer/get-products', [CustomerController::class, 'getProductsByCategory'])
+        ->name('customer.getProducts');
 });

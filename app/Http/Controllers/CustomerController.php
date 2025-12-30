@@ -57,13 +57,52 @@ class CustomerController extends Controller
             return redirect()->route('login');
         }
 
-        // Fetch all available menu products from database
+        // Get initial products (default: pork subcategory from main course)
         $products = MenuProduct::where('menuStatus', 'Available')
-            ->orderBy('menuCategory')
-            ->orderBy('menuSubcategory')
+            ->where('menuCategory', 'main-course')
+            ->where('menuSubcategory', 'pork')
             ->orderBy('menuName')
             ->get();
         
         return view('customer.customerOrderArea', compact('products'));
+    }
+
+    /**
+     * Get products by category and subcategory (AJAX)
+     */
+    public function getProductsByCategory(Request $request)
+    {
+        $category = $request->input('category');
+        $subcategory = $request->input('subcategory');
+
+        // Map UI subcategory names to database values
+        $subcategoryMap = [
+            'Pork' => 'pork',
+            'Chicken' => 'chicken',
+            'Beef' => 'beef',
+            'Fish & Seafood' => 'fish-seafood',
+            'Pasta' => 'pasta',
+            'Noodles' => 'noodles',
+            'Salads' => 'salads',
+            'Knick/Knacks' => 'knick-knacks',
+            'Sandwiches' => 'sandwiches',
+            'Hot' => 'hot',
+            'Iced' => 'iced',
+            'Frappe' => 'frappe',
+            'Milktea' => 'milktea'
+        ];
+
+        $dbSubcategory = $subcategoryMap[$subcategory] ?? strtolower(str_replace(' ', '-', $subcategory));
+
+        $products = MenuProduct::where('menuStatus', 'Available')
+            ->where('menuCategory', $category)
+            ->where('menuSubcategory', $dbSubcategory)
+            ->orderBy('menuName')
+            ->get();
+
+        return response()->json([
+            'products' => $products,
+            'html' => view('partials.product-grid', compact('products'))->render()
+        ]);
     }
 }
