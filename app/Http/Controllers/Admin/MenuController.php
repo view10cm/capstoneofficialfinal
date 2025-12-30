@@ -40,7 +40,7 @@ class MenuController extends Controller
             $query->orderBy('created_at', 'desc');
             
             // Paginate results
-            $menuProducts = $query->paginate(10);
+            $menuProducts = $query->paginate(7);
             
             return response()->json([
                 'success' => true,
