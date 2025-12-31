@@ -109,6 +109,16 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
+
+        /* Payment method button styles */
+        .payment-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .payment-btn.active {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
         
         /* Carousel styles */
         .carousel-container {
@@ -121,6 +131,7 @@
             transition: transform 0.5s ease-in-out;
             width: 100%;
             height: 100%;
+            display: flex;
         }
         
         .carousel-arrow {
@@ -215,6 +226,22 @@
         .product-card:hover .product-image {
             transform: scale(1.05);
         }
+
+        /* Dropdown styling */
+        .order-type-dropdown {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .order-type-dropdown option {
+            padding: 8px;
+            color: #1f2937;
+        }
     </style>
 </head>
 <body class="bg-gray-50 h-full">
@@ -281,80 +308,80 @@
             </div>
             
             <!-- Black Area: Menu Products (Carousel) -->
-<div class="flex-1 p-4 overflow-hidden relative">
-    <!-- Carousel Container -->
-    <div class="carousel-container">
-        <!-- Left Arrow -->
-        <div class="carousel-arrow carousel-arrow-left" id="carousel-prev">
-            <i class="fas fa-chevron-left"></i>
-        </div>
-        
-        <!-- Right Arrow -->
-        <div class="carousel-arrow carousel-arrow-right" id="carousel-next">
-            <i class="fas fa-chevron-right"></i>
-        </div>
-        
-        <!-- Carousel Slides Container -->
-        <div id="carousel-slides" class="carousel-slide" style="display: flex;">
-            @foreach($slides as $slideIndex => $slideProducts)
-                <div class="carousel-page" data-page="{{ $slideIndex }}" style="min-width: 100%; transition: transform 0.5s ease;">
-                    <div class="product-grid">
-                        @forelse($slideProducts as $product)
-                            <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
-                                <!-- Product Image -->
-                                <div class="product-image-container">
-                                    @if($product->menuImage)
-                                        <img src="{{ asset('storage/' . $product->menuImage) }}" 
-                                             alt="{{ $product->menuName }}" 
-                                             class="product-image">
-                                    @else
-                                        <div class="w-full h-full flex items-center justify-center bg-gray-200">
-                                            <i class="fas fa-utensils text-gray-400 text-4xl"></i>
+            <div class="flex-1 p-4 overflow-hidden relative">
+                <!-- Carousel Container -->
+                <div class="carousel-container">
+                    <!-- Left Arrow -->
+                    <div class="carousel-arrow carousel-arrow-left" id="carousel-prev">
+                        <i class="fas fa-chevron-left"></i>
+                    </div>
+                    
+                    <!-- Right Arrow -->
+                    <div class="carousel-arrow carousel-arrow-right" id="carousel-next">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    
+                    <!-- Carousel Slides Container -->
+                    <div id="carousel-slides" class="carousel-slide">
+                        @foreach($slides as $slideIndex => $slideProducts)
+                            <div class="carousel-page" data-page="{{ $slideIndex }}" style="min-width: 100%; transition: transform 0.5s ease;">
+                                <div class="product-grid">
+                                    @forelse($slideProducts as $product)
+                                        <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
+                                            <!-- Product Image -->
+                                            <div class="product-image-container">
+                                                @if($product->menuImage)
+                                                    <img src="{{ asset('storage/' . $product->menuImage) }}" 
+                                                         alt="{{ $product->menuName }}" 
+                                                         class="product-image">
+                                                @else
+                                                    <div class="w-full h-full flex items-center justify-center bg-gray-200">
+                                                        <i class="fas fa-utensils text-gray-400 text-4xl"></i>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            
+                                            <div class="p-4 flex-1">
+                                                <div class="flex justify-between items-start mb-2">
+                                                    <h3 class="text-lg font-bold text-gray-800 truncate">{{ $product->menuName }}</h3>
+                                                    <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
+                                                        {{ ucfirst($product->menuSubcategory) }}
+                                                    </span>
+                                                </div>
+                                                <div class="flex justify-between items-center mt-auto">
+                                                    <span class="text-xl font-bold text-amber-700">₱{{ number_format($product->menuPrice, 2) }}</span>
+                                                    <button class="add-to-order-btn bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm"
+                                                            data-name="{{ $product->menuName }}" 
+                                                            data-price="{{ $product->menuPrice }}" 
+                                                            data-category="{{ $product->menuCategory }}"
+                                                            data-image="{{ $product->menuImage ? asset('storage/' . $product->menuImage) : '' }}">
+                                                        <i class="fas fa-plus mr-1"></i> Add
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                    @endif
-                                </div>
-                                
-                                <div class="p-4 flex-1">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <h3 class="text-lg font-bold text-gray-800 truncate">{{ $product->menuName }}</h3>
-                                        <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
-                                            {{ ucfirst($product->menuSubcategory) }}
-                                        </span>
-                                    </div>
-                                    <div class="flex justify-between items-center mt-auto">
-                                        <span class="text-xl font-bold text-amber-700">₱{{ number_format($product->menuPrice, 2) }}</span>
-                                        <button class="add-to-order-btn bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm"
-                                                data-name="{{ $product->menuName }}" 
-                                                data-price="{{ $product->menuPrice }}" 
-                                                data-category="{{ $product->menuCategory }}"
-                                                data-image="{{ $product->menuImage ? asset('storage/' . $product->menuImage) : '' }}">
-                                            <i class="fas fa-plus mr-1"></i> Add
-                                        </button>
-                                    </div>
+                                    @empty
+                                        <div class="col-span-3 row-span-2 flex items-center justify-center">
+                                            <div class="text-center">
+                                                <i class="fas fa-utensils text-gray-300 text-6xl mb-4"></i>
+                                                <h3 class="text-lg font-semibold text-gray-500 mb-2">No products found</h3>
+                                                <p class="text-gray-400 text-sm">No items available in this category</p>
+                                            </div>
+                                        </div>
+                                    @endforelse
                                 </div>
                             </div>
-                        @empty
-                            <div class="col-span-3 row-span-2 flex items-center justify-center">
-                                <div class="text-center">
-                                    <i class="fas fa-utensils text-gray-300 text-6xl mb-4"></i>
-                                    <h3 class="text-lg font-semibold text-gray-500 mb-2">No products found</h3>
-                                    <p class="text-gray-400 text-sm">No items available in this category</p>
-                                </div>
-                            </div>
-                        @endforelse
+                        @endforeach
+                    </div>
+                    
+                    <!-- Carousel Indicators -->
+                    <div class="carousel-indicator" id="carousel-indicators">
+                        @for($i = 0; $i < count($slides); $i++)
+                            <div class="carousel-dot {{ $i === 0 ? 'active' : '' }}" data-slide="{{ $i }}"></div>
+                        @endfor
                     </div>
                 </div>
-            @endforeach
-        </div>
-        
-        <!-- Carousel Indicators -->
-        <div class="carousel-indicator" id="carousel-indicators">
-            @for($i = 0; $i < count($slides); $i++)
-                <div class="carousel-dot {{ $i === 0 ? 'active' : '' }}" data-slide="{{ $i }}"></div>
-            @endfor
-        </div>
-    </div>
-</div>
+            </div>
             
             <!-- Yellow Area: Voice Chat -->
             <div class="bg-gradient-to-r from-amber-100 to-yellow-100 border-t border-amber-200 p-3">
@@ -409,40 +436,61 @@
         
         <!-- Right Panel: Order Summary -->
         <div class="w-1/3 min-w-96 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden">
-            <!-- Order Summary Header -->
+            <!-- Order Summary Header with Order Type Dropdown -->
             <div class="bg-gradient-to-r from-red-600 to-red-500 p-4">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-white">
-                        <i class="fas fa-shopping-cart mr-2"></i>Order Summary
-                    </h2>
-                    <span id="item-count" class="bg-white text-red-600 font-bold rounded-full w-7 h-7 flex items-center justify-center text-sm">0</span>
+                    <div>
+                        <h2 class="text-xl font-bold text-white">
+                            <i class="fas fa-shopping-cart mr-2"></i>Order Summary
+                        </h2>
+                        <p class="text-red-100 text-sm mt-1">Review your order</p>
+                    </div>
+                    <!-- Order Type Dropdown -->
+                    <div class="flex items-center space-x-2">
+                        <span class="text-white text-sm font-medium">Order Type:</span>
+                        <div class="relative">
+                            <select id="order-type-dropdown" class="order-type-dropdown bg-white bg-opacity-20 backdrop-filter backdrop-blur-sm text-white text-sm font-medium rounded-lg py-1 pl-3 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 border border-white border-opacity-30">
+                                <option value="dine-in" class="text-gray-800">Dine-in</option>
+                                <option value="takeout" class="text-gray-800">Takeout</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <p class="text-red-100 text-sm mt-1">Review your order</p>
             </div>
             
             <!-- Order Items -->
             <div class="flex-1 p-4 overflow-hidden">
-                <!-- Dine-in / Takeout Selection -->
+                <!-- Payment Method Selection (Now as buttons) -->
                 <div class="mb-4">
                     <h4 class="font-bold text-gray-800 text-sm mb-2">
-                        <i class="fas fa-store mr-1"></i> Order Type
+                        <i class="fas fa-credit-card mr-1"></i> Payment Method
                     </h4>
                     <div class="grid grid-cols-2 gap-2">
-                        <button id="dine-in-btn" class="order-type-btn active bg-blue-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200 flex flex-col items-center justify-center">
-                            <i class="fas fa-utensils text-lg mb-1"></i>
-                            <span class="font-bold">Dine-in</span>
-                            <span class="text-xs opacity-90">Table Service</span>
+                        <button id="cash-btn" class="payment-btn active bg-green-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200 flex flex-col items-center justify-center">
+                            <i class="fas fa-money-bill-wave text-lg mb-1"></i>
+                            <span class="font-bold">Cash</span>
+                            <span class="text-xs opacity-90">Pay at counter</span>
                         </button>
-                        <button id="takeout-btn" class="order-type-btn bg-gray-200 text-gray-800 py-2.5 rounded-lg font-medium transition-all duration-200 flex flex-col items-center justify-center">
-                            <i class="fas fa-box text-lg mb-1"></i>
-                            <span class="font-bold">Takeout</span>
-                            <span class="text-xs opacity-90">To-go Order</span>
+                        <button id="electronic-btn" class="payment-btn bg-gray-200 text-gray-800 py-2.5 rounded-lg font-medium transition-all duration-200 flex flex-col items-center justify-center">
+                            <i class="fas fa-qrcode text-lg mb-1"></i>
+                            <span class="font-bold">Electronic</span>
+                            <span class="text-xs opacity-90">QR Code</span>
                         </button>
                     </div>
-                    <div id="order-type-info" class="mt-2 text-xs text-gray-600 p-2 bg-blue-50 rounded border border-blue-100">
-                        <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                        <span>Dine-in selected. Your order will be served at your table.</span>
+                    <!-- Payment Method Info -->
+                    <div id="payment-info" class="mt-2 text-xs text-gray-600 p-2 bg-green-50 rounded border border-green-100">
+                        <i class="fas fa-money-bill-wave text-green-500 mr-1"></i>
+                        <span>Cash payment selected. Pay at the counter.</span>
                     </div>
+                </div>
+                
+                <!-- Order Type Info -->
+                <div id="order-type-info" class="mb-4 text-xs text-gray-600 p-2 bg-blue-50 rounded border border-blue-100">
+                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
+                    <span>Dine-in selected. Your order will be served at your table.</span>
                 </div>
                 
                 <div id="order-items-container" class="order-items-container mb-4">
@@ -519,621 +567,7 @@
         </div>
     </div>
 
-<script>
-    // Navigation data - updated based on database categories
-    const navigationData = {
-        'main-course': ['Pork', 'Chicken', 'Beef', 'Fish & Seafood', 'Pasta', 'Noodles'],
-        'appetizers': ['Salads', 'Knick/Knacks', 'Sandwiches'],
-        'drinks': ['Hot', 'Iced', 'Frappe', 'Milktea'],
-        'specials': []
-    };
-
-    // Category mapping for database
-    const categoryMap = {
-        'main-course': 'main-course',
-        'appetizers': 'appetizers',
-        'drinks': 'drinks',
-        'specials': 'specials'
-    };
-
-    // Subcategory mapping for database
-    const subcategoryMap = {
-        'Pork': 'pork',
-        'Chicken': 'chicken',
-        'Beef': 'beef',
-        'Fish & Seafood': 'fish-seafood',
-        'Pasta': 'pasta',
-        'Noodles': 'noodles',
-        'Salads': 'salads',
-        'Knick/Knacks': 'knick-knacks',
-        'Sandwiches': 'sandwiches',
-        'Hot': 'hot',
-        'Iced': 'iced',
-        'Frappe': 'frappe',
-        'Milktea': 'milktea'
-    };
-
-    // Order data
-    let orderItems = [];
-    const TAX_RATE = 0.12;
-    let orderType = 'dine-in'; // Default order type
-
-    // Voice chat state
-    let isListening = false;
-
-    // Carousel state
-    let currentSlide = 0;
-    let currentCategory = 'main-course';
-    let currentSubcategory = 'pork';
-    let totalSlides = 1;
-    let allSlides = []; // Store all slide HTML
-
-    // Get DOM elements
-    const upperNavBtns = document.querySelectorAll('.upper-nav-btn');
-    const lowerNav = document.getElementById('lower-nav');
-    const orderItemsList = document.getElementById('order-items-list');
-    const emptyOrder = document.getElementById('empty-order');
-    const itemCount = document.getElementById('item-count');
-    const subtotalElement = document.getElementById('subtotal');
-    const taxElement = document.getElementById('tax');
-    const totalElement = document.getElementById('total');
-    const estimatedTime = document.getElementById('estimated-time');
-    const timeProgress = document.getElementById('time-progress');
-    const clearOrderBtn = document.getElementById('clear-order-btn');
-    const checkoutBtn = document.getElementById('checkout-btn');
-    const voiceStartBtn = document.getElementById('voice-start');
-    const voiceStopBtn = document.getElementById('voice-stop');
-    const voiceHelpBtn = document.getElementById('voice-help');
-    const voiceStatus = document.getElementById('voice-status');
-    const voiceFeedback = document.getElementById('voice-feedback');
-    const voiceCommandDisplay = document.getElementById('voice-command-display');
-    const voiceTranscript = document.getElementById('voice-transcript');
-    const dineInBtn = document.getElementById('dine-in-btn');
-    const takeoutBtn = document.getElementById('takeout-btn');
-    const orderTypeInfo = document.getElementById('order-type-info');
-    const carouselSlides = document.getElementById('carousel-slides');
-    const carouselPrev = document.getElementById('carousel-prev');
-    const carouselNext = document.getElementById('carousel-next');
-    const carouselIndicators = document.getElementById('carousel-indicators');
-
-    // Format price to Philippine Peso
-    function formatPrice(price) {
-        return `₱${parseFloat(price).toFixed(2)}`;
-    }
-
-    // Set order type
-    function setOrderType(type) {
-        orderType = type;
-
-        // Update button styles
-        if (type === 'dine-in') {
-            dineInBtn.classList.add('active', 'bg-blue-600', 'text-white');
-            dineInBtn.classList.remove('bg-gray-200', 'text-gray-800');
-            takeoutBtn.classList.add('bg-gray-200', 'text-gray-800');
-            takeoutBtn.classList.remove('active', 'bg-green-600', 'text-white');
-
-            // Update info text
-            orderTypeInfo.innerHTML = `
-                <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                <span>Dine-in selected. Your order will be served at your table.</span>
-            `;
-            orderTypeInfo.className = 'mt-2 text-xs text-gray-600 p-2 bg-blue-50 rounded border border-blue-100';
-        } else {
-            takeoutBtn.classList.add('active', 'bg-green-600', 'text-white');
-            takeoutBtn.classList.remove('bg-gray-200', 'text-gray-800');
-            dineInBtn.classList.add('bg-gray-200', 'text-gray-800');
-            dineInBtn.classList.remove('active', 'bg-blue-600', 'text-white');
-
-            // Update info text
-            orderTypeInfo.innerHTML = `
-                <i class="fas fa-info-circle text-green-500 mr-1"></i>
-                <span>Takeout selected. Your order will be prepared for pickup.</span>
-            `;
-            orderTypeInfo.className = 'mt-2 text-xs text-gray-600 p-2 bg-green-50 rounded border border-green-100';
-        }
-
-        console.log(`Order type set to: ${type}`);
-    }
-
-    // Calculate order totals
-    function calculateTotals() {
-        let subtotal = 0;
-        orderItems.forEach(item => {
-            subtotal += item.price * item.quantity;
-        });
-
-        const tax = subtotal * TAX_RATE;
-        const total = subtotal + tax;
-
-        subtotalElement.textContent = formatPrice(subtotal);
-        taxElement.textContent = formatPrice(tax);
-        totalElement.textContent = formatPrice(total);
-
-        // Update item count
-        const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
-        itemCount.textContent = totalItems;
-
-        // Update estimated time based on order type
-        let additionalTime = Math.floor(totalItems / 2) * 5;
-
-        // Takeout orders take 5 minutes less preparation time
-        if (orderType === 'takeout') {
-            additionalTime = Math.max(0, additionalTime - 5);
-        }
-
-        const minTime = 15 + additionalTime;
-        const maxTime = 20 + additionalTime;
-        estimatedTime.textContent = `${minTime}-${maxTime} mins`;
-
-        // Update progress bar width (30% base + 5% per item, max 90%)
-        const progressWidth = Math.min(30 + (totalItems * 5), 90);
-        timeProgress.style.width = `${progressWidth}%`;
-
-        // Show/hide empty state
-        if (orderItems.length === 0) {
-            emptyOrder.classList.remove('hidden');
-            orderItemsList.classList.add('hidden');
-        } else {
-            emptyOrder.classList.add('hidden');
-            orderItemsList.classList.remove('hidden');
-        }
-    }
-
-    // Add item to order
-    function addToOrder(name, price, category, image = '') {
-        // Check if item already exists in order
-        const existingItemIndex = orderItems.findIndex(item => item.name === name);
-
-        if (existingItemIndex !== -1) {
-            // Increment quantity if item already exists
-            orderItems[existingItemIndex].quantity++;
-        } else {
-            // Add new item
-            orderItems.push({
-                name: name,
-                price: parseFloat(price),
-                category: category,
-                quantity: 1,
-                image: image
-            });
-        }
-
-        // Update UI
-        renderOrderItems();
-        calculateTotals();
-
-        // Show confirmation animation
-        const addBtn = event.target.closest('.add-to-order-btn');
-        if (addBtn) {
-            const originalText = addBtn.innerHTML;
-            addBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Added!';
-            addBtn.classList.remove('bg-amber-600');
-            addBtn.classList.add('bg-green-600');
-
-            setTimeout(() => {
-                addBtn.innerHTML = originalText;
-                addBtn.classList.remove('bg-green-600');
-                addBtn.classList.add('bg-amber-600');
-            }, 1000);
-        }
-    }
-
-    // Remove item from order
-    function removeFromOrder(index) {
-        orderItems.splice(index, 1);
-        renderOrderItems();
-        calculateTotals();
-    }
-
-    // Update item quantity
-    function updateQuantity(index, change) {
-        orderItems[index].quantity += change;
-
-        // Remove item if quantity becomes 0
-        if (orderItems[index].quantity <= 0) {
-            orderItems.splice(index, 1);
-        }
-
-        renderOrderItems();
-        calculateTotals();
-    }
-
-    // Render order items list
-    function renderOrderItems() {
-        orderItemsList.innerHTML = '';
-
-        orderItems.forEach((item, index) => {
-            const itemTotal = item.price * item.quantity;
-            const itemElement = document.createElement('div');
-            itemElement.className = 'bg-gray-50 p-3 rounded-lg border border-gray-200 fade-in';
-            itemElement.innerHTML = `
-                <div class="flex items-start mb-2">
-                    ${item.image ? `
-                    <div class="w-12 h-12 rounded overflow-hidden mr-3 flex-shrink-0">
-                        <img src="${item.image}" alt="${item.name}" class="w-full h-full object-cover">
-                    </div>
-                    ` : ''}
-                    <div class="flex-1">
-                        <div class="flex justify-between items-start">
-                            <h4 class="font-bold text-gray-800 text-sm truncate">${item.name}</h4>
-                            <button class="remove-item-btn text-gray-400 hover:text-red-500 ml-1 text-sm" data-index="${index}">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <p class="text-xs text-gray-500">${item.category}</p>
-                    </div>
-                </div>
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center space-x-2">
-                        <button class="quantity-btn w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center" data-index="${index}" data-change="-1">
-                            <i class="fas fa-minus text-xs"></i>
-                        </button>
-                        <span class="font-bold text-gray-800 w-6 text-center text-sm">${item.quantity}</span>
-                        <button class="quantity-btn w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center" data-index="${index}" data-change="1">
-                            <i class="fas fa-plus text-xs"></i>
-                        </button>
-                    </div>
-                    <span class="font-bold text-red-600 text-sm">${formatPrice(itemTotal)}</span>
-                </div>
-            `;
-            orderItemsList.appendChild(itemElement);
-        });
-
-        // Add event listeners to new buttons
-        document.querySelectorAll('.remove-item-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const index = parseInt(this.getAttribute('data-index'));
-                removeFromOrder(index);
-            });
-        });
-
-        document.querySelectorAll('.quantity-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const index = parseInt(this.getAttribute('data-index'));
-                const change = parseInt(this.getAttribute('data-change'));
-                updateQuantity(index, change);
-            });
-        });
-    }
-
-    // Clear entire order
-    function clearOrder() {
-        if (orderItems.length > 0) {
-            if (confirm('Clear your order?')) {
-                orderItems = [];
-                renderOrderItems();
-                calculateTotals();
-                document.getElementById('order-notes').value = '';
-            }
-        }
-    }
-
-    // Process checkout
-    function processCheckout() {
-        if (orderItems.length === 0) {
-            alert('Please add items to your order before checking out.');
-            return;
-        }
-
-        const orderDetails = orderItems.map(item => 
-            `${item.quantity}x ${item.name} - ${formatPrice(item.price * item.quantity)}`
-        ).join('\n');
-
-        const notes = document.getElementById('order-notes').value;
-        const total = totalElement.textContent;
-        const orderTypeText = orderType === 'dine-in' ? 'Dine-in' : 'Takeout';
-
-        alert(`Order Submitted!\n\nOrder Type: ${orderTypeText}\n\nItems:\n${orderDetails}\n\nTotal: ${total}\n\nNotes: ${notes || 'None'}\n\nThank you for your order!`);
-
-        // Reset order
-        orderItems = [];
-        renderOrderItems();
-        calculateTotals();
-        document.getElementById('order-notes').value = '';
-    }
-
-    // Voice chat functions
-    function startVoiceAssistant() {
-        isListening = true;
-        voiceStatus.textContent = 'Status: Listening...';
-        voiceFeedback.textContent = 'Speak now. Try: "Add pork barbecue"';
-        voiceCommandDisplay.classList.remove('hidden');
-        voiceStartBtn.disabled = true;
-        voiceStopBtn.disabled = false;
-
-        // Simulate voice recognition
-        simulateVoiceRecognition();
-    }
-
-    function stopVoiceAssistant() {
-        isListening = false;
-        voiceStatus.textContent = 'Status: Stopped';
-        voiceFeedback.textContent = 'Voice assistant stopped';
-        voiceCommandDisplay.classList.add('hidden');
-        voiceStartBtn.disabled = false;
-        voiceStopBtn.disabled = true;
-    }
-
-    function showVoiceHelp() {
-        alert('Voice Commands:\n\n' +
-              '• "Add [item name]" - Add item to cart\n' +
-              '• "Show specials" - Show specials\n' +
-              '• "Clear order" - Clear all items\n' +
-              '• "Checkout" - Proceed to checkout\n' +
-              '• "Help" - Show this help');
-    }
-
-    function simulateVoiceRecognition() {
-        if (!isListening) return;
-
-        // Simulate random voice commands for demo
-        const commands = [
-            "Add pork barbecue",
-            "Show specials",
-            "Add iced caramel macchiato",
-            "Clear order",
-            "Show chicken items"
-        ];
-
-        // Randomly show a command after 2-4 seconds
-        setTimeout(() => {
-            if (!isListening) return;
-
-            const randomCommand = commands[Math.floor(Math.random() * commands.length)];
-            voiceTranscript.textContent = `"${randomCommand}"`;
-
-            // Process the command (simulated)
-            if (randomCommand.includes("Add pork barbecue")) {
-                setTimeout(() => {
-                    // Find and add pork barbecue
-                    const addBtns = document.querySelectorAll('.add-to-order-btn');
-                    addBtns.forEach(btn => {
-                        if (btn.dataset.name && btn.dataset.name.includes('Pork Barbeque')) {
-                            const name = btn.dataset.name;
-                            const price = btn.dataset.price;
-                            const category = btn.dataset.category;
-                            const image = btn.dataset.image;
-                            addToOrder(name, price, category, image);
-                        }
-                    });
-                    voiceFeedback.textContent = 'Added Pork Barbecue';
-                }, 800);
-            }
-
-            // Continue listening
-            simulateVoiceRecognition();
-        }, 2000 + Math.random() * 2000);
-    }
-
-    // Update carousel indicators
-    function updateCarouselIndicators() {
-        carouselIndicators.innerHTML = '';
-        for (let i = 0; i < totalSlides; i++) {
-            const dot = document.createElement('div');
-            dot.className = `carousel-dot ${i === currentSlide ? 'active' : ''}`;
-            dot.setAttribute('data-slide', i);
-            dot.addEventListener('click', () => goToSlide(i));
-            carouselIndicators.appendChild(dot);
-        }
-        
-        // Update arrow visibility
-        carouselPrev.style.opacity = currentSlide === 0 ? '0.5' : '1';
-        carouselPrev.style.cursor = currentSlide === 0 ? 'not-allowed' : 'pointer';
-        
-        carouselNext.style.opacity = currentSlide === totalSlides - 1 ? '0.5' : '1';
-        carouselNext.style.cursor = currentSlide === totalSlides - 1 ? 'not-allowed' : 'pointer';
-    }
-
-    // Go to specific slide
-    function goToSlide(slideIndex) {
-        if (slideIndex < 0 || slideIndex >= totalSlides) return;
-        
-        currentSlide = slideIndex;
-        
-        // Update carousel position
-        carouselSlides.style.transform = `translateX(-${currentSlide * 100}%)`;
-        
-        // Update indicators
-        updateCarouselIndicators();
-    }
-
-    // Next slide
-    function nextSlide() {
-        if (currentSlide < totalSlides - 1) {
-            goToSlide(currentSlide + 1);
-        }
-    }
-
-    // Previous slide
-    function prevSlide() {
-        if (currentSlide > 0) {
-            goToSlide(currentSlide - 1);
-        }
-    }
-
-    // Load all slides for a category and subcategory
-    async function loadProducts(category, subcategory) {
-        try {
-            // Update current category and subcategory
-            currentCategory = category;
-            currentSubcategory = subcategory;
-            
-            // Show loading state
-            carouselSlides.innerHTML = '<div class="flex items-center justify-center h-full" style="min-width: 100%"><div class="text-center"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div><p class="mt-4 text-gray-600">Loading products...</p></div></div>';
-
-            const response = await fetch('/customer/get-products', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({
-                    category: categoryMap[category] || category,
-                    subcategory: subcategory
-                })
-            });
-
-            const data = await response.json();
-            
-            // Store all slides
-            allSlides = data.slides || [];
-            totalSlides = data.totalSlides || 1;
-            currentSlide = 0;
-            
-            // Clear and rebuild carousel with ALL slides
-            carouselSlides.innerHTML = '';
-            
-            allSlides.forEach((slideHtml, index) => {
-                const slideContainer = document.createElement('div');
-                slideContainer.className = 'carousel-page';
-                slideContainer.style.minWidth = '100%';
-                slideContainer.innerHTML = slideHtml;
-                carouselSlides.appendChild(slideContainer);
-            });
-            
-            // Update carousel indicators
-            updateCarouselIndicators();
-            
-            // Reset to first slide
-            goToSlide(0);
-            
-            // Re-attach event listeners to all product buttons
-            reattachEventListeners();
-
-        } catch (error) {
-            console.error('Error loading products:', error);
-            carouselSlides.innerHTML = '<div class="flex items-center justify-center h-full" style="min-width: 100%"><div class="text-center text-red-600"><i class="fas fa-exclamation-triangle text-4xl mb-3"></i><p>Error loading products. Please try again.</p></div></div>';
-        }
-    }
-
-    // Re-attach event listeners to all product buttons in all slides
-    function reattachEventListeners() {
-        document.querySelectorAll('.add-to-order-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const name = this.getAttribute('data-name');
-                const price = this.getAttribute('data-price');
-                const category = this.getAttribute('data-category');
-                const image = this.getAttribute('data-image');
-                addToOrder(name, price, category, image);
-            });
-        });
-    }
-
-    // Set active upper navigation button
-    function setActiveUpperNav(activeBtn) {
-        upperNavBtns.forEach(btn => {
-            btn.classList.remove('active-tab');
-            btn.classList.remove('text-amber-900');
-            btn.classList.add('text-gray-800');
-        });
-
-        activeBtn.classList.add('active-tab', 'text-amber-900');
-        activeBtn.classList.remove('text-gray-800');
-    }
-
-    // Update lower navigation based on selected category
-    function updateLowerNav(category) {
-        const subcategories = navigationData[category] || [];
-
-        // Clear current lower navigation
-        lowerNav.innerHTML = '';
-
-        // Add new subcategory buttons
-        subcategories.forEach(subcategory => {
-            const button = document.createElement('button');
-            button.className = 'subcategory-btn bg-white text-amber-900 border border-amber-200 px-3 py-1.5 rounded-full font-medium hover:bg-amber-100 hover-lift transition-all duration-200 shadow-sm text-sm md:text-base';
-            button.textContent = subcategory;
-
-            // Add click event to load products for this subcategory
-            button.addEventListener('click', function() {
-                // Get the database subcategory value
-                const dbSubcategory = subcategoryMap[subcategory] || subcategory.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                
-                // Load products for this subcategory
-                loadProducts(category, dbSubcategory);
-
-                // Remove active state from all subcategory buttons
-                document.querySelectorAll('.subcategory-btn').forEach(b => {
-                    b.classList.remove('bg-amber-200', 'text-amber-900', 'border-amber-400');
-                    b.classList.add('bg-white', 'text-amber-900', 'border-amber-200');
-                });
-
-                // Add active state to clicked button
-                this.classList.remove('bg-white', 'border-amber-200');
-                this.classList.add('bg-amber-200', 'border-amber-400');
-            });
-
-            lowerNav.appendChild(button);
-        });
-
-        // Click the first subcategory by default
-        if (subcategories.length > 0) {
-            const firstBtn = lowerNav.querySelector('.subcategory-btn');
-            if (firstBtn) {
-                firstBtn.click();
-            }
-        }
-    }
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set Main Course as active
-        const mainCourseBtn = document.querySelector('[data-category="main-course"]');
-        setActiveUpperNav(mainCourseBtn);
-
-        // Add event listeners to upper navigation buttons
-        upperNavBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const category = this.getAttribute('data-category');
-                setActiveUpperNav(this);
-                updateLowerNav(category);
-            });
-        });
-
-        // Add event listeners to initial product buttons
-        reattachEventListeners();
-
-        // Add event listeners to carousel arrows
-        carouselPrev.addEventListener('click', prevSlide);
-        carouselNext.addEventListener('click', nextSlide);
-
-        // Add event listeners to order action buttons
-        clearOrderBtn.addEventListener('click', clearOrder);
-        checkoutBtn.addEventListener('click', processCheckout);
-
-        // Add event listeners to voice chat buttons
-        voiceStartBtn.addEventListener('click', startVoiceAssistant);
-        voiceStopBtn.addEventListener('click', stopVoiceAssistant);
-        voiceHelpBtn.addEventListener('click', showVoiceHelp);
-
-        // Add event listeners to order type buttons
-        dineInBtn.addEventListener('click', function() {
-            setOrderType('dine-in');
-        });
-
-        takeoutBtn.addEventListener('click', function() {
-            setOrderType('takeout');
-        });
-
-        // Initialize voice stop button as disabled
-        voiceStopBtn.disabled = true;
-
-        // Initialize calculations
-        calculateTotals();
-
-        // Initialize carousel
-        const initialSlides = document.querySelectorAll('.carousel-page');
-        totalSlides = initialSlides.length;
-        updateCarouselIndicators();
-        
-        // Store initial slides
-        initialSlides.forEach((slide, index) => {
-            allSlides[index] = slide.innerHTML;
-        });
-
-        // Prevent scrolling on the entire page
-        document.body.style.overflow = 'hidden';
-    });
-</script>
+    <!-- Include external JavaScript file -->
+    <script src="{{ asset('js/customer-order-area.js') }}"></script>
 </body>
 </html>
