@@ -242,7 +242,101 @@
             padding: 8px;
             color: #1f2937;
         }
+        
+        /* Modal Animation */
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
 
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-show {
+            animation: modalSlideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .modal-bg-show {
+            animation: modalFadeIn 0.3s ease-out forwards;
+        }
+        
+        /* Button pulse animation */
+        @keyframes pulse-once {
+            0% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+            }
+        }
+
+        .pulse-once {
+            animation: pulse-once 2s ease-out;
+        }
+
+        /* Item fade in animation */
+        .order-item-animate {
+            animation: itemFadeIn 0.5s ease-out forwards;
+        }
+
+        @keyframes itemFadeIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Shake animation for checkout button */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .animate-pulse {
+            animation: pulse 0.5s ease-in-out 3;
+        }
+
+        /* Success animation for confirmation */
+        @keyframes successScale {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .success-animation {
+            animation: successScale 0.3s ease-out;
+        }
+        
+        /* Empty cart shake */
+        @keyframes emptyCartShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .empty-cart-shake {
+            animation: emptyCartShake 0.5s ease-in-out;
+        }
         
     </style>
 </head>
