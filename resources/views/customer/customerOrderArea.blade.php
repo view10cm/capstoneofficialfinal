@@ -242,6 +242,8 @@
             padding: 8px;
             color: #1f2937;
         }
+
+        
     </style>
 </head>
 <body class="bg-gray-50 h-full">
