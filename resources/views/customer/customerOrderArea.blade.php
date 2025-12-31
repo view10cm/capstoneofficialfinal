@@ -281,72 +281,80 @@
             </div>
             
             <!-- Black Area: Menu Products (Carousel) -->
-            <div class="flex-1 p-4 overflow-hidden relative">
-                <!-- Carousel Container -->
-                <div class="carousel-container">
-                    <!-- Left Arrow -->
-                    <div class="carousel-arrow carousel-arrow-left" id="carousel-prev">
-                        <i class="fas fa-chevron-left"></i>
-                    </div>
-                    
-                    <!-- Right Arrow -->
-                    <div class="carousel-arrow carousel-arrow-right" id="carousel-next">
-                        <i class="fas fa-chevron-right"></i>
-                    </div>
-                    
-                    <!-- Carousel Slides Container -->
-                    <div id="carousel-slides" class="carousel-slide">
-                        <!-- Slide 1 (Main Course - Pork & Chicken) -->
-                        <div class="product-grid">
-                            <!-- Products will be loaded dynamically from database -->
-                            @foreach($products as $product)
-                                @if($product->menuCategory == 'main-course' && in_array($product->menuSubcategory, ['pork', 'chicken']))
-                                    <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
-                                        <!-- Product Image -->
-                                        <div class="product-image-container">
-                                            @if($product->menuImage)
-                                                <img src="{{ asset('storage/' . $product->menuImage) }}" 
-                                                     alt="{{ $product->menuName }}" 
-                                                     class="product-image">
-                                            @else
-                                                <div class="w-full h-full flex items-center justify-center bg-gray-200">
-                                                    <i class="fas fa-utensils text-gray-400 text-4xl"></i>
-                                                </div>
-                                            @endif
+<div class="flex-1 p-4 overflow-hidden relative">
+    <!-- Carousel Container -->
+    <div class="carousel-container">
+        <!-- Left Arrow -->
+        <div class="carousel-arrow carousel-arrow-left" id="carousel-prev">
+            <i class="fas fa-chevron-left"></i>
+        </div>
+        
+        <!-- Right Arrow -->
+        <div class="carousel-arrow carousel-arrow-right" id="carousel-next">
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        
+        <!-- Carousel Slides Container -->
+        <div id="carousel-slides" class="carousel-slide" style="display: flex;">
+            @foreach($slides as $slideIndex => $slideProducts)
+                <div class="carousel-page" data-page="{{ $slideIndex }}" style="min-width: 100%; transition: transform 0.5s ease;">
+                    <div class="product-grid">
+                        @forelse($slideProducts as $product)
+                            <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
+                                <!-- Product Image -->
+                                <div class="product-image-container">
+                                    @if($product->menuImage)
+                                        <img src="{{ asset('storage/' . $product->menuImage) }}" 
+                                             alt="{{ $product->menuName }}" 
+                                             class="product-image">
+                                    @else
+                                        <div class="w-full h-full flex items-center justify-center bg-gray-200">
+                                            <i class="fas fa-utensils text-gray-400 text-4xl"></i>
                                         </div>
-                                        
-                                        <div class="p-4 flex-1">
-                                            <div class="flex justify-between items-start mb-2">
-                                                <h3 class="text-lg font-bold text-gray-800 truncate">{{ $product->menuName }}</h3>
-                                                <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
-                                                    {{ ucfirst($product->menuSubcategory) }}
-                                                </span>
-                                            </div>
-                                            <div class="flex justify-between items-center mt-auto">
-                                                <span class="text-xl font-bold text-amber-700">₱{{ number_format($product->menuPrice, 2) }}</span>
-                                                <button class="add-to-order-btn bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm"
-                                                        data-name="{{ $product->menuName }}" 
-                                                        data-price="{{ $product->menuPrice }}" 
-                                                        data-category="{{ $product->menuCategory }}"
-                                                        data-image="{{ $product->menuImage ? asset('storage/' . $product->menuImage) : '' }}">
-                                                    <i class="fas fa-plus mr-1"></i> Add
-                                                </button>
-                                            </div>
-                                        </div>
+                                    @endif
+                                </div>
+                                
+                                <div class="p-4 flex-1">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h3 class="text-lg font-bold text-gray-800 truncate">{{ $product->menuName }}</h3>
+                                        <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
+                                            {{ ucfirst($product->menuSubcategory) }}
+                                        </span>
                                     </div>
-                                @endif
-                            @endforeach
-                        </div>
-                    </div>
-                    
-                    <!-- Carousel Indicators -->
-                    <div class="carousel-indicator">
-                        <div class="carousel-dot active" data-slide="0"></div>
-                        <div class="carousel-dot" data-slide="1"></div>
-                        <div class="carousel-dot" data-slide="2"></div>
+                                    <div class="flex justify-between items-center mt-auto">
+                                        <span class="text-xl font-bold text-amber-700">₱{{ number_format($product->menuPrice, 2) }}</span>
+                                        <button class="add-to-order-btn bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm"
+                                                data-name="{{ $product->menuName }}" 
+                                                data-price="{{ $product->menuPrice }}" 
+                                                data-category="{{ $product->menuCategory }}"
+                                                data-image="{{ $product->menuImage ? asset('storage/' . $product->menuImage) : '' }}">
+                                            <i class="fas fa-plus mr-1"></i> Add
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="col-span-3 row-span-2 flex items-center justify-center">
+                                <div class="text-center">
+                                    <i class="fas fa-utensils text-gray-300 text-6xl mb-4"></i>
+                                    <h3 class="text-lg font-semibold text-gray-500 mb-2">No products found</h3>
+                                    <p class="text-gray-400 text-sm">No items available in this category</p>
+                                </div>
+                            </div>
+                        @endforelse
                     </div>
                 </div>
-            </div>
+            @endforeach
+        </div>
+        
+        <!-- Carousel Indicators -->
+        <div class="carousel-indicator" id="carousel-indicators">
+            @for($i = 0; $i < count($slides); $i++)
+                <div class="carousel-dot {{ $i === 0 ? 'active' : '' }}" data-slide="{{ $i }}"></div>
+            @endfor
+        </div>
+    </div>
+</div>
             
             <!-- Yellow Area: Voice Chat -->
             <div class="bg-gradient-to-r from-amber-100 to-yellow-100 border-t border-amber-200 p-3">
@@ -555,7 +563,10 @@
 
     // Carousel state
     let currentSlide = 0;
-    const totalSlides = 3; // 3 slides for demonstration
+    let currentCategory = 'main-course';
+    let currentSubcategory = 'pork';
+    let totalSlides = 1;
+    let allSlides = []; // Store all slide HTML
 
     // Get DOM elements
     const upperNavBtns = document.querySelectorAll('.upper-nav-btn');
@@ -581,7 +592,9 @@
     const takeoutBtn = document.getElementById('takeout-btn');
     const orderTypeInfo = document.getElementById('order-type-info');
     const carouselSlides = document.getElementById('carousel-slides');
-    const carouselDots = document.querySelectorAll('.carousel-dot');
+    const carouselPrev = document.getElementById('carousel-prev');
+    const carouselNext = document.getElementById('carousel-next');
+    const carouselIndicators = document.getElementById('carousel-indicators');
 
     // Format price to Philippine Peso
     function formatPrice(price) {
@@ -892,11 +905,61 @@
         }, 2000 + Math.random() * 2000);
     }
 
-    // Fetch products for a specific category and subcategory
+    // Update carousel indicators
+    function updateCarouselIndicators() {
+        carouselIndicators.innerHTML = '';
+        for (let i = 0; i < totalSlides; i++) {
+            const dot = document.createElement('div');
+            dot.className = `carousel-dot ${i === currentSlide ? 'active' : ''}`;
+            dot.setAttribute('data-slide', i);
+            dot.addEventListener('click', () => goToSlide(i));
+            carouselIndicators.appendChild(dot);
+        }
+        
+        // Update arrow visibility
+        carouselPrev.style.opacity = currentSlide === 0 ? '0.5' : '1';
+        carouselPrev.style.cursor = currentSlide === 0 ? 'not-allowed' : 'pointer';
+        
+        carouselNext.style.opacity = currentSlide === totalSlides - 1 ? '0.5' : '1';
+        carouselNext.style.cursor = currentSlide === totalSlides - 1 ? 'not-allowed' : 'pointer';
+    }
+
+    // Go to specific slide
+    function goToSlide(slideIndex) {
+        if (slideIndex < 0 || slideIndex >= totalSlides) return;
+        
+        currentSlide = slideIndex;
+        
+        // Update carousel position
+        carouselSlides.style.transform = `translateX(-${currentSlide * 100}%)`;
+        
+        // Update indicators
+        updateCarouselIndicators();
+    }
+
+    // Next slide
+    function nextSlide() {
+        if (currentSlide < totalSlides - 1) {
+            goToSlide(currentSlide + 1);
+        }
+    }
+
+    // Previous slide
+    function prevSlide() {
+        if (currentSlide > 0) {
+            goToSlide(currentSlide - 1);
+        }
+    }
+
+    // Load all slides for a category and subcategory
     async function loadProducts(category, subcategory) {
         try {
+            // Update current category and subcategory
+            currentCategory = category;
+            currentSubcategory = subcategory;
+            
             // Show loading state
-            carouselSlides.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div><p class="mt-4 text-gray-600">Loading products...</p></div></div>';
+            carouselSlides.innerHTML = '<div class="flex items-center justify-center h-full" style="min-width: 100%"><div class="text-center"><div class="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div><p class="mt-4 text-gray-600">Loading products...</p></div></div>';
 
             const response = await fetch('/customer/get-products', {
                 method: 'POST',
@@ -911,25 +974,49 @@
             });
 
             const data = await response.json();
-
-            // Update the product grid with the new products
-            carouselSlides.innerHTML = data.html;
-
-            // Re-attach event listeners to new product buttons
-            document.querySelectorAll('.add-to-order-btn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const name = this.getAttribute('data-name');
-                    const price = this.getAttribute('data-price');
-                    const category = this.getAttribute('data-category');
-                    const image = this.getAttribute('data-image');
-                    addToOrder(name, price, category, image);
-                });
+            
+            // Store all slides
+            allSlides = data.slides || [];
+            totalSlides = data.totalSlides || 1;
+            currentSlide = 0;
+            
+            // Clear and rebuild carousel with ALL slides
+            carouselSlides.innerHTML = '';
+            
+            allSlides.forEach((slideHtml, index) => {
+                const slideContainer = document.createElement('div');
+                slideContainer.className = 'carousel-page';
+                slideContainer.style.minWidth = '100%';
+                slideContainer.innerHTML = slideHtml;
+                carouselSlides.appendChild(slideContainer);
             });
+            
+            // Update carousel indicators
+            updateCarouselIndicators();
+            
+            // Reset to first slide
+            goToSlide(0);
+            
+            // Re-attach event listeners to all product buttons
+            reattachEventListeners();
 
         } catch (error) {
             console.error('Error loading products:', error);
-            carouselSlides.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center text-red-600"><i class="fas fa-exclamation-triangle text-4xl mb-3"></i><p>Error loading products. Please try again.</p></div></div>';
+            carouselSlides.innerHTML = '<div class="flex items-center justify-center h-full" style="min-width: 100%"><div class="text-center text-red-600"><i class="fas fa-exclamation-triangle text-4xl mb-3"></i><p>Error loading products. Please try again.</p></div></div>';
         }
+    }
+
+    // Re-attach event listeners to all product buttons in all slides
+    function reattachEventListeners() {
+        document.querySelectorAll('.add-to-order-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const name = this.getAttribute('data-name');
+                const price = this.getAttribute('data-price');
+                const category = this.getAttribute('data-category');
+                const image = this.getAttribute('data-image');
+                addToOrder(name, price, category, image);
+            });
+        });
     }
 
     // Set active upper navigation button
@@ -1004,15 +1091,11 @@
         });
 
         // Add event listeners to initial product buttons
-        document.querySelectorAll('.add-to-order-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const name = this.getAttribute('data-name');
-                const price = this.getAttribute('data-price');
-                const category = this.getAttribute('data-category');
-                const image = this.getAttribute('data-image');
-                addToOrder(name, price, category, image);
-            });
-        });
+        reattachEventListeners();
+
+        // Add event listeners to carousel arrows
+        carouselPrev.addEventListener('click', prevSlide);
+        carouselNext.addEventListener('click', nextSlide);
 
         // Add event listeners to order action buttons
         clearOrderBtn.addEventListener('click', clearOrder);
@@ -1037,6 +1120,16 @@
 
         // Initialize calculations
         calculateTotals();
+
+        // Initialize carousel
+        const initialSlides = document.querySelectorAll('.carousel-page');
+        totalSlides = initialSlides.length;
+        updateCarouselIndicators();
+        
+        // Store initial slides
+        initialSlides.forEach((slide, index) => {
+            allSlides[index] = slide.innerHTML;
+        });
 
         // Prevent scrolling on the entire page
         document.body.style.overflow = 'hidden';

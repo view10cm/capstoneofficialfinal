@@ -24,4 +24,8 @@ Route::middleware(['auth', 'customer'])->group(function () {
     // AJAX route for filtering products
     Route::post('/customer/get-products', [CustomerController::class, 'getProductsByCategory'])
         ->name('customer.getProducts');
+
+    // AJAX route for getting specific slide content
+    Route::post('/customer/get-slide', [CustomerController::class, 'getSlideContent'])
+        ->name('customer.getSlide');
 });
