@@ -530,7 +530,7 @@ function closePaymentQueueModal() {
 }
 
 // Confirm payment queue and redirect
-function confirmPaymentQueue() {
+async function confirmPaymentQueue() {
     // Add animation to confirm button
     const confirmBtn = document.getElementById('confirm-payment-btn');
     confirmBtn.classList.add('success-animation');
@@ -545,36 +545,78 @@ function confirmPaymentQueue() {
         return;
     }
     
-    // Store order data before clearing
+    // Get order notes
+    const orderNotes = document.getElementById('order-notes').value;
+    
+    // Prepare order data for each item
     const orderData = {
-        items: [...orderItems],
+        paymentNumber: parseInt(selectedPaymentNumber),
         orderType: orderType,
-        paymentMethod: paymentMethod,
-        total: calculateOrderTotal(),
-        paymentNumber: selectedPaymentNumber,
-        timestamp: new Date().toISOString()
+        orderPaymentMethod: paymentMethod,
+        orderNotes: orderNotes,
+        items: []
     };
     
-    // You can save this to localStorage or send to server here
-    localStorage.setItem('lastOrder', JSON.stringify(orderData));
+    // Calculate totals for each item
+    orderItems.forEach(item => {
+        const itemTotalPrice = item.price * item.quantity;
+        const itemTax = itemTotalPrice * TAX_RATE;
+        
+        orderData.items.push({
+            productName: item.name,
+            quantity: item.quantity,
+            totalProductPrice: itemTotalPrice,
+            totalProductTax: itemTax
+        });
+    });
     
-    setTimeout(() => {
-        // Close modal
-        closePaymentQueueModal();
+    try {
+        // Send order data to server
+        const response = await fetch('/customer/save-order', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        const result = await response.json();
         
-        // Clear order
-        orderItems = [];
-        renderOrderItems();
-        calculateTotals();
-        document.getElementById('order-notes').value = '';
-        
-        // Redirect to landing page after a brief delay
-        setTimeout(() => {
-            window.location.href = '/customer/home';
-        }, 500);
-        
+        if (result.success) {
+            // Store order data in localStorage
+            localStorage.setItem('lastOrder', JSON.stringify({
+                ...orderData,
+                orderID: result.orderID,
+                timestamp: new Date().toISOString()
+            }));
+            
+            setTimeout(() => {
+                // Close modal
+                closePaymentQueueModal();
+                
+                // Clear order
+                orderItems = [];
+                renderOrderItems();
+                calculateTotals();
+                document.getElementById('order-notes').value = '';
+                
+                // Redirect to landing page after a brief delay
+                setTimeout(() => {
+                    window.location.href = '/customer/home';
+                }, 500);
+                
+                confirmBtn.classList.remove('success-animation');
+            }, 300);
+        } else {
+            alert('Error saving order: ' + result.message);
+            confirmBtn.classList.remove('success-animation');
+        }
+    } catch (error) {
+        console.error('Error saving order:', error);
+        alert('Error saving order. Please try again.');
         confirmBtn.classList.remove('success-animation');
-    }, 300);
+    }
 }
 
 // Confirm order with animation

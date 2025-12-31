@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Admin\MenuProduct;
+use App\Models\OrderToStaffTransaction;
 
 class CustomerController extends Controller
 {
@@ -183,4 +184,56 @@ class CustomerController extends Controller
             'totalSlides' => $totalSlides
         ]);
     }
+
+    /**
+     * Save order to staff transaction table
+     */
+public function saveOrderToStaffTransaction(Request $request)
+{
+    // Validate the request
+    $validated = $request->validate([
+        'paymentNumber' => 'required|integer|min:1|max:20',
+        'orderType' => 'required|in:dine-in,takeout',
+        'orderPaymentMethod' => 'required|in:cash,electronic',
+        'orderNotes' => 'nullable|string',
+        'items' => 'required|array|min:1',
+        'items.*.productName' => 'required|string',
+        'items.*.quantity' => 'required|integer|min:1',
+        'items.*.totalProductPrice' => 'required|numeric|min:0',
+        'items.*.totalProductTax' => 'required|numeric|min:0',
+    ]);
+    
+    try {
+        // Generate order ID (use same ID for all items in this order)
+        $orderID = OrderToStaffTransaction::generateOrderID();
+        
+        // Save each item as a separate record with SAME orderID
+        foreach ($validated['items'] as $item) {
+            $transaction = new OrderToStaffTransaction();
+            $transaction->orderID = $orderID; // Same orderID for all items
+            $transaction->paymentNumber = $validated['paymentNumber'];
+            $transaction->orderType = $validated['orderType'];
+            $transaction->orderPaymentMethod = $validated['orderPaymentMethod'];
+            $transaction->orderProductName = $item['productName'];
+            $transaction->orderQuantity = $item['quantity'];
+            $transaction->orderTotalProductPrice = $item['totalProductPrice'];
+            $transaction->orderTotalProductTax = $item['totalProductTax'];
+            $transaction->orderNotes = $validated['orderNotes'] ?? null;
+            $transaction->orderCreateDateAndTime = now();
+            $transaction->save();
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Order saved successfully!',
+            'orderID' => $orderID
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to save order: ' . $e->getMessage()
+        ], 500);
+    }
+}
 }
