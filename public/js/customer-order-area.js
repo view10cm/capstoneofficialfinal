@@ -387,6 +387,102 @@ function createPaymentQueueModal() {
     });
 }
 
+// Create thank you modal
+function createThankYouModal() {
+    // Check if modal already exists
+    if (document.getElementById('thank-you-modal')) return;
+
+    const modalHTML = `
+        <div id="thank-you-modal" class="fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50 hidden">
+            <div id="thank-you-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 opacity-0 transform scale-95">
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-amber-600 to-amber-500 p-6 rounded-t-xl">
+                    <div class="flex items-center justify-center">
+                        <div class="bg-white p-3 rounded-full mr-3">
+                            <i class="fas fa-mug-hot text-amber-600 text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">
+                                Caffé Arabica
+                            </h2>
+                            <p class="text-amber-100 text-sm mt-1">Thank You for Your Order!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="p-6 text-center">
+                    <!-- Success Icon -->
+                    <div class="flex justify-center mb-4">
+                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-pulse">
+                            <i class="fas fa-check-circle text-green-600 text-4xl"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Message -->
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Thank you for Ordering!</h3>
+                        <p class="text-gray-600 mb-4">
+                            Please wait for your payment at the counter.
+                        </p>
+                        
+                        <!-- Payment Number Display -->
+                        <div id="thank-you-payment-number" class="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-4">
+                            <p class="text-sm text-amber-700 mb-1">Your Payment Number:</p>
+                            <div class="text-3xl font-bold text-amber-800 tracking-wider" id="thank-you-display-number">
+                                <!-- Selected number will be displayed here -->
+                            </div>
+                            <p class="text-xs text-amber-600 mt-2">
+                                <i class="fas fa-info-circle mr-1"></i> Present this number at the payment counter
+                            </p>
+                        </div>
+                        
+                        <!-- Order Summary -->
+                        <div class="border-t border-gray-200 pt-4 mt-4">
+                            <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                <span>Order ID:</span>
+                                <span id="thank-you-order-id">#0000</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                <span>Order Type:</span>
+                                <span id="thank-you-order-type">Dine-in</span>
+                            </div>
+                            <div class="flex justify-between text-sm text-gray-600">
+                                <span>Total Amount:</span>
+                                <span id="thank-you-total">₱0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Countdown Timer -->
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600 mb-2">This message will close in:</p>
+                        <div class="flex justify-center items-center">
+                            <div class="text-2xl font-bold text-amber-600" id="countdown-timer">5</div>
+                            <span class="ml-1 text-gray-600">seconds</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+                        <div id="countdown-progress" class="bg-amber-500 h-1.5 rounded-full" style="width: 100%"></div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="border-t border-gray-200 p-4 bg-gray-50 rounded-b-xl">
+                    <p class="text-xs text-gray-500 text-center">
+                        <i class="fas fa-clock mr-1"></i> Your order is being prepared now
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
 // Show checkout modal with animation
 function showCheckoutModal() {
     if (orderItems.length === 0) {
@@ -529,6 +625,97 @@ function closePaymentQueueModal() {
     }, 300);
 }
 
+// Show thank you modal
+function showThankYouModal(paymentNumber, orderID) {
+    // Create modal if it doesn't exist
+    if (!document.getElementById('thank-you-modal')) {
+        createThankYouModal();
+    }
+    
+    // Update modal content
+    document.getElementById('thank-you-display-number').textContent = `#${paymentNumber}`;
+    document.getElementById('thank-you-order-id').textContent = orderID ? `#${orderID}` : '#0000';
+    document.getElementById('thank-you-order-type').textContent = orderType === 'dine-in' ? 'Dine-in' : 'Takeout';
+    document.getElementById('thank-you-total').textContent = totalElement.textContent;
+    
+    // Show modal
+    const thankYouModal = document.getElementById('thank-you-modal');
+    const thankYouModalContent = document.getElementById('thank-you-modal-content');
+    
+    thankYouModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Trigger animation
+    setTimeout(() => {
+        thankYouModal.classList.add('modal-bg-show');
+        thankYouModal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        
+        thankYouModalContent.classList.add('modal-show');
+        thankYouModalContent.style.opacity = '1';
+        thankYouModalContent.style.transform = 'scale(1)';
+    }, 10);
+    
+    // Start countdown
+    let countdown = 5;
+    const countdownElement = document.getElementById('countdown-timer');
+    const progressBar = document.getElementById('countdown-progress');
+    
+    // Update countdown every second
+    const countdownInterval = setInterval(() => {
+        countdown--;
+        countdownElement.textContent = countdown;
+        
+        // Update progress bar (100% to 0%)
+        const progressWidth = (countdown / 5) * 100;
+        progressBar.style.width = `${progressWidth}%`;
+        
+        if (countdown <= 0) {
+            clearInterval(countdownInterval);
+            closeThankYouModal();
+        }
+    }, 1000);
+}
+
+// Close thank you modal
+function closeThankYouModal() {
+    const thankYouModal = document.getElementById('thank-you-modal');
+    const thankYouModalContent = document.getElementById('thank-you-modal-content');
+    
+    if (!thankYouModal) return;
+    
+    // Reverse animation
+    thankYouModalContent.classList.remove('modal-show');
+    thankYouModalContent.style.opacity = '0';
+    thankYouModalContent.style.transform = 'scale(0.95)';
+    
+    thankYouModal.classList.remove('modal-bg-show');
+    thankYouModal.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+    
+    // Hide modal after animation completes
+    setTimeout(() => {
+        thankYouModal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        
+        // Reset modal content styles
+        thankYouModalContent.classList.remove('modal-show');
+        thankYouModalContent.style.opacity = '';
+        thankYouModalContent.style.transform = '';
+        thankYouModal.style.backgroundColor = '';
+        
+        // Clear order
+        orderItems = [];
+        renderOrderItems();
+        calculateTotals();
+        document.getElementById('order-notes').value = '';
+        
+        // Redirect to landing page after closing
+        setTimeout(() => {
+            window.location.href = '/customer/home';
+        }, 500);
+        
+    }, 300);
+}
+
 // Confirm payment queue and redirect
 async function confirmPaymentQueue() {
     // Add animation to confirm button
@@ -592,19 +779,13 @@ async function confirmPaymentQueue() {
             }));
             
             setTimeout(() => {
-                // Close modal
+                // Close payment queue modal
                 closePaymentQueueModal();
                 
-                // Clear order
-                orderItems = [];
-                renderOrderItems();
-                calculateTotals();
-                document.getElementById('order-notes').value = '';
-                
-                // Redirect to landing page after a brief delay
+                // Show thank you modal after a brief delay
                 setTimeout(() => {
-                    window.location.href = '/customer/home';
-                }, 500);
+                    showThankYouModal(selectedPaymentNumber, result.orderID);
+                }, 300);
                 
                 confirmBtn.classList.remove('success-animation');
             }, 300);
@@ -1223,6 +1404,8 @@ function initializeApp() {
     
     // Create payment queue modal
     createPaymentQueueModal();
+    
+    // Create thank you modal (it will be created dynamically when needed)
     
     // Initialize event listeners
     initializeEventListeners();
