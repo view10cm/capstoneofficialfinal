@@ -54,6 +54,9 @@ let voiceHelpBtn, voiceStatus, voiceFeedback, voiceCommandDisplay, voiceTranscri
 let orderTypeDropdown, cashBtn, electronicBtn, orderTypeInfo, paymentInfo;
 let carouselSlides, carouselPrev, carouselNext, carouselIndicators;
 
+// Modal elements
+let checkoutModal, confirmOrderBtn, cancelOrderBtn, orderDetailsList;
+
 // Initialize DOM elements
 function initializeDOMElements() {
     upperNavBtns = document.querySelectorAll('.upper-nav-btn');
@@ -83,6 +86,209 @@ function initializeDOMElements() {
     carouselPrev = document.getElementById('carousel-prev');
     carouselNext = document.getElementById('carousel-next');
     carouselIndicators = document.getElementById('carousel-indicators');
+}
+
+// Create checkout modal
+function createCheckoutModal() {
+    // Check if modal already exists
+    if (document.getElementById('checkout-modal')) return;
+
+    const modalHTML = `
+        <div id="checkout-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-green-600 to-green-500 p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">
+                                <i class="fas fa-shopping-cart mr-3"></i>Order Confirmation
+                            </h2>
+                            <p class="text-green-100 text-sm mt-1">Please review your order before confirming</p>
+                        </div>
+                        <button id="close-modal" class="text-white hover:text-green-200 text-xl">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="flex-1 p-6 overflow-y-auto">
+                    <!-- Order Type & Payment -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                            <h4 class="font-bold text-gray-800 text-sm mb-1 flex items-center">
+                                <i class="fas fa-store mr-2 text-blue-500"></i> Order Type
+                            </h4>
+                            <p id="modal-order-type" class="text-gray-700 font-medium">Dine-in</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+                            <h4 class="font-bold text-gray-800 text-sm mb-1 flex items-center">
+                                <i class="fas fa-credit-card mr-2 text-green-500"></i> Payment Method
+                            </h4>
+                            <p id="modal-payment-method" class="text-gray-700 font-medium">Cash</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Order Items -->
+                    <div class="mb-6">
+                        <h3 class="font-bold text-gray-800 text-lg mb-3 flex items-center">
+                            <i class="fas fa-utensils mr-2 text-amber-600"></i> Order Items
+                        </h3>
+                        <div id="order-details-list" class="space-y-3 max-h-60 overflow-y-auto p-2">
+                            <!-- Order items will be dynamically added here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Order Notes -->
+                    <div class="mb-6">
+                        <h4 class="font-bold text-gray-800 text-sm mb-2 flex items-center">
+                            <i class="fas fa-sticky-note mr-2 text-gray-500"></i> Order Notes
+                        </h4>
+                        <div id="modal-order-notes" class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-gray-700 text-sm">
+                            <!-- Order notes will be displayed here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Order Totals -->
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-gray-600 text-sm">
+                                <span>Subtotal:</span>
+                                <span id="modal-subtotal">₱0.00</span>
+                            </div>
+                            <div class="flex justify-between text-gray-600 text-sm">
+                                <span>Tax (12%):</span>
+                                <span id="modal-tax">₱0.00</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-gray-800 pt-2 border-t border-gray-300 text-lg">
+                                <span>Total:</span>
+                                <span id="modal-total">₱0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="border-t border-gray-200 p-6 bg-gray-50">
+                    <div class="flex flex-col md:flex-row gap-3">
+                        <button id="cancel-order-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-lg font-bold transition-colors duration-200 flex items-center justify-center">
+                            <i class="fas fa-times mr-2"></i> Cancel
+                        </button>
+                        <button id="confirm-order-btn" class="flex-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center hover-lift">
+                            <i class="fas fa-check-circle mr-2"></i> Confirm Order
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 text-center mt-4">
+                        <i class="fas fa-shield-alt mr-1"></i> Your order is secure and will be processed immediately
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Get modal elements
+    checkoutModal = document.getElementById('checkout-modal');
+    confirmOrderBtn = document.getElementById('confirm-order-btn');
+    cancelOrderBtn = document.getElementById('cancel-order-btn');
+    orderDetailsList = document.getElementById('order-details-list');
+    
+    // Add event listeners to modal
+    document.getElementById('close-modal').addEventListener('click', closeCheckoutModal);
+    cancelOrderBtn.addEventListener('click', closeCheckoutModal);
+    confirmOrderBtn.addEventListener('click', confirmOrder);
+    
+    // Close modal when clicking outside
+    checkoutModal.addEventListener('click', function(e) {
+        if (e.target === checkoutModal) {
+            closeCheckoutModal();
+        }
+    });
+}
+
+// Show checkout modal
+function showCheckoutModal() {
+    if (orderItems.length === 0) {
+        alert('Please add items to your order before checking out.');
+        return;
+    }
+
+    // Update modal content
+    updateModalContent();
+    
+    // Show modal
+    checkoutModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+// Close checkout modal
+function closeCheckoutModal() {
+    checkoutModal.classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+// Update modal content
+function updateModalContent() {
+    // Update order type
+    const orderTypeText = orderType === 'dine-in' ? 'Dine-in' : 'Takeout';
+    document.getElementById('modal-order-type').textContent = orderTypeText;
+    
+    // Update payment method
+    const paymentMethodText = paymentMethod === 'cash' ? 'Cash' : 'Electronic Payment';
+    document.getElementById('modal-payment-method').textContent = paymentMethodText;
+    
+    // Update order items
+    orderDetailsList.innerHTML = '';
+    orderItems.forEach(item => {
+        const itemTotal = item.price * item.quantity;
+        const itemElement = document.createElement('div');
+        itemElement.className = 'flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100';
+        itemElement.innerHTML = `
+            <div class="flex-1">
+                <h4 class="font-bold text-gray-800 text-sm">${item.name}</h4>
+                <p class="text-xs text-gray-500">${item.category} • ${item.quantity}x</p>
+            </div>
+            <span class="font-bold text-green-600 text-sm">${formatPrice(itemTotal)}</span>
+        `;
+        orderDetailsList.appendChild(itemElement);
+    });
+    
+    // Update order notes
+    const notes = document.getElementById('order-notes').value;
+    document.getElementById('modal-order-notes').textContent = notes || 'No special instructions';
+    
+    // Update totals
+    let subtotal = 0;
+    orderItems.forEach(item => {
+        subtotal += item.price * item.quantity;
+    });
+    const tax = subtotal * TAX_RATE;
+    const total = subtotal + tax;
+    
+    document.getElementById('modal-subtotal').textContent = formatPrice(subtotal);
+    document.getElementById('modal-tax').textContent = formatPrice(tax);
+    document.getElementById('modal-total').textContent = formatPrice(total);
+}
+
+// Confirm order
+function confirmOrder() {
+    const orderTypeText = orderType === 'dine-in' ? 'Dine-in' : 'Takeout';
+    const paymentMethodText = paymentMethod === 'cash' ? 'Cash' : 'Electronic Payment';
+    const notes = document.getElementById('order-notes').value;
+    
+    // Show success message
+    alert(`Order Confirmed!\n\nThank you for your order!\n\nOrder Type: ${orderTypeText}\nPayment Method: ${paymentMethodText}\n\nYour order is being prepared and will be ready soon.`);
+    
+    // Close modal
+    closeCheckoutModal();
+    
+    // Reset order
+    orderItems = [];
+    renderOrderItems();
+    calculateTotals();
+    document.getElementById('order-notes').value = '';
 }
 
 // Format price to Philippine Peso
@@ -316,31 +522,6 @@ function clearOrder() {
             document.getElementById('order-notes').value = '';
         }
     }
-}
-
-// Process checkout
-function processCheckout() {
-    if (orderItems.length === 0) {
-        alert('Please add items to your order before checking out.');
-        return;
-    }
-
-    const orderDetails = orderItems.map(item => 
-        `${item.quantity}x ${item.name} - ${formatPrice(item.price * item.quantity)}`
-    ).join('\n');
-
-    const notes = document.getElementById('order-notes').value;
-    const total = totalElement.textContent;
-    const orderTypeText = orderType === 'dine-in' ? 'Dine-in' : 'Takeout';
-    const paymentMethodText = paymentMethod === 'cash' ? 'Cash' : 'Electronic Payment';
-
-    alert(`Order Submitted!\n\nOrder Type: ${orderTypeText}\nPayment Method: ${paymentMethodText}\n\nItems:\n${orderDetails}\n\nTotal: ${total}\n\nNotes: ${notes || 'None'}\n\nThank you for your order!`);
-
-    // Reset order
-    orderItems = [];
-    renderOrderItems();
-    calculateTotals();
-    document.getElementById('order-notes').value = '';
 }
 
 // Voice chat functions
@@ -624,7 +805,7 @@ function initializeEventListeners() {
 
     // Add event listeners to order action buttons
     clearOrderBtn.addEventListener('click', clearOrder);
-    checkoutBtn.addEventListener('click', processCheckout);
+    checkoutBtn.addEventListener('click', showCheckoutModal);
 
     // Add event listeners to voice chat buttons
     voiceStartBtn.addEventListener('click', startVoiceAssistant);
@@ -636,6 +817,9 @@ function initializeEventListeners() {
 function initializeApp() {
     // Initialize DOM elements
     initializeDOMElements();
+    
+    // Create checkout modal
+    createCheckoutModal();
     
     // Initialize event listeners
     initializeEventListeners();
