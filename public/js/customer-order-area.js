@@ -248,13 +248,42 @@ function createPaymentQueueModal() {
                     
                     <!-- Message -->
                     <div class="text-center mb-6">
-                        <h3 class="text-xl font-bold text-gray-800 mb-3">Order Sent to Payment Queue</h3>
+                        <h3 class="text-xl font-bold text-gray-800 mb-2">Order Sent to Payment Queue</h3>
                         <p class="text-gray-600 mb-4">
                             Please collect your payment number beside the Order System.
                         </p>
                         
+                        <!-- Payment Number Dropdown -->
+                        <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
+                            <label for="payment-number-dropdown" class="block text-sm font-medium text-gray-700 mb-2 text-center">
+                                <i class="fas fa-ticket-alt mr-1"></i> Select Your Payment Number
+                            </label>
+                            <div class="relative">
+                                <select id="payment-number-dropdown" class="w-full bg-white border border-blue-300 rounded-lg py-2.5 px-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none text-center text-lg font-bold">
+                                    <option value="">-- Select a number --</option>
+                                    <!-- Numbers 1-20 will be dynamically added -->
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2 text-center">
+                                <i class="fas fa-info-circle mr-1"></i> Present this number at the payment counter
+                            </p>
+                        </div>
+                        
+                        <!-- Selected Payment Number Display -->
+                        <div id="selected-number-display" class="hidden mb-4">
+                            <div class="bg-green-50 border-2 border-green-300 rounded-lg p-3">
+                                <p class="text-sm text-gray-600 mb-1 text-center">Your Selected Payment Number:</p>
+                                <div class="text-3xl font-bold text-green-700 tracking-wider text-center" id="display-selected-number">
+                                    <!-- Selected number will be displayed here -->
+                                </div>
+                            </div>
+                        </div>
+                        
                         <!-- Estimated Wait Time -->
-                        <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-4">
+                        <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
                             <div class="flex items-center justify-center">
                                 <i class="fas fa-clock text-amber-500 mr-2"></i>
                                 <span class="text-sm text-amber-700">
@@ -283,11 +312,11 @@ function createPaymentQueueModal() {
                 
                 <!-- Modal Footer -->
                 <div class="border-t border-gray-200 p-6 bg-gray-50 rounded-b-xl">
-                    <button id="confirm-payment-btn" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center hover-lift">
+                    <button id="confirm-payment-btn" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center hover-lift disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                         <i class="fas fa-check-circle mr-2"></i> Confirm
                     </button>
                     <p class="text-xs text-gray-500 text-center mt-4">
-                        <i class="fas fa-info-circle mr-1"></i> Your order is now being prepared
+                        <i class="fas fa-info-circle mr-1"></i> Select a payment number to continue
                     </p>
                 </div>
             </div>
@@ -301,6 +330,50 @@ function createPaymentQueueModal() {
     const paymentQueueModal = document.getElementById('payment-queue-modal');
     const paymentQueueModalContent = document.getElementById('payment-queue-modal-content');
     const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
+    const paymentNumberDropdown = document.getElementById('payment-number-dropdown');
+    const selectedNumberDisplay = document.getElementById('selected-number-display');
+    const displaySelectedNumber = document.getElementById('display-selected-number');
+    
+    // Populate dropdown with numbers 1-20
+    for (let i = 1; i <= 20; i++) {
+        const option = document.createElement('option');
+        option.value = i;
+        option.textContent = `#${i}`;
+        paymentNumberDropdown.appendChild(option);
+    }
+    
+    // Add event listener to dropdown
+    paymentNumberDropdown.addEventListener('change', function() {
+        const selectedValue = this.value;
+        const confirmBtn = document.getElementById('confirm-payment-btn');
+        
+        if (selectedValue) {
+            // Show selected number display
+            selectedNumberDisplay.classList.remove('hidden');
+            displaySelectedNumber.textContent = `#${selectedValue}`;
+            
+            // Enable confirm button
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('disabled:opacity-50', 'disabled:cursor-not-allowed');
+            
+            // Update instruction text
+            document.querySelector('#payment-queue-modal-content .text-xs.text-gray-500.text-center').innerHTML = `
+                <i class="fas fa-info-circle mr-1"></i> Your order is now being prepared
+            `;
+        } else {
+            // Hide selected number display
+            selectedNumberDisplay.classList.add('hidden');
+            
+            // Disable confirm button
+            confirmBtn.disabled = true;
+            confirmBtn.classList.add('disabled:opacity-50', 'disabled:cursor-not-allowed');
+            
+            // Reset instruction text
+            document.querySelector('#payment-queue-modal-content .text-xs.text-gray-500.text-center').innerHTML = `
+                <i class="fas fa-info-circle mr-1"></i> Select a payment number to continue
+            `;
+        }
+    });
     
     // Add event listeners
     document.getElementById('close-payment-modal').addEventListener('click', closePaymentQueueModal);
@@ -394,6 +467,24 @@ function showPaymentQueueModal() {
     document.getElementById('queue-order-type').textContent = orderType === 'dine-in' ? 'Dine-in' : 'Takeout';
     document.getElementById('queue-payment-method').textContent = paymentMethod === 'cash' ? 'Cash' : 'Electronic Payment';
     
+    // Reset dropdown and display
+    const paymentNumberDropdown = document.getElementById('payment-number-dropdown');
+    const selectedNumberDisplay = document.getElementById('selected-number-display');
+    const confirmBtn = document.getElementById('confirm-payment-btn');
+    
+    paymentNumberDropdown.value = '';
+    selectedNumberDisplay.classList.add('hidden');
+    confirmBtn.disabled = true;
+    confirmBtn.classList.add('disabled:opacity-50', 'disabled:cursor-not-allowed');
+    
+    // Reset instruction text
+    const instructionText = document.querySelector('#payment-queue-modal-content .text-xs.text-gray-500.text-center');
+    if (instructionText) {
+        instructionText.innerHTML = `
+            <i class="fas fa-info-circle mr-1"></i> Select a payment number to continue
+        `;
+    }
+    
     // Show modal
     const paymentQueueModal = document.getElementById('payment-queue-modal');
     const paymentQueueModalContent = document.getElementById('payment-queue-modal-content');
@@ -444,12 +535,23 @@ function confirmPaymentQueue() {
     const confirmBtn = document.getElementById('confirm-payment-btn');
     confirmBtn.classList.add('success-animation');
     
+    // Get selected payment number
+    const paymentNumberDropdown = document.getElementById('payment-number-dropdown');
+    const selectedPaymentNumber = paymentNumberDropdown.value;
+    
+    if (!selectedPaymentNumber) {
+        alert('Please select a payment number before confirming.');
+        confirmBtn.classList.remove('success-animation');
+        return;
+    }
+    
     // Store order data before clearing
     const orderData = {
         items: [...orderItems],
         orderType: orderType,
         paymentMethod: paymentMethod,
         total: calculateOrderTotal(),
+        paymentNumber: selectedPaymentNumber,
         timestamp: new Date().toISOString()
     };
     
