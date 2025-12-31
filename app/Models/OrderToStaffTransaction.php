@@ -23,6 +23,7 @@ class OrderToStaffTransaction extends Model
         'orderQuantity',
         'orderTotalProductPrice',
         'orderTotalProductTax',
+        'orderProductStatus',
         'orderNotes',
         'orderCreateDateAndTime'
     ];

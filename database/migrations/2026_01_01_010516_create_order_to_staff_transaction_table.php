@@ -23,6 +23,7 @@ class CreateOrderToStaffTransactionTable extends Migration
             $table->integer('orderQuantity');
             $table->decimal('orderTotalProductPrice', 10, 2);
             $table->decimal('orderTotalProductTax', 10, 2);
+            $table->enum('orderProductStatus', ['For Payment', 'In Progress', 'Completed', 'To Follow-up', 'Product Voided'])->default('For Payment');
             $table->text('orderNotes')->nullable();
             $table->timestamp('orderCreateDateAndTime')->useCurrent();
             
@@ -30,6 +31,7 @@ class CreateOrderToStaffTransactionTable extends Migration
             $table->index('orderID');
             $table->index('paymentNumber');
             $table->index('orderCreateDateAndTime');
+            $table->index('orderProductStatus');
         });
 
         // Add check constraint for paymentNumber (1-20)
