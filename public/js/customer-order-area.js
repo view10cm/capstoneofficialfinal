@@ -209,6 +209,111 @@ function createCheckoutModal() {
     });
 }
 
+// Create payment queue modal
+function createPaymentQueueModal() {
+    // Check if modal already exists
+    if (document.getElementById('payment-queue-modal')) return;
+
+    const modalHTML = `
+        <div id="payment-queue-modal" class="fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50 hidden">
+            <div id="payment-queue-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 opacity-0 transform scale-95">
+                <!-- Modal Header -->
+                <div class="bg-gradient-to-r from-blue-600 to-blue-500 p-6 rounded-t-xl">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="bg-white p-2 rounded-full mr-3">
+                                <i class="fas fa-receipt text-blue-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-white">
+                                    Payment Queue
+                                </h2>
+                                <p class="text-blue-100 text-sm mt-1">Order Processing</p>
+                            </div>
+                        </div>
+                        <button id="close-payment-modal" class="text-white hover:text-blue-200 text-lg transition-transform hover:rotate-90 duration-300">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="p-6">
+                    <!-- Success Icon -->
+                    <div class="flex justify-center mb-4">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600 text-3xl"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Message -->
+                    <div class="text-center mb-6">
+                        <h3 class="text-xl font-bold text-gray-800 mb-3">Order Sent to Payment Queue</h3>
+                        <p class="text-gray-600 mb-4">
+                            Please collect your payment number beside the Order System.
+                        </p>
+                        
+                        <!-- Estimated Wait Time -->
+                        <div class="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-4">
+                            <div class="flex items-center justify-center">
+                                <i class="fas fa-clock text-amber-500 mr-2"></i>
+                                <span class="text-sm text-amber-700">
+                                    Estimated wait time: <span class="font-bold">5-10 minutes</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Order Summary -->
+                    <div class="border-t border-gray-200 pt-4 mt-4">
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Total Items:</span>
+                            <span id="queue-item-count">0</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <span>Order Type:</span>
+                            <span id="queue-order-type">Dine-in</span>
+                        </div>
+                        <div class="flex justify-between text-sm text-gray-600">
+                            <span>Payment Method:</span>
+                            <span id="queue-payment-method">Cash</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="border-t border-gray-200 p-6 bg-gray-50 rounded-b-xl">
+                    <button id="confirm-payment-btn" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center hover-lift">
+                        <i class="fas fa-check-circle mr-2"></i> Confirm
+                    </button>
+                    <p class="text-xs text-gray-500 text-center mt-4">
+                        <i class="fas fa-info-circle mr-1"></i> Your order is now being prepared
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add modal to body
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Get modal elements
+    const paymentQueueModal = document.getElementById('payment-queue-modal');
+    const paymentQueueModalContent = document.getElementById('payment-queue-modal-content');
+    const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
+    
+    // Add event listeners
+    document.getElementById('close-payment-modal').addEventListener('click', closePaymentQueueModal);
+    confirmPaymentBtn.addEventListener('click', confirmPaymentQueue);
+    
+    // Close modal when clicking outside
+    paymentQueueModal.addEventListener('click', function(e) {
+        if (e.target === paymentQueueModal) {
+            closePaymentQueueModal();
+        }
+    });
+}
+
 // Show checkout modal with animation
 function showCheckoutModal() {
     if (orderItems.length === 0) {
@@ -281,6 +386,124 @@ function closeCheckoutModal() {
     }, 300);
 }
 
+// Show payment queue modal
+function showPaymentQueueModal() {
+    // Update order info
+    const totalItems = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+    document.getElementById('queue-item-count').textContent = totalItems;
+    document.getElementById('queue-order-type').textContent = orderType === 'dine-in' ? 'Dine-in' : 'Takeout';
+    document.getElementById('queue-payment-method').textContent = paymentMethod === 'cash' ? 'Cash' : 'Electronic Payment';
+    
+    // Show modal
+    const paymentQueueModal = document.getElementById('payment-queue-modal');
+    const paymentQueueModalContent = document.getElementById('payment-queue-modal-content');
+    
+    paymentQueueModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    // Trigger animation
+    setTimeout(() => {
+        paymentQueueModal.classList.add('modal-bg-show');
+        paymentQueueModal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        
+        paymentQueueModalContent.classList.add('modal-show');
+        paymentQueueModalContent.style.opacity = '1';
+        paymentQueueModalContent.style.transform = 'scale(1)';
+    }, 10);
+}
+
+// Close payment queue modal
+function closePaymentQueueModal() {
+    const paymentQueueModal = document.getElementById('payment-queue-modal');
+    const paymentQueueModalContent = document.getElementById('payment-queue-modal-content');
+    
+    // Reverse animation
+    paymentQueueModalContent.classList.remove('modal-show');
+    paymentQueueModalContent.style.opacity = '0';
+    paymentQueueModalContent.style.transform = 'scale(0.95)';
+    
+    paymentQueueModal.classList.remove('modal-bg-show');
+    paymentQueueModal.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+    
+    // Hide modal after animation completes
+    setTimeout(() => {
+        paymentQueueModal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        
+        // Reset modal content styles
+        paymentQueueModalContent.classList.remove('modal-show');
+        paymentQueueModalContent.style.opacity = '';
+        paymentQueueModalContent.style.transform = '';
+        paymentQueueModal.style.backgroundColor = '';
+    }, 300);
+}
+
+// Confirm payment queue and redirect
+function confirmPaymentQueue() {
+    // Add animation to confirm button
+    const confirmBtn = document.getElementById('confirm-payment-btn');
+    confirmBtn.classList.add('success-animation');
+    
+    // Store order data before clearing
+    const orderData = {
+        items: [...orderItems],
+        orderType: orderType,
+        paymentMethod: paymentMethod,
+        total: calculateOrderTotal(),
+        timestamp: new Date().toISOString()
+    };
+    
+    // You can save this to localStorage or send to server here
+    localStorage.setItem('lastOrder', JSON.stringify(orderData));
+    
+    setTimeout(() => {
+        // Close modal
+        closePaymentQueueModal();
+        
+        // Clear order
+        orderItems = [];
+        renderOrderItems();
+        calculateTotals();
+        document.getElementById('order-notes').value = '';
+        
+        // Redirect to landing page after a brief delay
+        setTimeout(() => {
+            window.location.href = '/customer/home';
+        }, 500);
+        
+        confirmBtn.classList.remove('success-animation');
+    }, 300);
+}
+
+// Confirm order with animation
+function confirmOrder() {
+    // Add success animation to confirm button
+    confirmOrderBtn.classList.add('success-animation');
+    
+    setTimeout(() => {
+        // First, close the checkout modal
+        closeCheckoutModal();
+        
+        // Then show the payment queue confirmation
+        setTimeout(() => {
+            showPaymentQueueModal();
+        }, 100);
+        
+        // Remove animation class
+        confirmOrderBtn.classList.remove('success-animation');
+    }, 300);
+}
+
+// Helper function to calculate total
+function calculateOrderTotal() {
+    let subtotal = 0;
+    orderItems.forEach(item => {
+        subtotal += item.price * item.quantity;
+    });
+    const tax = subtotal * TAX_RATE;
+    return subtotal + tax;
+}
+
 // Update modal content
 function updateModalContent() {
     // Update order type
@@ -322,33 +545,6 @@ function updateModalContent() {
     document.getElementById('modal-subtotal').textContent = formatPrice(subtotal);
     document.getElementById('modal-tax').textContent = formatPrice(tax);
     document.getElementById('modal-total').textContent = formatPrice(total);
-}
-
-// Confirm order with animation
-function confirmOrder() {
-    // Add success animation to confirm button
-    confirmOrderBtn.classList.add('success-animation');
-    
-    const orderTypeText = orderType === 'dine-in' ? 'Dine-in' : 'Takeout';
-    const paymentMethodText = paymentMethod === 'cash' ? 'Cash' : 'Electronic Payment';
-    const notes = document.getElementById('order-notes').value;
-    
-    // Show success message with delay for animation
-    setTimeout(() => {
-        alert(`Order Confirmed!\n\nThank you for your order!\n\nOrder Type: ${orderTypeText}\nPayment Method: ${paymentMethodText}\n\nYour order is being prepared and will be ready soon.`);
-        
-        // Close modal
-        closeCheckoutModal();
-        
-        // Reset order
-        orderItems = [];
-        renderOrderItems();
-        calculateTotals();
-        document.getElementById('order-notes').value = '';
-        
-        // Remove animation class
-        confirmOrderBtn.classList.remove('success-animation');
-    }, 300);
 }
 
 // Format price to Philippine Peso
@@ -880,6 +1076,9 @@ function initializeApp() {
     
     // Create checkout modal
     createCheckoutModal();
+    
+    // Create payment queue modal
+    createPaymentQueueModal();
     
     // Initialize event listeners
     initializeEventListeners();
