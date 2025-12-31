@@ -94,8 +94,8 @@ function createCheckoutModal() {
     if (document.getElementById('checkout-modal')) return;
 
     const modalHTML = `
-        <div id="checkout-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        <div id="checkout-modal" class="fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50 hidden">
+            <div id="checkout-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden flex flex-col opacity-0">
                 <!-- Modal Header -->
                 <div class="bg-gradient-to-r from-green-600 to-green-500 p-6">
                     <div class="flex items-center justify-between">
@@ -105,7 +105,7 @@ function createCheckoutModal() {
                             </h2>
                             <p class="text-green-100 text-sm mt-1">Please review your order before confirming</p>
                         </div>
-                        <button id="close-modal" class="text-white hover:text-green-200 text-xl">
+                        <button id="close-modal" class="text-white hover:text-green-200 text-xl transition-transform hover:rotate-90 duration-300">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -115,13 +115,13 @@ function createCheckoutModal() {
                 <div class="flex-1 p-6 overflow-y-auto">
                     <!-- Order Type & Payment -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 transform transition-all duration-500 hover:scale-[1.02]">
                             <h4 class="font-bold text-gray-800 text-sm mb-1 flex items-center">
                                 <i class="fas fa-store mr-2 text-blue-500"></i> Order Type
                             </h4>
                             <p id="modal-order-type" class="text-gray-700 font-medium">Dine-in</p>
                         </div>
-                        <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+                        <div class="bg-green-50 p-4 rounded-lg border border-green-100 transform transition-all duration-500 hover:scale-[1.02]">
                             <h4 class="font-bold text-gray-800 text-sm mb-1 flex items-center">
                                 <i class="fas fa-credit-card mr-2 text-green-500"></i> Payment Method
                             </h4>
@@ -150,7 +150,7 @@ function createCheckoutModal() {
                     </div>
                     
                     <!-- Order Totals -->
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 transform transition-all duration-500 hover:scale-[1.02]">
                         <div class="space-y-2">
                             <div class="flex justify-between text-gray-600 text-sm">
                                 <span>Subtotal:</span>
@@ -171,10 +171,10 @@ function createCheckoutModal() {
                 <!-- Modal Footer -->
                 <div class="border-t border-gray-200 p-6 bg-gray-50">
                     <div class="flex flex-col md:flex-row gap-3">
-                        <button id="cancel-order-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-lg font-bold transition-colors duration-200 flex items-center justify-center">
+                        <button id="cancel-order-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center transform hover:-translate-y-1">
                             <i class="fas fa-times mr-2"></i> Cancel
                         </button>
-                        <button id="confirm-order-btn" class="flex-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center hover-lift">
+                        <button id="confirm-order-btn" class="flex-1 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center hover-lift pulse-once">
                             <i class="fas fa-check-circle mr-2"></i> Confirm Order
                         </button>
                     </div>
@@ -191,6 +191,7 @@ function createCheckoutModal() {
 
     // Get modal elements
     checkoutModal = document.getElementById('checkout-modal');
+    const checkoutModalContent = document.getElementById('checkout-modal-content');
     confirmOrderBtn = document.getElementById('confirm-order-btn');
     cancelOrderBtn = document.getElementById('cancel-order-btn');
     orderDetailsList = document.getElementById('order-details-list');
@@ -208,9 +209,19 @@ function createCheckoutModal() {
     });
 }
 
-// Show checkout modal
+// Show checkout modal with animation
 function showCheckoutModal() {
     if (orderItems.length === 0) {
+        // Add shake animation to checkout button
+        checkoutBtn.classList.add('animate-pulse');
+        // Add shake animation to empty cart
+        emptyOrder.classList.add('empty-cart-shake');
+        
+        setTimeout(() => {
+            checkoutBtn.classList.remove('animate-pulse');
+            emptyOrder.classList.remove('empty-cart-shake');
+        }, 500);
+        
         alert('Please add items to your order before checking out.');
         return;
     }
@@ -221,12 +232,53 @@ function showCheckoutModal() {
     // Show modal
     checkoutModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+    
+    // Trigger animation
+    setTimeout(() => {
+        checkoutModal.classList.add('modal-bg-show');
+        checkoutModal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        
+        const modalContent = document.getElementById('checkout-modal-content');
+        modalContent.classList.add('modal-show');
+        modalContent.style.opacity = '1';
+        
+        // Add staggered animation to items
+        const orderItems = document.querySelectorAll('#order-details-list > div');
+        orderItems.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(-20px)';
+            
+            setTimeout(() => {
+                item.style.transition = 'all 0.4s ease';
+                item.style.opacity = '1';
+                item.style.transform = 'translateX(0)';
+            }, 100 * index);
+        });
+    }, 10);
 }
 
-// Close checkout modal
+// Close checkout modal with animation
 function closeCheckoutModal() {
-    checkoutModal.classList.add('hidden');
-    document.body.style.overflow = 'auto';
+    // Reverse animation
+    const modalContent = document.getElementById('checkout-modal-content');
+    modalContent.classList.remove('modal-show');
+    modalContent.style.opacity = '0';
+    modalContent.style.transform = 'translateY(-50px) scale(0.95)';
+    
+    checkoutModal.classList.remove('modal-bg-show');
+    checkoutModal.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+    
+    // Hide modal after animation completes
+    setTimeout(() => {
+        checkoutModal.classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        
+        // Reset modal content styles
+        modalContent.classList.remove('modal-show');
+        modalContent.style.opacity = '';
+        modalContent.style.transform = '';
+        checkoutModal.style.backgroundColor = '';
+    }, 300);
 }
 
 // Update modal content
@@ -272,23 +324,31 @@ function updateModalContent() {
     document.getElementById('modal-total').textContent = formatPrice(total);
 }
 
-// Confirm order
+// Confirm order with animation
 function confirmOrder() {
+    // Add success animation to confirm button
+    confirmOrderBtn.classList.add('success-animation');
+    
     const orderTypeText = orderType === 'dine-in' ? 'Dine-in' : 'Takeout';
     const paymentMethodText = paymentMethod === 'cash' ? 'Cash' : 'Electronic Payment';
     const notes = document.getElementById('order-notes').value;
     
-    // Show success message
-    alert(`Order Confirmed!\n\nThank you for your order!\n\nOrder Type: ${orderTypeText}\nPayment Method: ${paymentMethodText}\n\nYour order is being prepared and will be ready soon.`);
-    
-    // Close modal
-    closeCheckoutModal();
-    
-    // Reset order
-    orderItems = [];
-    renderOrderItems();
-    calculateTotals();
-    document.getElementById('order-notes').value = '';
+    // Show success message with delay for animation
+    setTimeout(() => {
+        alert(`Order Confirmed!\n\nThank you for your order!\n\nOrder Type: ${orderTypeText}\nPayment Method: ${paymentMethodText}\n\nYour order is being prepared and will be ready soon.`);
+        
+        // Close modal
+        closeCheckoutModal();
+        
+        // Reset order
+        orderItems = [];
+        renderOrderItems();
+        calculateTotals();
+        document.getElementById('order-notes').value = '';
+        
+        // Remove animation class
+        confirmOrderBtn.classList.remove('success-animation');
+    }, 300);
 }
 
 // Format price to Philippine Peso
