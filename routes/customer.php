@@ -28,4 +28,8 @@ Route::middleware(['auth', 'customer'])->group(function () {
     // AJAX route for getting specific slide content
     Route::post('/customer/get-slide', [CustomerController::class, 'getSlideContent'])
         ->name('customer.getSlide');
+
+    // AJAX route for saving order to staff transaction
+    Route::post('/customer/save-order', [CustomerController::class, 'saveOrderToStaffTransaction'])
+        ->name('customer.saveOrder');
 });
