@@ -110,6 +110,11 @@
             background-color: #7C3AED;
             color: #EDE9FE;
         }
+        /* Payment number badge */
+        .payment-number-badge {
+            background-color: #DC2626;
+            color: #FFFFFF;
+        }
         /* Custom checkbox styling */
         .custom-checkbox {
             appearance: none;
@@ -519,13 +524,17 @@
         
         // Function to transform database data to frontend format
         function transformOrderData(orders) {
-            // Group by orderID to combine multiple items into single orders
+            // Group by orderID and paymentNumber to combine multiple items into single orders
             const groupedOrders = {};
             
             orders.forEach(order => {
-                if (!groupedOrders[order.orderID]) {
-                    groupedOrders[order.orderID] = {
+                // Create a unique key using orderID and paymentNumber
+                const orderKey = `${order.orderID}-${order.paymentNumber}`;
+                
+                if (!groupedOrders[orderKey]) {
+                    groupedOrders[orderKey] = {
                         id: order.orderID,
+                        paymentNumber: order.paymentNumber,
                         time: calculateOrderTime(order.orderCreateDateAndTime),
                         type: order.orderType === 'dine-in' ? 'Dine in' : 'Takeout',
                         typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
@@ -537,7 +546,7 @@
                 }
                 
                 // Add item to the order
-                groupedOrders[order.orderID].items.push({
+                groupedOrders[orderKey].items.push({
                     name: order.orderProductName,
                     price: parseFloat(order.orderTotalProductPrice) / order.orderQuantity,
                     quantity: order.orderQuantity
@@ -545,7 +554,7 @@
                 
                 // Initialize checked status based on orderProductStatus
                 const isCompleted = order.orderProductStatus === 'Completed';
-                groupedOrders[order.orderID].checkedItems.push(isCompleted);
+                groupedOrders[orderKey].checkedItems.push(isCompleted);
             });
             
             // Convert to array
@@ -636,8 +645,16 @@
                 orderCard.className = 'order-card bg-gray-800 rounded-xl border border-gray-700 overflow-hidden';
                 orderCard.innerHTML = `
                     <div class="p-5">
+                        <!-- Order ID and Payment Number in same row -->
                         <div class="flex justify-between items-start mb-4">
-                            <h2 class="text-xl font-bold text-white">${order.id}</h2>
+                            <div>
+                                <h2 class="text-xl font-bold text-white">${order.id}</h2>
+                                <div class="flex items-center mt-1">
+                                    <div class="payment-number-badge px-2 py-1 rounded text-xs font-semibold">
+                                        Payment #${order.paymentNumber}
+                                    </div>
+                                </div>
+                            </div>
                             <div class="${timerColor} text-white px-3 py-1 rounded-full text-sm font-semibold status-timer">
                                 ${order.time}
                             </div>
@@ -714,13 +731,13 @@
                         </div>
                         
                         <div class="space-y-3">
-                            <button class="send-to-kitchen-btn w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}">
+                            <button class="send-to-kitchen-btn w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
                                 Send to Kitchen
                             </button>
-                            <button class="cancel-order-btn w-full bg-amber-700 hover:bg-amber-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}">
+                            <button class="cancel-order-btn w-full bg-amber-700 hover:bg-amber-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
                                 Cancel Order
                             </button>
-                            <button class="void-order-btn w-full bg-red-700 hover:bg-red-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}">
+                            <button class="void-order-btn w-full bg-red-700 hover:bg-red-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
                                 Void Order
                             </button>
                         </div>
@@ -783,8 +800,9 @@
                     // Update the checked status in the data
                     allOrders[orderIndex].checkedItems[itemIndex] = this.checked;
                     
-                    // Get the order ID and item name for API call
+                    // Get the order ID, payment number, and item name for API call
                     const orderId = allOrders[orderIndex].id;
+                    const paymentNumber = allOrders[orderIndex].paymentNumber;
                     const itemName = allOrders[orderIndex].items[itemIndex].name;
                     const newStatus = this.checked ? 'Completed' : 'For Payment';
                     
@@ -792,6 +810,7 @@
                     try {
                         await apiCall('/api/staff/orders/update-status', 'POST', {
                             orderID: orderId,
+                            paymentNumber: paymentNumber,
                             productName: itemName,
                             status: newStatus
                         });
@@ -857,6 +876,7 @@
                     try {
                         await apiCall('/api/staff/orders/update-all-status', 'POST', {
                             orderID: order.id,
+                            paymentNumber: order.paymentNumber,
                             status: newStatus
                         });
                     } catch (error) {
@@ -873,7 +893,7 @@
                     
                     // Show status message
                     const status = newState ? 'all items prepared' : 'all items pending';
-                    showStatusMessage(`Order ${order.id}: ${status}`, newState ? 'bg-green-600' : 'bg-yellow-600');
+                    showStatusMessage(`Order ${order.id} (Payment #${order.paymentNumber}): ${status}`, newState ? 'bg-green-600' : 'bg-yellow-600');
                 });
             });
         }
@@ -883,10 +903,12 @@
             document.querySelectorAll('.send-to-kitchen-btn').forEach(button => {
                 button.addEventListener('click', async function(e) {
                     const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
                     
                     try {
                         await apiCall('/api/staff/orders/update-all-status', 'POST', {
                             orderID: orderId,
+                            paymentNumber: paymentNumber,
                             status: 'In Progress'
                         });
                     } catch (error) {
@@ -895,7 +917,7 @@
                         return;
                     }
                     
-                    showStatusMessage(`Order ${orderId} sent to kitchen!`, 'bg-green-600');
+                    showStatusMessage(`Order ${orderId} (Payment #${paymentNumber}) sent to kitchen!`, 'bg-green-600');
                     
                     // Update button to "In Progress"
                     this.textContent = 'In Progress';
@@ -914,10 +936,12 @@
             document.querySelectorAll('.cancel-order-btn').forEach(button => {
                 button.addEventListener('click', async function(e) {
                     const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
                     
                     try {
                         await apiCall('/api/staff/orders/cancel', 'POST', {
-                            orderID: orderId
+                            orderID: orderId,
+                            paymentNumber: paymentNumber
                         });
                     } catch (error) {
                         console.error('Error cancelling order:', error);
@@ -925,7 +949,7 @@
                         return;
                     }
                     
-                    showStatusMessage(`Order ${orderId} cancelled!`, 'bg-amber-600');
+                    showStatusMessage(`Order ${orderId} (Payment #${paymentNumber}) cancelled!`, 'bg-amber-600');
                     
                     // Reload orders
                     loadOrders();
@@ -936,10 +960,12 @@
             document.querySelectorAll('.void-order-btn').forEach(button => {
                 button.addEventListener('click', async function(e) {
                     const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
                     
                     try {
                         await apiCall('/api/staff/orders/void', 'POST', {
-                            orderID: orderId
+                            orderID: orderId,
+                            paymentNumber: paymentNumber
                         });
                     } catch (error) {
                         console.error('Error voiding order:', error);
@@ -947,7 +973,7 @@
                         return;
                     }
                     
-                    showStatusMessage(`Order ${orderId} voided!`, 'bg-red-600');
+                    showStatusMessage(`Order ${orderId} (Payment #${paymentNumber}) voided!`, 'bg-red-600');
                     
                     // Reload orders
                     loadOrders();
