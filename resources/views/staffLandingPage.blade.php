@@ -194,6 +194,17 @@
             font-family: 'Poppins', sans-serif;
             margin-right: 2px;
         }
+        /* Order items text color - NEW */
+        .order-item-text {
+            color: #FFFFFF;
+        }
+        /* Ensure all text in order cards is white by default */
+        .order-card span:not(.price-tag):not(.text-amber-400):not(.text-blue-400):not(.text-green-400):not(.text-red-500):not(.text-yellow-500):not(.text-gray-400) {
+            color: #FFFFFF;
+        }
+        .order-card .text-gray-300 {
+            color: #D1D5DB !important;
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col min-h-screen">
@@ -662,7 +673,7 @@
                                                    data-order-index="${startIndex + orderIndex}"
                                                    data-item-index="${itemIndex}"
                                                    ${order.checkedItems[itemIndex] ? 'checked' : ''}>
-                                            <span>${item.name} ${item.quantity > 1 ? `(x${item.quantity})` : ''}</span>
+                                            <span class="order-item-text">${item.name} ${item.quantity > 1 ? `(x${item.quantity})` : ''}</span>
                                         </div>
                                         <span class="price-tag">${formatCurrency(item.price * item.quantity)}</span>
                                     </li>
