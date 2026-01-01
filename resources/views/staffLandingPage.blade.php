@@ -400,6 +400,23 @@
             });
             
             const avgOrderValue = allOrders.length > 0 ? totalRevenue / allOrders.length : 0;
+<<<<<<< Updated upstream
+=======
+            
+            return {
+                totalRevenue: totalRevenue,
+                totalTax: totalTax,
+                avgOrderValue: avgOrderValue
+            };
+        }
+        
+        // Helper function to calculate order totals after removing items
+        function calculateOrderTotalsAfterRemoval(order, itemsToRemoveIndices) {
+            const remainingItems = order.items.filter((item, index) => !itemsToRemoveIndices.includes(index.toString()));
+            const subtotal = remainingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = subtotal * order.taxRate;
+            const total = subtotal + tax;
+>>>>>>> Stashed changes
             
             return {
                 totalRevenue: totalRevenue,
@@ -693,6 +710,10 @@
             
             // Re-attach event listeners to new buttons
             attachOrderButtonListeners();
+<<<<<<< Updated upstream
+=======
+            attachCheckboxListeners();
+            updateCheckedCounts();
         }
         
         function updateStatistics() {
@@ -710,6 +731,136 @@
             
             // These would update elements if they existed
             // For now, we'll just calculate them
+        }
+        
+        function attachCheckboxListeners() {
+            // Individual item checkbox listeners
+            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
+                    const itemIndex = this.getAttribute('data-item-index');
+                    const isChecked = this.checked;
+                    const isVoidState = this.classList.contains('item-checkbox-void');
+                    
+                    // Update state
+                    const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                    checkedItemsState.set(itemKey, isChecked);
+                    
+                    // Update UI
+                    const listItem = this.closest('li');
+                    if (isChecked) {
+                        listItem.classList.add('item-checked');
+                    } else {
+                        listItem.classList.remove('item-checked');
+                    }
+                    
+                    // Update "Select All" checkbox state
+                    updateSelectAllCheckbox(orderId, paymentNumber);
+                    
+                    // Update checked items count
+                    updateCheckedCount(orderId, paymentNumber);
+                    updateCheckedItemsCount();
+                    
+                    const message = isVoidState ? 
+                        `Product ${isChecked ? 'selected for voiding' : 'unselected'}` :
+                        `Item ${isChecked ? 'selected' : 'unselected'}`;
+                    
+                    showStatusMessage(message, isVoidState ? 'bg-red-600' : 'bg-blue-600');
+                });
+            });
+            
+            // "Select All" checkbox listeners
+            document.querySelectorAll('.select-all-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
+                    const selectAllChecked = this.checked;
+                    const isVoidState = this.classList.contains('select-all-checkbox-void');
+                    
+                    // Find all checkboxes for this order using safe selector
+                    const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    
+                    // Update all checkboxes
+                    itemCheckboxes.forEach(itemCheckbox => {
+                        const itemIndex = itemCheckbox.getAttribute('data-item-index');
+                        const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                        
+                        // Update state
+                        checkedItemsState.set(itemKey, selectAllChecked);
+                        
+                        // Update UI
+                        itemCheckbox.checked = selectAllChecked;
+                        const listItem = itemCheckbox.closest('li');
+                        if (selectAllChecked) {
+                            listItem.classList.add('item-checked');
+                        } else {
+                            listItem.classList.remove('item-checked');
+                        }
+                    });
+                    
+                    // Update checked items count
+                    updateCheckedCount(orderId, paymentNumber);
+                    updateCheckedItemsCount();
+                    
+                    const message = isVoidState ?
+                        (selectAllChecked ? 'All products selected for voiding' : 'All products unselected') :
+                        (selectAllChecked ? 'All items selected' : 'All items unselected');
+                    
+                    showStatusMessage(message, isVoidState ? 'bg-red-600' : 'bg-blue-600');
+                });
+            });
+        }
+        
+        function updateSelectAllCheckbox(orderId, paymentNumber) {
+            const selectAllCheckbox = getSelectAllCheckboxForOrder(orderId, paymentNumber);
+            
+            if (!selectAllCheckbox) return;
+            
+            const isVoidState = selectAllCheckbox.classList.contains('select-all-checkbox-void');
+            
+            // Find all checkboxes for this order using safe selector
+            const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+            
+            if (itemCheckboxes.length === 0) return;
+            
+            const allChecked = Array.from(itemCheckboxes).every(checkbox => checkbox.checked);
+            const anyChecked = Array.from(itemCheckboxes).some(checkbox => checkbox.checked);
+            
+            // Update select all checkbox state
+            selectAllCheckbox.checked = allChecked;
+            
+            // Set indeterminate state if some but not all are checked
+            selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+        }
+        
+        function updateCheckedCount(orderId, paymentNumber) {
+            const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+            
+            const checkedCount = Array.from(itemCheckboxes).filter(checkbox => checkbox.checked).length;
+            
+            const countElement = document.getElementById(`checked-count-${orderId}-${paymentNumber}`);
+            if (countElement) {
+                countElement.textContent = checkedCount;
+            }
+        }
+        
+        function updateCheckedCounts() {
+            const allOrderCards = document.querySelectorAll('.order-card');
+            
+            allOrderCards.forEach(card => {
+                const orderIdElement = card.querySelector('h2.text-xl');
+                if (!orderIdElement) return;
+                
+                const orderId = orderIdElement.textContent;
+                const paymentNumberBadge = card.querySelector('.payment-number-badge');
+                if (!paymentNumberBadge) return;
+                
+                // Extract payment number and trim spaces
+                const paymentNumber = paymentNumberBadge.textContent.replace('Payment #', '').trim();
+                updateCheckedCount(orderId, paymentNumber);
+            });
+>>>>>>> Stashed changes
         }
         
         function attachOrderButtonListeners() {
