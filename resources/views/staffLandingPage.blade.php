@@ -1026,7 +1026,7 @@ function transformOrderData(orders) {
                         <div class="space-y-3">
                             ${hasItems ? `
                             <button class="send-to-kitchen-btn w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
-                                Send to Kitchen
+                                Confirm Payment
                             </button>
                             ` : `
                             <button class="send-to-kitchen-btn w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 rounded-lg transition cursor-not-allowed" disabled data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
@@ -1214,7 +1214,7 @@ function transformOrderData(orders) {
         }
         
         function attachOrderButtonListeners() {
-            // Send to Kitchen buttons
+            // Confirm Payment buttons
             document.querySelectorAll('.send-to-kitchen-btn').forEach(button => {
                 button.addEventListener('click', async function(e) {
                     if (this.disabled) return;
