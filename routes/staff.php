@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\StaffOrderController;
 
 Route::middleware(['auth', 'staff'])->group(function () {
     // Staff Landing Page/Dashboard
@@ -15,10 +16,14 @@ Route::middleware(['auth', 'staff'])->group(function () {
     
     // API Routes for Staff
     Route::prefix('api/staff')->group(function () {
-        Route::get('/orders', [StaffController::class, 'getOrders'])->name('staff.orders.api');
+        // Using StaffOrderController for order operations
+        Route::get('/orders', [StaffOrderController::class, 'getOrders'])->name('staff.orders.api');
+        Route::post('/orders/update-all-status', [StaffOrderController::class, 'updateAllStatus'])->name('staff.orders.update-all-status');
+        Route::post('/orders/cancel', [StaffOrderController::class, 'cancelOrder'])->name('staff.orders.cancel');
+        Route::post('/orders/void-products', [StaffOrderController::class, 'voidProducts'])->name('staff.orders.void-products');
+        
+        // Keep original StaffController routes if needed elsewhere
         Route::post('/orders/update-status', [StaffController::class, 'updateStatus'])->name('staff.orders.update-status');
-        Route::post('/orders/update-all-status', [StaffController::class, 'updateAllStatus'])->name('staff.orders.update-all-status');
-        Route::post('/orders/cancel', [StaffController::class, 'cancelOrder'])->name('staff.orders.cancel');
         Route::post('/orders/void', [StaffController::class, 'voidOrder'])->name('staff.orders.void');
     });
     
