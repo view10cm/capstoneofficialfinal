@@ -871,14 +871,19 @@
                     options.body = JSON.stringify(data);
                 }
                 
+                console.log(`Making API call to ${url}`, data);
+                
                 const response = await fetch(url, options);
                 
                 if (!response.ok) {
                     const errorText = await response.text();
+                    console.error(`API error response:`, errorText);
                     throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
                 }
                 
-                return await response.json();
+                const responseData = await response.json();
+                console.log(`API response from ${url}:`, responseData);
+                return responseData;
             } catch (error) {
                 console.error(`API call failed to ${url}:`, error);
                 throw error;
@@ -950,9 +955,13 @@
             const cleanPaymentNumber = paymentNumber.toString().trim();
             
             // Use the safe selector
-            return document.querySelectorAll(
-                `.item-checkbox${getSafeSelector('data-order-id', cleanOrderId)}${getSafeSelector('data-payment-number', cleanPaymentNumber)}`
-            );
+            const selector = `.item-checkbox${getSafeSelector('data-order-id', cleanOrderId)}${getSafeSelector('data-payment-number', cleanPaymentNumber)}`;
+            console.log(`Looking for checkboxes with selector: ${selector}`);
+            
+            const checkboxes = document.querySelectorAll(selector);
+            console.log(`Found ${checkboxes.length} checkboxes for order ${orderId}, payment ${paymentNumber}`);
+            
+            return checkboxes;
         }
         
         // Helper to get select all checkbox for an order
@@ -1384,6 +1393,9 @@
                                                    data-item-index="${itemIndex}"
                                                    data-product-name="${item.name}"
                                                    data-product-notes="${item.displayNotes || ''}"
+                                                   data-unit-price="${item.price}"
+                                                   data-quantity="${item.quantity}"
+                                                   data-total-price="${item.totalPrice}"
                                                    ${isChecked ? 'checked' : ''}>
                                             <div class="flex flex-col w-full">
                                                 <div class="flex items-start">
@@ -1670,15 +1682,21 @@
                         return;
                     }
                     
-                    // Calculate totals
-                    const totals = calculateOrderTotals(order);
-                    
                     // Get selected items for this order
                     const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
                     const selectedItems = itemCheckboxes ? 
                         Array.from(itemCheckboxes)
                             .filter(checkbox => checkbox.checked)
                             .map(checkbox => checkbox.getAttribute('data-item-index')) : [];
+                    
+                    // Check if any items are selected
+                    if (selectedItems.length === 0) {
+                        showStatusMessage('Please select at least one item to pay', 'bg-yellow-600');
+                        return;
+                    }
+                    
+                    // Calculate totals
+                    const totals = calculateOrderTotals(order);
                     
                     // Open confirm payment modal with products
                     openConfirmPaymentModal(
@@ -1907,46 +1925,115 @@
             try {
                 // Get selected items for this order
                 const selectedItems = [];
+                const selectedProducts = [];
+                
+                // Debug: Log to see what's happening
+                console.log('Processing payment for order:', orderId, paymentNumber);
+                
+                // Get checkboxes using the safe selector function
                 const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
-                if (itemCheckboxes) {
-                    selectedItems.push(...Array.from(itemCheckboxes)
+                console.log('Found checkboxes:', itemCheckboxes ? itemCheckboxes.length : 0);
+                
+                if (itemCheckboxes && itemCheckboxes.length > 0) {
+                    Array.from(itemCheckboxes)
                         .filter(checkbox => checkbox.checked)
-                        .map(checkbox => checkbox.getAttribute('data-item-index')));
+                        .forEach(checkbox => {
+                            const itemIndex = checkbox.getAttribute('data-item-index');
+                            selectedItems.push(itemIndex);
+                            
+                            // Debug each checkbox
+                            console.log('Selected checkbox:', {
+                                itemIndex: itemIndex,
+                                name: checkbox.getAttribute('data-product-name'),
+                                unitPrice: checkbox.getAttribute('data-unit-price'),
+                                quantity: checkbox.getAttribute('data-quantity'),
+                                totalPrice: checkbox.getAttribute('data-total-price')
+                            });
+                            
+                            // Get product details from data attributes
+                            selectedProducts.push({
+                                name: checkbox.getAttribute('data-product-name'),
+                                notes: checkbox.getAttribute('data-product-notes') || null,
+                                unitPrice: parseFloat(checkbox.getAttribute('data-unit-price')) || 0,
+                                quantity: parseInt(checkbox.getAttribute('data-quantity')) || 1,
+                                totalPrice: parseFloat(checkbox.getAttribute('data-total-price')) || 0
+                            });
+                        });
                 }
                 
-                // Call the existing API to update order status
+                console.log('Selected products:', selectedProducts);
+                
+                // Check if any products are selected
+                if (selectedProducts.length === 0) {
+                    throw new Error('No products selected for payment. Please select at least one item.');
+                }
+                
+                // Find the order to get tax rate
+                const order = allOrders.find(order => 
+                    order.id === orderId && order.paymentNumber === paymentNumber
+                );
+                
+                if (!order) {
+                    throw new Error('Order not found in local data');
+                }
+                
+                // Prepare products data with pricing information
+                const productsData = selectedProducts.map((selectedProduct) => {
+                    // Calculate tax amount
+                    const taxRate = order.taxRate || 0.12;
+                    const taxAmount = selectedProduct.totalPrice * taxRate;
+                    
+                    return {
+                        name: selectedProduct.name,
+                        quantity: selectedProduct.quantity,
+                        unitPrice: selectedProduct.unitPrice,
+                        totalPrice: selectedProduct.totalPrice,
+                        taxAmount: parseFloat(taxAmount.toFixed(2)),
+                        notes: selectedProduct.notes
+                    };
+                });
+                
+                console.log('Products data to send:', productsData);
+                
+                // First: Update order status to "In Progress"
+                console.log('Updating order status...');
                 await apiCall('/api/staff/orders/update-all-status', 'POST', {
                     orderID: orderId,
                     paymentNumber: paymentNumber,
                     status: 'In Progress',
                     selectedItems: selectedItems,
-                    referenceNumber: referenceNumber || null  // Send reference if provided
+                    referenceNumber: referenceNumber || null
                 });
                 
-                // Create product summary for message
-                const order = allOrders.find(order => 
-                    order.id === orderId && order.paymentNumber === paymentNumber
-                );
+                // Second: Save payment transaction to staff_to_kitchen_transaction table
+                console.log('Saving payment transaction...');
                 
-                let productSummary = '';
-                if (order && order.items) {
-                    const selectedProducts = order.items.filter((item, index) => 
-                        selectedItems.includes(index.toString())
-                    );
-                    
-                    if (selectedProducts.length > 0) {
-                        productSummary = ` (${selectedProducts.length} product${selectedProducts.length > 1 ? 's' : ''})`;
-                    }
-                }
+                // Prepare the request data
+                const paymentData = {
+                    orderID: orderId,
+                    paymentNumber: paymentNumber,
+                    orderType: order.type.toLowerCase().replace(' ', '-'), // Convert to 'dine-in' or 'takeout'
+                    paymentMethod: order.payment.toLowerCase(), // Convert to 'cash' or 'electronic'
+                    products: productsData,
+                    amountPaid: amountPaid,
+                    changeAmount: change,
+                    referenceNumber: referenceNumber || null,
+                    staffName: '{{ auth()->user()->name ?? "Staff Member" }}'
+                };
+                
+                console.log('Payment data to save:', paymentData);
+                
+                const saveResult = await apiCall('/api/staff/orders/save-payment-transaction', 'POST', paymentData);
+                console.log('Save result:', saveResult);
                 
                 // Create success message with optional reference
-                let successMessage = `Payment confirmed for Order ${orderId}${productSummary}. `;
+                let successMessage = `Payment confirmed for Order ${orderId} (${selectedProducts.length} product${selectedProducts.length > 1 ? 's' : ''}). `;
                 
                 if (referenceNumber) {
                     successMessage += `Reference: ${referenceNumber}. `;
                 }
                 
-                successMessage += `Change: ${formatCurrency(change)}`;
+                successMessage += `Change: ${formatCurrency(change)}. Transaction saved to kitchen system.`;
                 
                 // Show success message
                 showStatusMessage(successMessage, 'bg-green-600');
@@ -1954,25 +2041,59 @@
                 // Close modal
                 closePaymentModal();
                 
-                // Update the button in the order card to "In Progress"
-                const sendButton = document.querySelector(`.send-to-kitchen-btn[data-order-id="${orderId}"][data-payment-number="${paymentNumber}"]`);
-                if (sendButton) {
-                    sendButton.textContent = 'In Progress';
-                    sendButton.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    sendButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                    sendButton.disabled = true;
+                // Clear checkboxes for this order
+                if (itemCheckboxes) {
+                    Array.from(itemCheckboxes).forEach(checkbox => {
+                        const itemIndex = checkbox.getAttribute('data-item-index');
+                        const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                        checkedItemsState.set(itemKey, false);
+                    });
                 }
                 
+                // Update the button in the order card to "In Progress"
+const sendButton = document.querySelector(`.send-to-kitchen-btn[data-order-id="${orderId}"][data-payment-number="${paymentNumber}"]`);
+if (sendButton) {
+    sendButton.textContent = 'In Progress';
+    sendButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+    sendButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+    sendButton.disabled = true;
+}
+                
                 // Update timer badge
-                const card = document.querySelector(`.order-card h2.text-xl:contains("${orderId}")`)?.closest('.order-card');
-                if (card) {
-                    const timerBadge = card.querySelector('.status-timer');
-                    timerBadge.textContent = '0m';
-                    timerBadge.className = 'bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold status-timer';
-                }
+// Update timer badge - find the card by order ID
+const orderCards = document.querySelectorAll('.order-card');
+let cardToUpdate = null;
+
+for (const card of orderCards) {
+    const orderIdElement = card.querySelector('h2.text-xl');
+    if (orderIdElement && orderIdElement.textContent === orderId) {
+        const paymentBadge = card.querySelector('.payment-number-badge');
+        if (paymentBadge) {
+            const paymentText = paymentBadge.textContent.replace('Payment #', '').trim();
+            if (paymentText === paymentNumber) {
+                cardToUpdate = card;
+                break;
+            }
+        }
+    }
+}
+
+if (cardToUpdate) {
+    const timerBadge = cardToUpdate.querySelector('.status-timer');
+    if (timerBadge) {
+        timerBadge.textContent = '0m';
+        timerBadge.className = 'bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold status-timer';
+    }
+}
+                
+                // Force reload orders to reflect changes
+                setTimeout(() => {
+                    loadOrders();
+                }, 1000);
                 
             } catch (error) {
                 console.error('Error processing payment:', error);
+                console.error('Error details:', error.message);
                 showStatusMessage('Error processing payment: ' + error.message, 'bg-red-600');
             }
         });
