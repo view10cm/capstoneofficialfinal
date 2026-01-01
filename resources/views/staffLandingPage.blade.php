@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Staff Landing Page - AFFE ARABICA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -217,7 +218,7 @@
                 <!-- Employee Info -->
                 <div class="text-right">
                     <p class="text-sm text-gray-400" style="font-size: 15px;">Employee</p>
-                    <p class="font-semibold text-white" style="font-size: 18px;">Mark Santos</p>
+                    <p class="font-semibold text-white" style="font-size: 18px;">{{ auth()->user()->name ?? 'Staff Member' }}</p>
                 </div>
                 
                 <!-- Order Tracker Button -->
@@ -226,7 +227,7 @@
                         <p class="text-amber-100 font-medium" style="font-size: 15px;">Order Tracker</p>
                     </button>
                     <div class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                        <span id="order-count" class="text-white text-xs font-bold">8</span>
+                        <span id="order-count" class="text-white text-xs font-bold">0</span>
                     </div>
                 </div>
                 
@@ -245,18 +246,18 @@
             <!-- Pagination Controls -->
             <div class="flex justify-between items-center mb-6">
                 <!-- Left Pagination Button -->
-                <button id="prev-page-btn" class="pagination-btn text-white px-5 py-3 rounded-lg flex items-center space-x-2">
+                <button id="prev-page-btn" class="pagination-btn text-white px-5 py-3 rounded-lg flex items-center space-x-2" disabled>
                     <i class="fas fa-chevron-left"></i>
                     <span>Previous</span>
                 </button>
                 
                 <!-- Page Indicator -->
                 <div class="text-gray-300 text-lg font-medium">
-                    Page <span id="current-page">1</span> of <span id="total-pages">2</span>
+                    Page <span id="current-page">1</span> of <span id="total-pages">1</span>
                 </div>
                 
                 <!-- Right Pagination Button -->
-                <button id="next-page-btn" class="pagination-btn text-white px-5 py-3 rounded-lg flex items-center space-x-2">
+                <button id="next-page-btn" class="pagination-btn text-white px-5 py-3 rounded-lg flex items-center space-x-2" disabled>
                     <span>Next</span>
                     <i class="fas fa-chevron-right"></i>
                 </button>
@@ -264,7 +265,12 @@
             
             <!-- Orders Grid -->
             <div id="orders-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- Orders will be dynamically loaded here -->
+                <!-- Orders will be dynamically loaded via JavaScript -->
+                <div class="text-center text-gray-400 col-span-full py-12">
+                    <i class="fas fa-coffee text-5xl mb-4"></i>
+                    <p class="text-xl">No orders found</p>
+                    <p class="text-sm mt-2">Orders will appear here as they are created</p>
+                </div>
             </div>
         </div>
     </div>
@@ -377,138 +383,17 @@
     </div>
 
     <script>
-        // Sample order data with pricing
-        const allOrders = [
-            // Page 1 orders
-            {
-                id: "CAFFE000001",
-                time: "30m",
-                type: "Dine in",
-                typeColor: "bg-blue-900 text-blue-200",
-                payment: "Cash",
-                items: [
-                    { name: "Arabica's Pork BBQ", price: 285 },
-                    { name: "Okinawa 16oz", price: 150 },
-                    { name: "Potato Mojos", price: 120 }
-                ],
-                checkedItems: [false, false, false],
-                taxRate: 0.12 // 12% tax rate
-            },
-            {
-                id: "CAFFE000002",
-                time: "15m",
-                type: "Dine in",
-                typeColor: "bg-blue-900 text-blue-200",
-                payment: "Electronic",
-                items: [
-                    { name: "Chicken Caesar Salad", price: 220 },
-                    { name: "Strawberry Cheese Cake 16oz", price: 180 },
-                    { name: "Strawberry Cheese Cake 16oz", price: 180 },
-                    { name: "Seafood Paella Pasta Negra", price: 320 }
-                ],
-                checkedItems: [false, false, false, false],
-                taxRate: 0.12
-            },
-            {
-                id: "CAFFE000003",
-                time: "5m",
-                type: "Dine in",
-                typeColor: "bg-blue-900 text-blue-200",
-                payment: "Electronic",
-                items: [
-                    { name: "Chicken Teriyaki", price: 240 },
-                    { name: "French Fries Chossy", price: 95 },
-                    { name: "Strawberry Cheese Cake 16oz", price: 180 },
-                    { name: "Iced Hazelnut Macchiato 22oz", price: 160 },
-                    { name: "Taro Milk Milktea 16oz", price: 140 }
-                ],
-                checkedItems: [false, false, false, false, false],
-                taxRate: 0.12
-            },
-            {
-                id: "CAFFE000004",
-                time: "2m",
-                type: "Takeout",
-                typeColor: "bg-purple-900 text-purple-200",
-                payment: "Cash",
-                items: [
-                    { name: "Iced Butter Scotch 16oz", price: 150 },
-                    { name: "Iced Caramel Macchiato 16oz", price: 160 },
-                    { name: "Iced Hazelnut Macchiato 22oz", price: 160 },
-                    { name: "Okinawa 16oz", price: 150 }
-                ],
-                checkedItems: [false, false, false, false],
-                taxRate: 0.12
-            },
-            // Page 2 orders
-            {
-                id: "CAFFE000005",
-                time: "25m",
-                type: "Dine in",
-                typeColor: "bg-blue-900 text-blue-200",
-                payment: "Cash",
-                items: [
-                    { name: "Beef Tapa", price: 210 },
-                    { name: "Garlic Rice", price: 65 },
-                    { name: "Iced Coffee 16oz", price: 120 },
-                    { name: "Blueberry Cheesecake", price: 160 }
-                ],
-                checkedItems: [false, false, false, false],
-                taxRate: 0.12
-            },
-            {
-                id: "CAFFE000006",
-                time: "12m",
-                type: "Takeout",
-                typeColor: "bg-purple-900 text-purple-200",
-                payment: "Electronic",
-                items: [
-                    { name: "Matcha Latte 16oz", price: 155 },
-                    { name: "Croissant", price: 85 },
-                    { name: "Chocolate Chip Cookie", price: 75 }
-                ],
-                checkedItems: [false, false, false],
-                taxRate: 0.12
-            },
-            {
-                id: "CAFFE000007",
-                time: "8m",
-                type: "Dine in",
-                typeColor: "bg-blue-900 text-blue-200",
-                payment: "Cash",
-                items: [
-                    { name: "Spaghetti Carbonara", price: 230 },
-                    { name: "Caesar Salad", price: 180 },
-                    { name: "Red Velvet Cake", price: 145 },
-                    { name: "Iced Americano 16oz", price: 110 }
-                ],
-                checkedItems: [false, false, false, false],
-                taxRate: 0.12
-            },
-            {
-                id: "CAFFE000008",
-                time: "1m",
-                type: "Dine in",
-                typeColor: "bg-blue-900 text-blue-200",
-                payment: "Cash",
-                items: [
-                    { name: "Fish and Chips", price: 260 },
-                    { name: "Coleslaw", price: 85 },
-                    { name: "Lemon Iced Tea 22oz", price: 130 }
-                ],
-                checkedItems: [false, false, false],
-                taxRate: 0.12
-            }
-        ];
+        // Order data will be loaded from the server
+        let allOrders = [];
         
         // Helper function to format currency
         function formatCurrency(amount) {
-            return `₱${amount.toFixed(2)}`;
+            return `₱${parseFloat(amount).toFixed(2)}`;
         }
         
         // Helper function to calculate order totals
         function calculateOrderTotals(order) {
-            const subtotal = order.items.reduce((sum, item) => sum + item.price, 0);
+            const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const tax = subtotal * order.taxRate;
             const total = subtotal + tax;
             
@@ -539,10 +424,36 @@
             };
         }
         
+        // Helper function for API calls
+        async function apiCall(url, method = 'GET', data = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                credentials: 'same-origin'
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(url, options);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        }
+        
         // Pagination variables
         const ordersPerPage = 4;
         let currentPage = 1;
-        const totalPages = Math.ceil(allOrders.length / ordersPerPage);
+        let totalPages = 1;
         
         // DOM Elements
         const ordersContainer = document.getElementById('orders-container');
@@ -551,18 +462,6 @@
         const currentPageElement = document.getElementById('current-page');
         const totalPagesElement = document.getElementById('total-pages');
         const orderCountElement = document.getElementById('order-count');
-        const totalOrdersElement = document.getElementById('total-orders');
-        const dineInCountElement = document.getElementById('dine-in-count');
-        const takeoutCountElement = document.getElementById('takeout-count');
-        const cashCountElement = document.getElementById('cash-count');
-        const electronicCountElement = document.getElementById('electronic-count');
-        const preparedItemsElement = document.getElementById('prepared-items');
-        const totalItemsElement = document.getElementById('total-items');
-        const completionRateElement = document.getElementById('completion-rate');
-        const completeOrdersElement = document.getElementById('complete-orders');
-        const totalRevenueElement = document.getElementById('total-revenue');
-        const totalTaxElement = document.getElementById('total-tax');
-        const avgOrderValueElement = document.getElementById('avg-order-value');
         const orderTrackerBtn = document.getElementById('order-tracker-btn');
         const statusMessage = document.getElementById('status-message');
         
@@ -577,20 +476,94 @@
         const acceptPrivacy = document.getElementById('accept-privacy');
         
         // Initialize
-        updatePagination();
-        renderOrders();
-        updateStatistics();
-        updateCompletionStats();
-        updateRevenueStats();
+        loadOrders();
+        
+        // Function to load orders from server
+        async function loadOrders() {
+            try {
+                const data = await apiCall('/api/staff/orders');
+                
+                // Transform the data to match the expected format
+                allOrders = transformOrderData(data);
+                
+                // Update pagination
+                totalPages = Math.ceil(allOrders.length / ordersPerPage);
+                updatePagination();
+                
+                // Render orders
+                renderOrders();
+                
+                // Update order count
+                orderCountElement.textContent = allOrders.length;
+                
+                // Update statistics
+                updateStatistics();
+                updateCompletionStats();
+                updateRevenueStats();
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                showStatusMessage('Error loading orders: ' + error.message, 'bg-red-600');
+            }
+        }
+        
+        // Function to transform database data to frontend format
+        function transformOrderData(orders) {
+            // Group by orderID to combine multiple items into single orders
+            const groupedOrders = {};
+            
+            orders.forEach(order => {
+                if (!groupedOrders[order.orderID]) {
+                    groupedOrders[order.orderID] = {
+                        id: order.orderID,
+                        time: calculateOrderTime(order.orderCreateDateAndTime),
+                        type: order.orderType === 'dine-in' ? 'Dine in' : 'Takeout',
+                        typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
+                        payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
+                        items: [],
+                        checkedItems: [],
+                        taxRate: 0.12
+                    };
+                }
+                
+                // Add item to the order
+                groupedOrders[order.orderID].items.push({
+                    name: order.orderProductName,
+                    price: parseFloat(order.orderTotalProductPrice) / order.orderQuantity,
+                    quantity: order.orderQuantity
+                });
+                
+                // Initialize checked status based on orderProductStatus
+                const isCompleted = order.orderProductStatus === 'Completed';
+                groupedOrders[order.orderID].checkedItems.push(isCompleted);
+            });
+            
+            // Convert to array
+            return Object.values(groupedOrders);
+        }
+        
+        // Calculate time since order was created
+        function calculateOrderTime(createDateTime) {
+            const now = new Date();
+            const orderTime = new Date(createDateTime);
+            const diffMinutes = Math.floor((now - orderTime) / (1000 * 60));
+            
+            if (diffMinutes < 60) {
+                return `${diffMinutes}m`;
+            } else {
+                const hours = Math.floor(diffMinutes / 60);
+                return `${hours}h`;
+            }
+        }
         
         // Pagination Functions
         function updatePagination() {
+            totalPages = Math.ceil(allOrders.length / ordersPerPage);
             currentPageElement.textContent = currentPage;
-            totalPagesElement.textContent = totalPages;
+            totalPagesElement.textContent = totalPages || 1;
             
             // Enable/disable buttons
             prevPageBtn.disabled = currentPage === 1;
-            nextPageBtn.disabled = currentPage === totalPages;
+            nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
             
             // Update button styles based on state
             if (prevPageBtn.disabled) {
@@ -609,6 +582,17 @@
         function renderOrders() {
             // Clear current orders
             ordersContainer.innerHTML = '';
+            
+            if (allOrders.length === 0) {
+                ordersContainer.innerHTML = `
+                    <div class="text-center text-gray-400 col-span-full py-12">
+                        <i class="fas fa-coffee text-5xl mb-4"></i>
+                        <p class="text-xl">No orders found</p>
+                        <p class="text-sm mt-2">Orders will appear here as they are created</p>
+                    </div>
+                `;
+                return;
+            }
             
             // Calculate which orders to show
             const startIndex = (currentPage - 1) * ordersPerPage;
@@ -678,9 +662,9 @@
                                                    data-order-index="${startIndex + orderIndex}"
                                                    data-item-index="${itemIndex}"
                                                    ${order.checkedItems[itemIndex] ? 'checked' : ''}>
-                                            <span>${item.name}</span>
+                                            <span>${item.name} ${item.quantity > 1 ? `(x${item.quantity})` : ''}</span>
                                         </div>
-                                        <span class="price-tag">${formatCurrency(item.price)}</span>
+                                        <span class="price-tag">${formatCurrency(item.price * item.quantity)}</span>
                                     </li>
                                 `).join('')}
                             </ul>
@@ -719,13 +703,13 @@
                         </div>
                         
                         <div class="space-y-3">
-                            <button class="send-to-kitchen-btn w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition">
+                            <button class="send-to-kitchen-btn w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}">
                                 Send to Kitchen
                             </button>
-                            <button class="cancel-order-btn w-full bg-amber-700 hover:bg-amber-800 text-white font-medium py-3 rounded-lg transition">
+                            <button class="cancel-order-btn w-full bg-amber-700 hover:bg-amber-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}">
                                 Cancel Order
                             </button>
-                            <button class="void-order-btn w-full bg-red-700 hover:bg-red-800 text-white font-medium py-3 rounded-lg transition">
+                            <button class="void-order-btn w-full bg-red-700 hover:bg-red-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}">
                                 Void Order
                             </button>
                         </div>
@@ -748,11 +732,6 @@
             const cashCount = allOrders.filter(order => order.payment === 'Cash').length;
             const electronicCount = allOrders.filter(order => order.payment === 'Electronic').length;
             
-            totalOrdersElement.textContent = allOrders.length;
-            dineInCountElement.textContent = dineInCount;
-            takeoutCountElement.textContent = takeoutCount;
-            cashCountElement.textContent = cashCount;
-            electronicCountElement.textContent = electronicCount;
             orderCountElement.textContent = allOrders.length;
         }
         
@@ -773,30 +752,43 @@
                 }
             });
             
-            const completionRate = totalItems > 0 ? Math.round((preparedItems / totalItems) * 100) : 0;
-            
-            preparedItemsElement.textContent = preparedItems;
-            totalItemsElement.textContent = totalItems;
-            completionRateElement.textContent = `${completionRate}%`;
-            completeOrdersElement.textContent = completeOrders;
+            // These would update elements if they existed
+            // For now, we'll just calculate them
         }
         
         function updateRevenueStats() {
             const revenueStats = calculateRevenueStatistics();
             
-            totalRevenueElement.textContent = formatCurrency(revenueStats.totalRevenue);
-            totalTaxElement.textContent = formatCurrency(revenueStats.totalTax);
-            avgOrderValueElement.textContent = formatCurrency(revenueStats.avgOrderValue);
+            // These would update elements if they existed
+            // For now, we'll just calculate them
         }
         
         function attachCheckboxListeners() {
             document.querySelectorAll('.custom-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', function(e) {
+                checkbox.addEventListener('change', async function(e) {
                     const orderIndex = parseInt(this.getAttribute('data-order-index'));
                     const itemIndex = parseInt(this.getAttribute('data-item-index'));
                     
                     // Update the checked status in the data
                     allOrders[orderIndex].checkedItems[itemIndex] = this.checked;
+                    
+                    // Get the order ID and item name for API call
+                    const orderId = allOrders[orderIndex].id;
+                    const itemName = allOrders[orderIndex].items[itemIndex].name;
+                    const newStatus = this.checked ? 'Completed' : 'For Payment';
+                    
+                    // Send update to server
+                    try {
+                        await apiCall('/api/staff/orders/update-status', 'POST', {
+                            orderID: orderId,
+                            productName: itemName,
+                            status: newStatus
+                        });
+                    } catch (error) {
+                        console.error('Error updating status:', error);
+                        showStatusMessage('Error updating item status', 'bg-red-600');
+                        return;
+                    }
                     
                     // Update the UI for this item
                     const listItem = this.closest('li');
@@ -830,7 +822,6 @@
                     updateCompletionStats();
                     
                     // Show status message
-                    const itemName = order.items[itemIndex].name;
                     const status = this.checked ? 'prepared' : 'pending';
                     showStatusMessage(`${itemName} marked as ${status}`, this.checked ? 'bg-green-600' : 'bg-yellow-600');
                 });
@@ -839,7 +830,7 @@
         
         function attachSelectAllListeners() {
             document.querySelectorAll('.select-all-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
+                button.addEventListener('click', async function(e) {
                     const orderIndex = parseInt(this.getAttribute('data-order-index'));
                     const order = allOrders[orderIndex];
                     
@@ -849,6 +840,19 @@
                     // Toggle all items
                     const newState = !allChecked;
                     order.checkedItems = order.checkedItems.map(() => newState);
+                    const newStatus = newState ? 'Completed' : 'For Payment';
+                    
+                    // Send update to server for all items in this order
+                    try {
+                        await apiCall('/api/staff/orders/update-all-status', 'POST', {
+                            orderID: order.id,
+                            status: newStatus
+                        });
+                    } catch (error) {
+                        console.error('Error updating status:', error);
+                        showStatusMessage('Error updating order status', 'bg-red-600');
+                        return;
+                    }
                     
                     // Re-render the orders to update the UI
                     renderOrders();
@@ -866,9 +870,19 @@
         function attachOrderButtonListeners() {
             // Send to Kitchen buttons
             document.querySelectorAll('.send-to-kitchen-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    const card = this.closest('.order-card');
-                    const orderId = card.querySelector('h2').textContent;
+                button.addEventListener('click', async function(e) {
+                    const orderId = this.getAttribute('data-order-id');
+                    
+                    try {
+                        await apiCall('/api/staff/orders/update-all-status', 'POST', {
+                            orderID: orderId,
+                            status: 'In Progress'
+                        });
+                    } catch (error) {
+                        console.error('Error sending to kitchen:', error);
+                        showStatusMessage('Error updating order', 'bg-red-600');
+                        return;
+                    }
                     
                     showStatusMessage(`Order ${orderId} sent to kitchen!`, 'bg-green-600');
                     
@@ -878,6 +892,7 @@
                     this.classList.add('bg-blue-600', 'hover:bg-blue-700');
                     
                     // Update timer badge
+                    const card = this.closest('.order-card');
                     const timerBadge = card.querySelector('.status-timer');
                     timerBadge.textContent = '0m';
                     timerBadge.className = 'bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold status-timer';
@@ -886,19 +901,45 @@
             
             // Cancel Order buttons
             document.querySelectorAll('.cancel-order-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    const card = this.closest('.order-card');
-                    const orderId = card.querySelector('h2').textContent;
+                button.addEventListener('click', async function(e) {
+                    const orderId = this.getAttribute('data-order-id');
+                    
+                    try {
+                        await apiCall('/api/staff/orders/cancel', 'POST', {
+                            orderID: orderId
+                        });
+                    } catch (error) {
+                        console.error('Error cancelling order:', error);
+                        showStatusMessage('Error cancelling order', 'bg-red-600');
+                        return;
+                    }
+                    
                     showStatusMessage(`Order ${orderId} cancelled!`, 'bg-amber-600');
+                    
+                    // Reload orders
+                    loadOrders();
                 });
             });
             
             // Void Order buttons
             document.querySelectorAll('.void-order-btn').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    const card = this.closest('.order-card');
-                    const orderId = card.querySelector('h2').textContent;
+                button.addEventListener('click', async function(e) {
+                    const orderId = this.getAttribute('data-order-id');
+                    
+                    try {
+                        await apiCall('/api/staff/orders/void', 'POST', {
+                            orderID: orderId
+                        });
+                    } catch (error) {
+                        console.error('Error voiding order:', error);
+                        showStatusMessage('Error voiding order', 'bg-red-600');
+                        return;
+                    }
+                    
                     showStatusMessage(`Order ${orderId} voided!`, 'bg-red-600');
+                    
+                    // Reload orders
+                    loadOrders();
                 });
             });
         }
@@ -1013,76 +1054,8 @@
         updateClock();
         setInterval(updateClock, 1000);
         
-        // Simulate order notification update (every 20 seconds)
-        setInterval(() => {
-            // Randomly add new orders for demo
-            if (Math.random() > 0.7 && allOrders.length < 12) {
-                const newOrderNumber = allOrders.length + 1;
-                const newId = `CAFFE${newOrderNumber.toString().padStart(6, '0')}`;
-                const types = ['Dine in', 'Takeout'];
-                const payments = ['Cash', 'Electronic'];
-                const type = types[Math.floor(Math.random() * types.length)];
-                const payment = payments[Math.floor(Math.random() * payments.length)];
-                const typeColor = type === 'Dine in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200';
-                
-                // Sample menu items with prices
-                const sampleMenu = [
-                    { name: "Espresso", price: 110 },
-                    { name: "Croissant", price: 85 },
-                    { name: "Cappuccino", price: 135 },
-                    { name: "Blueberry Muffin", price: 95 },
-                    { name: "Latte", price: 145 },
-                    { name: "Chocolate Cake", price: 160 },
-                    { name: "Iced Coffee", price: 120 },
-                    { name: "Sandwich", price: 185 },
-                    { name: "Tea", price: 100 },
-                    { name: "Cookies", price: 75 }
-                ];
-                
-                // Select 2-4 random items
-                const itemCount = Math.floor(Math.random() * 3) + 2;
-                const items = [];
-                for (let i = 0; i < itemCount; i++) {
-                    const randomItem = sampleMenu[Math.floor(Math.random() * sampleMenu.length)];
-                    items.push({...randomItem}); // Clone to avoid reference issues
-                }
-                
-                const time = `${Math.floor(Math.random() * 30) + 1}m`;
-                
-                // Initialize checkedItems array with false values
-                const checkedItems = new Array(items.length).fill(false);
-                
-                allOrders.push({
-                    id: newId,
-                    time: time,
-                    type: type,
-                    typeColor: typeColor,
-                    payment: payment,
-                    items: items,
-                    checkedItems: checkedItems,
-                    taxRate: 0.12
-                });
-                
-                // Update total pages
-                totalPagesElement.textContent = Math.ceil(allOrders.length / ordersPerPage);
-                
-                // Update all statistics
-                updateStatistics();
-                updateCompletionStats();
-                updateRevenueStats();
-                
-                // If we're on the last page, show the new order
-                if (currentPage === totalPages) {
-                    renderOrders();
-                }
-                
-                // Animate order count badge
-                orderCountElement.parentElement.classList.add('scale-125');
-                setTimeout(() => {
-                    orderCountElement.parentElement.classList.remove('scale-125');
-                }, 300);
-            }
-        }, 20000);
+        // Auto-refresh orders every 30 seconds
+        setInterval(loadOrders, 30000);
         
         // Keyboard navigation for pagination
         document.addEventListener('keydown', function(event) {
