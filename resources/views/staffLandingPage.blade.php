@@ -562,6 +562,26 @@
             };
         }
         
+        // Helper function to calculate all orders statistics
+        function calculateRevenueStatistics() {
+            let totalRevenue = 0;
+            let totalTax = 0;
+            
+            allOrders.forEach(order => {
+                const totals = calculateOrderTotals(order);
+                totalRevenue += totals.total;
+                totalTax += totals.tax;
+            });
+            
+            const avgOrderValue = allOrders.length > 0 ? totalRevenue / allOrders.length : 0;
+            
+            return {
+                totalRevenue: totalRevenue,
+                totalTax: totalTax,
+                avgOrderValue: avgOrderValue
+            };
+        }
+        
         // Helper function to calculate order totals after removing items
         function calculateOrderTotalsAfterRemoval(order, itemsToRemoveIndices) {
             const remainingItems = order.items.filter((item, index) => !itemsToRemoveIndices.includes(index.toString()));
@@ -1046,6 +1066,23 @@
             updateCheckedCounts();
         }
         
+        function updateStatistics() {
+            // Update counts
+            const dineInCount = allOrders.filter(order => order.type === 'Dine in').length;
+            const takeoutCount = allOrders.filter(order => order.type === 'Takeout').length;
+            const cashCount = allOrders.filter(order => order.payment === 'Cash').length;
+            const electronicCount = allOrders.filter(order => order.payment === 'Electronic').length;
+            
+            orderCountElement.textContent = allOrders.length;
+        }
+        
+        function updateRevenueStats() {
+            const revenueStats = calculateRevenueStatistics();
+            
+            // These would update elements if they existed
+            // For now, we'll just calculate them
+        }
+        
         function attachCheckboxListeners() {
             // Individual item checkbox listeners
             document.querySelectorAll('.item-checkbox').forEach(checkbox => {
@@ -1173,23 +1210,6 @@
                 const paymentNumber = paymentNumberBadge.textContent.replace('Payment #', '').trim();
                 updateCheckedCount(orderId, paymentNumber);
             });
-        }
-        
-        function updateStatistics() {
-            // Update counts
-            const dineInCount = allOrders.filter(order => order.type === 'Dine in').length;
-            const takeoutCount = allOrders.filter(order => order.type === 'Takeout').length;
-            const cashCount = allOrders.filter(order => order.payment === 'Cash').length;
-            const electronicCount = allOrders.filter(order => order.payment === 'Electronic').length;
-            
-            orderCountElement.textContent = allOrders.length;
-        }
-        
-        function updateRevenueStats() {
-            const revenueStats = calculateRevenueStatistics();
-            
-            // These would update elements if they existed
-            // For now, we'll just calculate them
         }
         
         function attachOrderButtonListeners() {
