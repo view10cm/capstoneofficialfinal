@@ -13,6 +13,15 @@ Route::middleware(['auth', 'staff'])->group(function () {
         return view('staffLandingPage');
     })->name('staff.landingPage');
     
+    // API Routes for Staff
+    Route::prefix('api/staff')->group(function () {
+        Route::get('/orders', [StaffController::class, 'getOrders'])->name('staff.orders.api');
+        Route::post('/orders/update-status', [StaffController::class, 'updateStatus'])->name('staff.orders.update-status');
+        Route::post('/orders/update-all-status', [StaffController::class, 'updateAllStatus'])->name('staff.orders.update-all-status');
+        Route::post('/orders/cancel', [StaffController::class, 'cancelOrder'])->name('staff.orders.cancel');
+        Route::post('/orders/void', [StaffController::class, 'voidOrder'])->name('staff.orders.void');
+    });
+    
     // Add more staff-specific routes here
     // Route::get('/staff/orders', [StaffController::class, 'viewOrders'])->name('staff.orders');
     // Route::get('/staff/menu', [StaffController::class, 'viewMenu'])->name('staff.menu');
