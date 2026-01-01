@@ -115,6 +115,16 @@
             background-color: #DC2626;
             color: #FFFFFF;
         }
+        /* Quantity badge */
+        .quantity-badge {
+            background-color: #1E40AF;
+            color: #FFFFFF;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            font-weight: 600;
+        }
         /* Custom checkbox styling */
         .custom-checkbox {
             appearance: none;
@@ -209,6 +219,12 @@
         }
         .order-card .text-gray-300 {
             color: #D1D5DB !important;
+        }
+        /* Item details container */
+        .item-details {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
         }
     </style>
 </head>
@@ -545,11 +561,12 @@
                     };
                 }
                 
-                // Add item to the order
+                // Add item to the order - include quantity as a separate property
                 groupedOrders[orderKey].items.push({
                     name: order.orderProductName,
                     price: parseFloat(order.orderTotalProductPrice) / order.orderQuantity,
-                    quantity: order.orderQuantity
+                    quantity: order.orderQuantity,
+                    totalPrice: parseFloat(order.orderTotalProductPrice)
                 });
                 
                 // Initialize checked status based on orderProductStatus
@@ -680,19 +697,22 @@
                                 </button>
                             </div>
                             
-                            <!-- Order Items with Checkboxes and Prices -->
+                            <!-- Order Items with Checkboxes, Quantities and Prices -->
                             <ul class="space-y-2">
                                 ${order.items.map((item, itemIndex) => `
                                     <li class="price-item ${order.checkedItems[itemIndex] ? 'completed-item' : ''}">
-                                        <div class="flex items-start">
+                                        <div class="flex items-start w-full">
                                             <input type="checkbox" 
                                                    class="custom-checkbox mr-3 mt-1" 
                                                    data-order-index="${startIndex + orderIndex}"
                                                    data-item-index="${itemIndex}"
                                                    ${order.checkedItems[itemIndex] ? 'checked' : ''}>
-                                            <span class="order-item-text">${item.name} ${item.quantity > 1 ? `(x${item.quantity})` : ''}</span>
+                                            <div class="item-details">
+                                                <span class="order-item-text">${item.name}</span>
+                                                <span class="quantity-badge">×${item.quantity}</span>
+                                            </div>
                                         </div>
-                                        <span class="price-tag">${formatCurrency(item.price * item.quantity)}</span>
+                                        <span class="price-tag">${formatCurrency(item.totalPrice)}</span>
                                     </li>
                                 `).join('')}
                             </ul>
@@ -715,6 +735,14 @@
                                 <div class="price-item total-row">
                                     <span class="text-white">Total to Pay:</span>
                                     <span class="text-green-400 font-bold">${formatCurrency(totals.total)}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Item count summary -->
+                            <div class="mt-3 pt-3 border-t border-gray-700">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-400 text-sm">Total items in order:</span>
+                                    <span class="text-amber-400 font-medium">${order.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
                                 </div>
                             </div>
                             
@@ -804,6 +832,7 @@
                     const orderId = allOrders[orderIndex].id;
                     const paymentNumber = allOrders[orderIndex].paymentNumber;
                     const itemName = allOrders[orderIndex].items[itemIndex].name;
+                    const itemQuantity = allOrders[orderIndex].items[itemIndex].quantity;
                     const newStatus = this.checked ? 'Completed' : 'For Payment';
                     
                     // Send update to server
@@ -812,6 +841,7 @@
                             orderID: orderId,
                             paymentNumber: paymentNumber,
                             productName: itemName,
+                            quantity: itemQuantity,
                             status: newStatus
                         });
                     } catch (error) {
@@ -853,7 +883,7 @@
                     
                     // Show status message
                     const status = this.checked ? 'prepared' : 'pending';
-                    showStatusMessage(`${itemName} marked as ${status}`, this.checked ? 'bg-green-600' : 'bg-yellow-600');
+                    showStatusMessage(`${itemName} (×${itemQuantity}) marked as ${status}`, this.checked ? 'bg-green-600' : 'bg-yellow-600');
                 });
             });
         }
