@@ -767,41 +767,41 @@
         }
         
         // Function to transform database data to frontend format
-        function transformOrderData(orders) {
-            // Group by orderID and paymentNumber to combine multiple items into single orders
-            const groupedOrders = {};
-            
-            orders.forEach(order => {
-                // Create a unique key using orderID and paymentNumber
-                const orderKey = `${order.orderID}-${order.paymentNumber}`;
-                
-                if (!groupedOrders[orderKey]) {
-                    groupedOrders[orderKey] = {
-                        id: order.orderID,
-                        paymentNumber: order.paymentNumber.toString().trim(), // Trim spaces
-                        time: calculateOrderTime(order.orderCreateDateAndTime),
-                        type: order.orderType === 'dine-in' ? 'Dine in' : 'Takeout',
-                        typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
-                        payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
-                        items: [],
-                        taxRate: 0.12,
-                        status: order.orderStatus || 'pending'
-                    };
-                }
-                
-                // Add item to the order - include quantity as a separate property
-                groupedOrders[orderKey].items.push({
-                    name: order.orderProductName,
-                    price: parseFloat(order.orderTotalProductPrice) / order.orderQuantity,
-                    quantity: order.orderQuantity,
-                    totalPrice: parseFloat(order.orderTotalProductPrice),
-                    status: order.itemStatus || 'active'
-                });
-            });
-            
-            // Convert to array
-            return Object.values(groupedOrders);
+function transformOrderData(orders) {
+    // Group by orderID and paymentNumber to combine multiple items into single orders
+    const groupedOrders = {};
+    
+    orders.forEach(order => {
+        // Create a unique key using orderID and paymentNumber
+        const orderKey = `${order.orderID}-${order.paymentNumber}`;
+        
+        if (!groupedOrders[orderKey]) {
+            groupedOrders[orderKey] = {
+                id: order.orderID,
+                paymentNumber: order.paymentNumber.toString().trim(),
+                time: calculateOrderTime(order.orderCreateDateAndTime),
+                type: order.orderType === 'dine-in' ? 'Dine in' : 'Takeout',
+                typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
+                payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
+                items: [],
+                taxRate: 0.12,
+                status: order.orderProductStatus || 'For Payment'  // Changed from order.orderStatus
+            };
         }
+        
+        // Add item to the order
+        groupedOrders[orderKey].items.push({
+            name: order.orderProductName,
+            price: parseFloat(order.orderTotalProductPrice) / order.orderQuantity,
+            quantity: order.orderQuantity,
+            totalPrice: parseFloat(order.orderTotalProductPrice),
+            status: order.orderProductStatus || 'active'
+        });
+    });
+    
+    // Convert to array
+    return Object.values(groupedOrders);
+}
         
         // Calculate time since order was created
         function calculateOrderTime(createDateTime) {
@@ -959,6 +959,7 @@
                                                    data-order-id="${order.id}"
                                                    data-payment-number="${order.paymentNumber}"
                                                    data-item-index="${itemIndex}"
+                                                   data-product-name="${item.name}"
                                                    ${isChecked ? 'checked' : ''}>
                                             <div class="flex items-start w-full">
                                                 <div class="item-details">
@@ -1328,42 +1329,54 @@
                     // Get selected items for voiding using safe selector
                     const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
                     
-                    const selectedItems = Array.from(itemCheckboxes)
+                    // Get product names from selected checkboxes
+                    const selectedProducts = Array.from(itemCheckboxes)
                         .filter(checkbox => checkbox.checked)
-                        .map(checkbox => parseInt(checkbox.getAttribute('data-item-index')));
+                        .map(checkbox => checkbox.getAttribute('data-product-name'));
                     
-                    if (selectedItems.length === 0) {
+                    if (selectedProducts.length === 0) {
                         showStatusMessage('No products selected for voiding', 'bg-yellow-600');
                         return;
                     }
                     
                     // Animate removal of selected items
-                    selectedItems.forEach(itemIndex => {
-                        const itemElement = document.getElementById(`item-${orderId}-${paymentNumber}-${itemIndex}`);
-                        if (itemElement) {
-                            itemElement.classList.add('item-removing');
-                        }
-                    });
+                    Array.from(itemCheckboxes)
+                        .filter(checkbox => checkbox.checked)
+                        .forEach(checkbox => {
+                            const itemIndex = checkbox.getAttribute('data-item-index');
+                            const itemElement = document.getElementById(`item-${orderId}-${paymentNumber}-${itemIndex}`);
+                            if (itemElement) {
+                                itemElement.classList.add('item-removing');
+                            }
+                        });
                     
                     // Wait for animation to complete
                     setTimeout(async () => {
                         try {
-                            // Try to call API to void products
+                            // Try to call API to update product status to "Product Voided"
                             try {
+                                // Send product names to update status in database
                                 await apiCall('/api/staff/orders/void-products', 'POST', {
                                     orderID: orderId,
                                     paymentNumber: paymentNumber,
-                                    items: selectedItems
+                                    items: selectedProducts, // Send product names
+                                    status: 'Product Voided'
                                 });
-                                showStatusMessage(`${selectedItems.length} product(s) voided on server`, 'bg-green-600');
+                                
+                                showStatusMessage(`${selectedProducts.length} product(s) marked as Product Voided`, 'bg-green-600');
                             } catch (apiError) {
                                 console.warn('API call failed, but continuing with local removal:', apiError);
                                 // Continue with local removal even if API fails
-                                showStatusMessage(`${selectedItems.length} product(s) voided locally (server update failed)`, 'bg-yellow-600');
+                                showStatusMessage(`${selectedProducts.length} product(s) voided locally (server update failed)`, 'bg-yellow-600');
                             }
                             
+                            // Get the indices of selected items for local removal
+                            const selectedIndices = Array.from(itemCheckboxes)
+                                .filter(checkbox => checkbox.checked)
+                                .map(checkbox => parseInt(checkbox.getAttribute('data-item-index')));
+                            
                             // Remove items from local data
-                            const orderRemoved = removeItemsFromOrder(orderId, paymentNumber, selectedItems.map(i => i.toString()));
+                            const orderRemoved = removeItemsFromOrder(orderId, paymentNumber, selectedIndices.map(i => i.toString()));
                             
                             // Reset void state
                             setOrderVoidState(orderId, paymentNumber, false);
@@ -1383,7 +1396,7 @@
                             renderOrders();
                             
                             if (!orderRemoved) {
-                                showStatusMessage(`${selectedItems.length} product(s) removed from order ${orderId}`, 'bg-red-600');
+                                showStatusMessage(`${selectedProducts.length} product(s) removed from order ${orderId}`, 'bg-red-600');
                             }
                             
                         } catch (error) {
