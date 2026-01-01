@@ -412,6 +412,63 @@
             background-color: #059669;
             color: #D1FAE5;
         }
+        /* Item notes styling */
+        .item-notes-section {
+            background-color: rgba(245, 158, 11, 0.1);
+            border-radius: 4px;
+            padding: 6px 8px;
+            margin-top: 4px;
+            margin-left: 32px; /* Align with item text */
+            border-left: 2px solid #F59E0B; /* Amber accent for notes */
+            font-size: 0.85rem;
+        }
+        .notes-label {
+            color: #F59E0B; /* Amber color for label */
+            font-weight: 500;
+            font-size: 0.85rem;
+            margin-right: 6px;
+        }
+        .notes-content {
+            color: #E5E7EB; /* Light gray for note text */
+            font-size: 0.85rem;
+            line-height: 1.3;
+            word-wrap: break-word;
+            white-space: pre-wrap; /* Preserve line breaks */
+        }
+        .notes-none {
+            color: #9CA3AF; /* Gray color for "None" */
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+        /* Order-level notes summary */
+        .order-notes-summary {
+            background-color: rgba(55, 65, 81, 0.5);
+            border-radius: 6px;
+            padding: 10px 12px;
+            margin-top: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #4B5563;
+            border-left: 3px solid #F59E0B; /* Amber accent */
+        }
+        .order-notes-label {
+            color: #F59E0B; /* Amber color for label */
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .order-notes-label i {
+            font-size: 0.8rem;
+        }
+        .order-notes-content {
+            color: #E5E7EB; /* Light gray for note text */
+            font-size: 0.9rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            white-space: pre-wrap; /* Preserve line breaks */
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col min-h-screen">
@@ -992,17 +1049,45 @@
                         payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
                         items: [],
                         taxRate: 0.12,
-                        status: order.orderProductStatus || 'For Payment'  // Changed from order.orderStatus
+                        status: order.orderProductStatus || 'For Payment',
+                        notes: 'None' // Initialize as 'None' - will be updated if any items have notes
                     };
                 }
                 
-                // Add item to the order
+                // Add item to the order with its individual notes
                 groupedOrders[orderKey].items.push({
                     name: order.orderProductName,
                     price: parseFloat(order.orderTotalProductPrice) / order.orderQuantity,
                     quantity: order.orderQuantity,
                     totalPrice: parseFloat(order.orderTotalProductPrice),
-                    status: order.orderProductStatus || 'active'
+                    status: order.orderProductStatus || 'active',
+                    notes: order.orderNotes || null // Store item-specific notes
+                });
+            });
+            
+            // After grouping, process notes at both order and item level
+            Object.values(groupedOrders).forEach(order => {
+                // Collect all unique non-empty notes from items
+                const itemNotes = order.items
+                    .map(item => item.notes)
+                    .filter(note => note && note.trim() !== '');
+                
+                // Remove duplicates
+                const uniqueNotes = [...new Set(itemNotes)];
+                
+                // Combine notes for order-level display
+                if (uniqueNotes.length > 0) {
+                    order.notes = uniqueNotes.join(' | ');
+                }
+                
+                // Also keep item-level notes for display
+                order.items.forEach(item => {
+                    // Clean up item notes for display
+                    if (item.notes && item.notes.trim() !== '') {
+                        item.displayNotes = item.notes.trim();
+                    } else {
+                        item.displayNotes = null;
+                    }
                 });
             });
             
@@ -1050,14 +1135,19 @@
                     selectedCount++;
                     totalItems += item.quantity;
                     
+                    // Check if item has notes
+                    const hasNotes = item.displayNotes && item.displayNotes !== 'None';
+                    
                     return `
                         <div class="product-item">
-                            <div class="flex items-center">
-                                <span class="product-name">${item.name}</span>
-                                <span class="product-quantity">×${item.quantity}</span>
-                                <span class="product-status status-selected">
-                                    Selected
-                                </span>
+                            <div class="flex flex-col">
+                                <div class="flex items-center">
+                                    <span class="product-name">${item.name}</span>
+                                    <span class="product-quantity">×${item.quantity}</span>
+                                    <span class="product-status status-selected">
+                                        Selected
+                                    </span>
+                                </div>
                             </div>
                             <span class="product-price">${formatCurrency(item.totalPrice)}</span>
                         </div>
@@ -1204,6 +1294,9 @@
                 // Check if order has items
                 const hasItems = order.items.length > 0;
                 
+                // Check if any items have notes
+                const hasItemNotes = order.items.some(item => item.displayNotes);
+                
                 orderCard.innerHTML = `
                     <div class="p-5">
                         <!-- Order ID and Payment Number in same row -->
@@ -1223,7 +1316,7 @@
                         
                         <div class="mb-6">
                             <!-- Order Type and Payment Method in same row -->
-                            <div class="flex flex-wrap gap-2 mb-4">
+                            <div class="flex flex-wrap gap-2 mb-3">
                                 <div class="${order.typeColor} px-3 py-1 rounded-md text-sm">
                                     ${order.type}
                                 </div>
@@ -1231,6 +1324,19 @@
                                     ${paymentText}
                                 </div>
                             </div>
+                            
+                            <!-- Order Notes Summary (only show if there are notes) -->
+                            ${order.notes !== 'None' ? `
+                            <div class="order-notes-summary mb-3">
+                                <div class="order-notes-label">
+                                    <i class="fas fa-sticky-note"></i>
+                                    <span>Order Notes Summary:</span>
+                                </div>
+                                <div class="order-notes-content">
+                                    ${order.notes}
+                                </div>
+                            </div>
+                            ` : ''}
                             
                             <!-- Void State Warning -->
                             ${isVoidState ? `
@@ -1265,6 +1371,7 @@
                                     const itemClass = isChecked ? 'item-checked' : '';
                                     const isVoidable = isVoidState;
                                     const checkboxClass = isVoidState ? 'item-checkbox-void' : '';
+                                    const hasNotes = item.displayNotes;
                                     
                                     return `
                                     <li class="price-item ${itemClass}" id="item-${order.id}-${order.paymentNumber}-${itemIndex}">
@@ -1276,14 +1383,23 @@
                                                    data-payment-number="${order.paymentNumber}"
                                                    data-item-index="${itemIndex}"
                                                    data-product-name="${item.name}"
+                                                   data-product-notes="${item.displayNotes || ''}"
                                                    ${isChecked ? 'checked' : ''}>
-                                            <div class="flex items-start w-full">
-                                                <div class="item-details">
-                                                    <span class="order-item-text">
-                                                        ${item.name}
-                                                    </span>
-                                                    <span class="quantity-badge">×${item.quantity}</span>
+                                            <div class="flex flex-col w-full">
+                                                <div class="flex items-start">
+                                                    <div class="item-details">
+                                                        <span class="order-item-text">
+                                                            ${item.name}
+                                                        </span>
+                                                        <span class="quantity-badge">×${item.quantity}</span>
+                                                    </div>
                                                 </div>
+                                                ${hasNotes ? `
+                                                <div class="item-notes-section">
+                                                    <span class="notes-label">Note:</span>
+                                                    <span class="notes-content">${item.displayNotes}</span>
+                                                </div>
+                                                ` : ''}
                                             </div>
                                         </div>
                                         <span class="price-tag">

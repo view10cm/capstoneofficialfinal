@@ -65,4 +65,15 @@ class OrderToStaffTransaction extends Model
         
         return 'CAFFE' . $newNumber;
     }
+    
+    /**
+     * Accessor for orderNotes - return "None" if null
+     *
+     * @param  mixed  $value
+     * @return string
+     */
+    public function getOrderNotesAttribute($value)
+    {
+        return $value ?? 'None';
+    }
 }
