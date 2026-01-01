@@ -346,6 +346,72 @@
             color: #9CA3AF;
             font-style: italic;
         }
+        /* Modal styles for Confirm Payment */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        #amount-paid:focus {
+            box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+        }
+        #confirm-payment-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #confirm-payment-btn:disabled:hover {
+            background-color: #059669;
+        }
+        /* Product list in modal */
+        #modal-products-list {
+            scrollbar-width: thin;
+            scrollbar-color: #4B5563 #1F2937;
+        }
+        #modal-products-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        #modal-products-list::-webkit-scrollbar-track {
+            background: #1F2937;
+            border-radius: 3px;
+        }
+        #modal-products-list::-webkit-scrollbar-thumb {
+            background-color: #4B5563;
+            border-radius: 3px;
+        }
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: rgba(30, 41, 59, 0.5);
+            border-radius: 6px;
+            border: 1px solid #374151;
+        }
+        .product-name {
+            color: #E5E7EB;
+            font-weight: 500;
+        }
+        .product-quantity {
+            background-color: #1E40AF;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            font-weight: 600;
+        }
+        .product-price {
+            color: #FBBF24;
+            font-weight: 500;
+        }
+        .product-status {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        .status-selected {
+            background-color: #059669;
+            color: #D1FAE5;
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col min-h-screen">
@@ -529,6 +595,139 @@
             <div class="mt-6 flex justify-end">
                 <button id="accept-privacy" class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-lg">
                     I Understand
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Confirm Payment -->
+    <div id="confirm-payment-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">Confirm Payment</h2>
+                <button id="close-confirm-payment" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Order Details -->
+            <div class="space-y-4">
+                <!-- Order ID and Payment Number -->
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-300">Order ID:</span>
+                    <span class="text-white font-medium" id="modal-order-id">-</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-300">Payment Number:</span>
+                    <span class="text-white font-medium" id="modal-payment-number">-</span>
+                </div>
+                
+                <hr class="border-gray-700 my-2">
+                
+                <!-- Order Type and Payment Method -->
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-300">Order Type:</span>
+                    <span class="text-white font-medium" id="modal-order-type">-</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-300">Payment Method:</span>
+                    <span class="text-white font-medium" id="modal-payment-method">-</span>
+                </div>
+                
+                <hr class="border-gray-700 my-2">
+                
+                <!-- Products/Items List -->
+                <div class="bg-gray-900 rounded-lg p-4">
+                    <h3 class="text-white font-medium mb-3">Products to be Paid:</h3>
+                    <div id="modal-products-list" class="space-y-3 max-h-60 overflow-y-auto pr-2">
+                        <!-- Products will be dynamically added here -->
+                        <div class="text-center text-gray-500 py-4">
+                            <i class="fas fa-shopping-basket mb-2"></i>
+                            <p>Loading products...</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-700">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">Total Items:</span>
+                            <span class="text-white font-medium" id="modal-total-items">0</span>
+                        </div>
+                        <div class="flex justify-between items-center mt-1">
+                            <span class="text-gray-300">Selected Items:</span>
+                            <span class="text-blue-400 font-medium" id="modal-selected-items">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Amount Details -->
+                <div class="bg-gray-900 p-4 rounded-lg">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-300">Subtotal:</span>
+                        <span class="text-gray-300" id="modal-subtotal">₱0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-gray-300">Tax:</span>
+                        <span class="text-blue-400" id="modal-tax">₱0.00</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-gray-700">
+                        <span class="text-white font-semibold">Total Amount:</span>
+                        <span class="text-green-400 font-bold text-lg" id="modal-total">₱0.00</span>
+                    </div>
+                </div>
+                
+                <hr class="border-gray-700 my-2">
+                
+                <!-- Staff Information -->
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-300">Processed by:</span>
+                    <span class="text-white font-medium">{{ auth()->user()->name ?? 'Staff Member' }}</span>
+                </div>
+                
+                <!-- Amount Paid Input -->
+                <div class="space-y-2">
+                    <label for="amount-paid" class="block text-gray-300 text-sm font-medium">Amount Paid <span class="text-red-400">*</span></label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">₱</span>
+                        <input 
+                            type="number" 
+                            id="amount-paid" 
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            class="w-full bg-gray-700 text-white pl-8 pr-4 py-3 rounded-lg border border-gray-600 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 focus:outline-none transition"
+                        >
+                    </div>
+                    <p class="text-xs text-gray-400">Enter the amount received from customer</p>
+                </div>
+                
+                <!-- Reference Number (Optional) -->
+                <div class="space-y-2">
+                    <label class="block text-gray-300 text-sm font-medium">Reference Number (Optional)</label>
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="modal-reference-input" 
+                            placeholder="e.g., TRANS-12345 or leave blank"
+                            class="w-full bg-gray-700 text-gray-300 pl-4 pr-4 py-3 rounded-lg border border-gray-600 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 focus:outline-none transition placeholder-gray-500"
+                        >
+                    </div>
+                    <p class="text-xs text-gray-400">Enter transaction reference if available</p>
+                </div>
+                
+                <!-- Change Calculation -->
+                <div id="change-calculation" class="hidden">
+                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-700">
+                        <span class="text-gray-300">Change:</span>
+                        <span class="text-green-400 font-medium" id="modal-change">₱0.00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancel-payment" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                    Cancel
+                </button>
+                <button id="confirm-payment-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                    Confirm Payment
                 </button>
             </div>
         </div>
@@ -736,6 +935,14 @@
         const acceptTerms = document.getElementById('accept-terms');
         const acceptPrivacy = document.getElementById('accept-privacy');
         
+        // Confirm Payment Modal Elements
+        const confirmPaymentModal = document.getElementById('confirm-payment-modal');
+        const closeConfirmPayment = document.getElementById('close-confirm-payment');
+        const cancelPayment = document.getElementById('cancel-payment');
+        const confirmPaymentBtn = document.getElementById('confirm-payment-btn');
+        const amountPaidInput = document.getElementById('amount-paid');
+        const referenceInput = document.getElementById('modal-reference-input');
+        
         // Initialize
         loadOrders();
         
@@ -767,41 +974,41 @@
         }
         
         // Function to transform database data to frontend format
-function transformOrderData(orders) {
-    // Group by orderID and paymentNumber to combine multiple items into single orders
-    const groupedOrders = {};
-    
-    orders.forEach(order => {
-        // Create a unique key using orderID and paymentNumber
-        const orderKey = `${order.orderID}-${order.paymentNumber}`;
-        
-        if (!groupedOrders[orderKey]) {
-            groupedOrders[orderKey] = {
-                id: order.orderID,
-                paymentNumber: order.paymentNumber.toString().trim(),
-                time: calculateOrderTime(order.orderCreateDateAndTime),
-                type: order.orderType === 'dine-in' ? 'Dine in' : 'Takeout',
-                typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
-                payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
-                items: [],
-                taxRate: 0.12,
-                status: order.orderProductStatus || 'For Payment'  // Changed from order.orderStatus
-            };
+        function transformOrderData(orders) {
+            // Group by orderID and paymentNumber to combine multiple items into single orders
+            const groupedOrders = {};
+            
+            orders.forEach(order => {
+                // Create a unique key using orderID and paymentNumber
+                const orderKey = `${order.orderID}-${order.paymentNumber}`;
+                
+                if (!groupedOrders[orderKey]) {
+                    groupedOrders[orderKey] = {
+                        id: order.orderID,
+                        paymentNumber: order.paymentNumber.toString().trim(),
+                        time: calculateOrderTime(order.orderCreateDateAndTime),
+                        type: order.orderType === 'dine-in' ? 'Dine in' : 'Takeout',
+                        typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
+                        payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
+                        items: [],
+                        taxRate: 0.12,
+                        status: order.orderProductStatus || 'For Payment'  // Changed from order.orderStatus
+                    };
+                }
+                
+                // Add item to the order
+                groupedOrders[orderKey].items.push({
+                    name: order.orderProductName,
+                    price: parseFloat(order.orderTotalProductPrice) / order.orderQuantity,
+                    quantity: order.orderQuantity,
+                    totalPrice: parseFloat(order.orderTotalProductPrice),
+                    status: order.orderProductStatus || 'active'
+                });
+            });
+            
+            // Convert to array
+            return Object.values(groupedOrders);
         }
-        
-        // Add item to the order
-        groupedOrders[orderKey].items.push({
-            name: order.orderProductName,
-            price: parseFloat(order.orderTotalProductPrice) / order.orderQuantity,
-            quantity: order.orderQuantity,
-            totalPrice: parseFloat(order.orderTotalProductPrice),
-            status: order.orderProductStatus || 'active'
-        });
-    });
-    
-    // Convert to array
-    return Object.values(groupedOrders);
-}
         
         // Calculate time since order was created
         function calculateOrderTime(createDateTime) {
@@ -815,6 +1022,115 @@ function transformOrderData(orders) {
                 const hours = Math.floor(diffMinutes / 60);
                 return `${hours}h`;
             }
+        }
+        
+        // Function to render products in the modal
+        function renderProductsInModal(orderId, paymentNumber, items, selectedItems) {
+            const productsListContainer = document.getElementById('modal-products-list');
+            
+            if (!items || items.length === 0) {
+                productsListContainer.innerHTML = `
+                    <div class="text-center text-gray-500 py-4">
+                        <i class="fas fa-shopping-basket mb-2"></i>
+                        <p>No products in this order</p>
+                    </div>
+                `;
+                document.getElementById('modal-total-items').textContent = '0';
+                document.getElementById('modal-selected-items').textContent = '0';
+                return;
+            }
+            
+            let totalItems = 0;
+            let selectedCount = 0;
+            
+            // Create product items - only show selected items
+            const productsHTML = items.map((item, index) => {
+                const isSelected = selectedItems.includes(index.toString());
+                if (isSelected) {
+                    selectedCount++;
+                    totalItems += item.quantity;
+                    
+                    return `
+                        <div class="product-item">
+                            <div class="flex items-center">
+                                <span class="product-name">${item.name}</span>
+                                <span class="product-quantity">×${item.quantity}</span>
+                                <span class="product-status status-selected">
+                                    Selected
+                                </span>
+                            </div>
+                            <span class="product-price">${formatCurrency(item.totalPrice)}</span>
+                        </div>
+                    `;
+                }
+                return ''; // Return empty string for non-selected items
+            }).filter(html => html !== '').join(''); // Filter out empty strings
+            
+            // If no items are selected, show a message
+            if (selectedCount === 0) {
+                productsListContainer.innerHTML = `
+                    <div class="text-center text-gray-500 py-4">
+                        <i class="fas fa-info-circle mb-2"></i>
+                        <p>No products selected for payment</p>
+                        <p class="text-xs mt-1">Please select items in the order card first</p>
+                    </div>
+                `;
+            } else {
+                productsListContainer.innerHTML = productsHTML;
+            }
+            
+            document.getElementById('modal-total-items').textContent = totalItems;
+            document.getElementById('modal-selected-items').textContent = selectedCount;
+        }
+        
+        // Function to open confirm payment modal
+        function openConfirmPaymentModal(orderId, paymentNumber, orderType, paymentMethod, subtotal, tax, total, items, selectedItems) {
+            // Set modal values
+            document.getElementById('modal-order-id').textContent = orderId;
+            document.getElementById('modal-payment-number').textContent = paymentNumber;
+            document.getElementById('modal-order-type').textContent = orderType;
+            document.getElementById('modal-payment-method').textContent = paymentMethod;
+            document.getElementById('modal-subtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('modal-tax').textContent = formatCurrency(tax);
+            document.getElementById('modal-total').textContent = formatCurrency(total);
+            
+            // Render products in modal (only selected ones)
+            renderProductsInModal(orderId, paymentNumber, items, selectedItems);
+            
+            // Clear reference number input
+            referenceInput.value = '';
+            
+            // Reset amount paid
+            amountPaidInput.value = '';
+            document.getElementById('change-calculation').classList.add('hidden');
+            confirmPaymentBtn.disabled = true;
+            
+            // Store order data for later use
+            confirmPaymentBtn.dataset.orderId = orderId;
+            confirmPaymentBtn.dataset.paymentNumber = paymentNumber;
+            confirmPaymentBtn.dataset.totalAmount = total;
+            
+            // Open modal
+            confirmPaymentModal.classList.remove('hidden');
+            confirmPaymentModal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            
+            // Focus on amount paid input
+            setTimeout(() => {
+                amountPaidInput.focus();
+            }, 100);
+        }
+        
+        // Function to calculate change
+        function calculateChange(amountPaid, totalAmount) {
+            return amountPaid - totalAmount;
+        }
+        
+        // Function to close payment modal
+        function closePaymentModal() {
+            confirmPaymentModal.classList.remove('flex');
+            confirmPaymentModal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
         }
         
         // Pagination Functions
@@ -1228,38 +1544,38 @@ function transformOrderData(orders) {
                         return;
                     }
                     
-                    // Get selected items using safe selector
-                    const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    // Find the order in allOrders array
+                    const order = allOrders.find(order => 
+                        order.id === orderId && order.paymentNumber === paymentNumber
+                    );
                     
-                    const selectedItems = Array.from(itemCheckboxes)
-                        .filter(checkbox => checkbox.checked)
-                        .map(checkbox => checkbox.getAttribute('data-item-index'));
-                    
-                    try {
-                        await apiCall('/api/staff/orders/update-all-status', 'POST', {
-                            orderID: orderId,
-                            paymentNumber: paymentNumber,
-                            status: 'In Progress',
-                            selectedItems: selectedItems
-                        });
-                    } catch (error) {
-                        console.error('Error sending to kitchen:', error);
-                        showStatusMessage('Error updating order', 'bg-red-600');
+                    if (!order) {
+                        showStatusMessage('Order not found', 'bg-red-600');
                         return;
                     }
                     
-                    showStatusMessage(`Order ${orderId} (Payment #${paymentNumber}) sent to kitchen!`, 'bg-green-600');
+                    // Calculate totals
+                    const totals = calculateOrderTotals(order);
                     
-                    // Update button to "In Progress"
-                    this.textContent = 'In Progress';
-                    this.classList.remove('bg-green-600', 'hover:bg-green-700');
-                    this.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    // Get selected items for this order
+                    const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    const selectedItems = itemCheckboxes ? 
+                        Array.from(itemCheckboxes)
+                            .filter(checkbox => checkbox.checked)
+                            .map(checkbox => checkbox.getAttribute('data-item-index')) : [];
                     
-                    // Update timer badge
-                    const card = this.closest('.order-card');
-                    const timerBadge = card.querySelector('.status-timer');
-                    timerBadge.textContent = '0m';
-                    timerBadge.className = 'bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold status-timer';
+                    // Open confirm payment modal with products
+                    openConfirmPaymentModal(
+                        order.id,
+                        order.paymentNumber,
+                        order.type,
+                        order.payment,
+                        totals.subtotal,
+                        totals.tax,
+                        totals.total,
+                        order.items,
+                        selectedItems
+                    );
                 });
             });
             
@@ -1435,6 +1751,124 @@ function transformOrderData(orders) {
             });
         }
         
+        // Event listener for amount paid input
+        amountPaidInput.addEventListener('input', function() {
+            const totalAmount = parseFloat(confirmPaymentBtn.dataset.totalAmount || 0);
+            const amountPaid = parseFloat(this.value) || 0;
+            
+            if (amountPaid >= totalAmount) {
+                const change = calculateChange(amountPaid, totalAmount);
+                document.getElementById('modal-change').textContent = formatCurrency(change);
+                document.getElementById('change-calculation').classList.remove('hidden');
+                confirmPaymentBtn.disabled = false;
+            } else {
+                document.getElementById('change-calculation').classList.add('hidden');
+                confirmPaymentBtn.disabled = true;
+            }
+        });
+        
+        // Event listener for confirm payment button in modal
+        confirmPaymentBtn.addEventListener('click', async function() {
+            const orderId = this.dataset.orderId;
+            const paymentNumber = this.dataset.paymentNumber;
+            const totalAmount = parseFloat(this.dataset.totalAmount);
+            const amountPaid = parseFloat(amountPaidInput.value);
+            const referenceNumber = referenceInput.value.trim();
+            
+            // Validate amount paid
+            if (!amountPaid || amountPaid < totalAmount) {
+                showStatusMessage('Amount paid must be equal to or greater than total amount', 'bg-red-600');
+                amountPaidInput.focus();
+                return;
+            }
+            
+            // Calculate change
+            const change = calculateChange(amountPaid, totalAmount);
+            
+            // Show processing message
+            showStatusMessage('Processing payment...', 'bg-blue-600');
+            
+            try {
+                // Get selected items for this order
+                const selectedItems = [];
+                const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                if (itemCheckboxes) {
+                    selectedItems.push(...Array.from(itemCheckboxes)
+                        .filter(checkbox => checkbox.checked)
+                        .map(checkbox => checkbox.getAttribute('data-item-index')));
+                }
+                
+                // Call the existing API to update order status
+                await apiCall('/api/staff/orders/update-all-status', 'POST', {
+                    orderID: orderId,
+                    paymentNumber: paymentNumber,
+                    status: 'In Progress',
+                    selectedItems: selectedItems,
+                    referenceNumber: referenceNumber || null  // Send reference if provided
+                });
+                
+                // Create product summary for message
+                const order = allOrders.find(order => 
+                    order.id === orderId && order.paymentNumber === paymentNumber
+                );
+                
+                let productSummary = '';
+                if (order && order.items) {
+                    const selectedProducts = order.items.filter((item, index) => 
+                        selectedItems.includes(index.toString())
+                    );
+                    
+                    if (selectedProducts.length > 0) {
+                        productSummary = ` (${selectedProducts.length} product${selectedProducts.length > 1 ? 's' : ''})`;
+                    }
+                }
+                
+                // Create success message with optional reference
+                let successMessage = `Payment confirmed for Order ${orderId}${productSummary}. `;
+                
+                if (referenceNumber) {
+                    successMessage += `Reference: ${referenceNumber}. `;
+                }
+                
+                successMessage += `Change: ${formatCurrency(change)}`;
+                
+                // Show success message
+                showStatusMessage(successMessage, 'bg-green-600');
+                
+                // Close modal
+                closePaymentModal();
+                
+                // Update the button in the order card to "In Progress"
+                const sendButton = document.querySelector(`.send-to-kitchen-btn[data-order-id="${orderId}"][data-payment-number="${paymentNumber}"]`);
+                if (sendButton) {
+                    sendButton.textContent = 'In Progress';
+                    sendButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    sendButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    sendButton.disabled = true;
+                }
+                
+                // Update timer badge
+                const card = document.querySelector(`.order-card h2.text-xl:contains("${orderId}")`)?.closest('.order-card');
+                if (card) {
+                    const timerBadge = card.querySelector('.status-timer');
+                    timerBadge.textContent = '0m';
+                    timerBadge.className = 'bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold status-timer';
+                }
+                
+            } catch (error) {
+                console.error('Error processing payment:', error);
+                showStatusMessage('Error processing payment: ' + error.message, 'bg-red-600');
+            }
+        });
+        
+        // Event listeners for confirm payment modal
+        closeConfirmPayment.addEventListener('click', closePaymentModal);
+        cancelPayment.addEventListener('click', closePaymentModal);
+        
+        confirmPaymentModal.addEventListener('click', (e) => {
+            if (e.target === confirmPaymentModal) closePaymentModal();
+        });
+        
         function showStatusMessage(message, bgColor) {
             statusMessage.textContent = message;
             statusMessage.className = `fixed bottom-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transform translate-y-4 transition-all duration-300 z-50`;
@@ -1494,6 +1928,7 @@ function transformOrderData(orders) {
             if (e.key === 'Escape') {
                 if (!termsModal.classList.contains('hidden')) closeModal(termsModal);
                 if (!privacyModal.classList.contains('hidden')) closeModal(privacyModal);
+                if (!confirmPaymentModal.classList.contains('hidden')) closePaymentModal();
             }
         });
         
