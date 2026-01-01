@@ -23,6 +23,7 @@ class StaffOrderController extends Controller
                     'orderProductName',
                     'orderQuantity',
                     'orderTotalProductPrice',
+                    'orderNotes',
                     'orderProductStatus'  // Changed from 'orderStatus' to 'orderProductStatus'
                 ])
                 ->where('orderProductStatus', '!=', 'Product Voided')  // Only get non-voided orders
