@@ -178,6 +178,174 @@
             align-items: center;
             flex-grow: 1;
         }
+        /* Checkbox styling */
+        .item-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background-color: #374151;
+            border: 2px solid #4B5563;
+            border-radius: 4px;
+            margin-right: 12px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .item-checkbox:hover {
+            border-color: #60A5FA;
+            background-color: #4B5563;
+        }
+        .item-checkbox:checked {
+            background-color: #10B981;
+            border-color: #10B981;
+        }
+        .item-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .item-checkbox:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .item-checkbox-void {
+            background-color: #DC2626;
+            border-color: #DC2626;
+        }
+        .item-checkbox-void:checked {
+            background-color: #DC2626;
+            border-color: #DC2626;
+        }
+        .item-checkbox-void:hover {
+            background-color: #B91C1C;
+            border-color: #B91C1C;
+        }
+        /* Checked item styling */
+        .item-checked {
+            opacity: 0.7;
+        }
+        .item-checked .order-item-text {
+            text-decoration: line-through;
+            color: #9CA3AF;
+        }
+        .item-checked .quantity-badge {
+            opacity: 0.7;
+        }
+        /* Select All section */
+        .select-all-section {
+            background-color: rgba(55, 65, 81, 0.7);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-top: 12px;
+            margin-bottom: 16px;
+            border: 1px solid #4B5563;
+        }
+        .select-all-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background-color: #374151;
+            border: 2px solid #4B5563;
+            border-radius: 4px;
+            margin-right: 8px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .select-all-checkbox:hover {
+            border-color: #60A5FA;
+            background-color: #4B5563;
+        }
+        .select-all-checkbox:checked {
+            background-color: #3B82F6;
+            border-color: #3B82F6;
+        }
+        .select-all-checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .select-all-checkbox-void {
+            background-color: #DC2626;
+            border-color: #DC2626;
+        }
+        /* Checkbox container */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        /* Void state styling */
+        .void-state {
+            border: 2px solid #DC2626;
+            box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.3);
+        }
+        .void-state .payment-number-badge {
+            background-color: #991B1B;
+        }
+        .void-warning {
+            background-color: rgba(220, 38, 38, 0.1);
+            border: 1px solid #DC2626;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .void-warning-text {
+            color: #FCA5A5;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .void-check-icon {
+            color: #DC2626;
+            margin-right: 8px;
+        }
+        /* Removed item animation */
+        .item-removing {
+            animation: removeItem 0.3s ease-out forwards;
+        }
+        @keyframes removeItem {
+            0% {
+                opacity: 1;
+                max-height: 100px;
+                transform: translateX(0);
+            }
+            50% {
+                opacity: 0.5;
+                transform: translateX(-10px);
+            }
+            100% {
+                opacity: 0;
+                max-height: 0;
+                padding: 0;
+                margin: 0;
+                transform: translateX(20px);
+                display: none;
+            }
+        }
+        /* Empty order message */
+        .empty-order-message {
+            background-color: rgba(55, 65, 81, 0.5);
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            margin: 10px 0;
+        }
+        .empty-order-text {
+            color: #9CA3AF;
+            font-style: italic;
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col min-h-screen">
@@ -370,6 +538,12 @@
         // Order data will be loaded from the server
         let allOrders = [];
         
+        // Store checked items state
+        let checkedItemsState = new Map();
+        
+        // Store void state for orders
+        let voidStateOrders = new Map();
+        
         // Helper function to format currency
         function formatCurrency(amount) {
             return `₱${parseFloat(amount).toFixed(2)}`;
@@ -388,50 +562,133 @@
             };
         }
         
-        // Helper function to calculate all orders statistics
-        function calculateRevenueStatistics() {
-            let totalRevenue = 0;
-            let totalTax = 0;
-            
-            allOrders.forEach(order => {
-                const totals = calculateOrderTotals(order);
-                totalRevenue += totals.total;
-                totalTax += totals.tax;
-            });
-            
-            const avgOrderValue = allOrders.length > 0 ? totalRevenue / allOrders.length : 0;
+        // Helper function to calculate order totals after removing items
+        function calculateOrderTotalsAfterRemoval(order, itemsToRemoveIndices) {
+            const remainingItems = order.items.filter((item, index) => !itemsToRemoveIndices.includes(index.toString()));
+            const subtotal = remainingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const tax = subtotal * order.taxRate;
+            const total = subtotal + tax;
             
             return {
-                totalRevenue: totalRevenue,
-                totalTax: totalTax,
-                avgOrderValue: avgOrderValue
+                subtotal: subtotal,
+                tax: tax,
+                total: total,
+                remainingItems: remainingItems
             };
         }
         
-        // Helper function for API calls
+        // Helper function for API calls with better error handling
         async function apiCall(url, method = 'GET', data = null) {
-            const options = {
-                method: method,
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                credentials: 'same-origin'
-            };
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    credentials: 'same-origin'
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(url, options);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error(`API call failed to ${url}:`, error);
+                throw error;
+            }
+        }
+        
+        // Helper function to get unique key for an item
+        function getItemKey(orderId, paymentNumber, itemIndex) {
+            return `${orderId}-${paymentNumber}-${itemIndex}`;
+        }
+        
+        // Helper function to get unique key for an order
+        function getOrderKey(orderId, paymentNumber) {
+            return `${orderId}-${paymentNumber}`;
+        }
+        
+        // Helper function to update checked items count
+        function updateCheckedItemsCount() {
+            // This function could be used to update a counter if needed
+            const checkedCount = Array.from(checkedItemsState.values()).filter(v => v).length;
+            console.log(`Currently checked items: ${checkedCount}`);
+        }
+        
+        // Check if an order is in void state
+        function isOrderInVoidState(orderId, paymentNumber) {
+            const orderKey = getOrderKey(orderId, paymentNumber);
+            return voidStateOrders.get(orderKey) || false;
+        }
+        
+        // Set void state for an order
+        function setOrderVoidState(orderId, paymentNumber, isVoidState) {
+            const orderKey = getOrderKey(orderId, paymentNumber);
+            voidStateOrders.set(orderKey, isVoidState);
+        }
+        
+        // Remove items from an order in the local data
+        function removeItemsFromOrder(orderId, paymentNumber, itemIndices) {
+            const orderIndex = allOrders.findIndex(order => 
+                order.id === orderId && order.paymentNumber === paymentNumber
+            );
             
-            if (data) {
-                options.body = JSON.stringify(data);
+            if (orderIndex === -1) return;
+            
+            // Filter out the items to remove
+            allOrders[orderIndex].items = allOrders[orderIndex].items.filter((item, index) => 
+                !itemIndices.includes(index.toString())
+            );
+            
+            // If all items are removed, remove the entire order
+            if (allOrders[orderIndex].items.length === 0) {
+                allOrders.splice(orderIndex, 1);
+                return true; // Order was completely removed
             }
             
-            const response = await fetch(url, options);
+            return false; // Order still has items
+        }
+        
+        // SAFE SELECTOR FUNCTION - Fix for spaces in attribute values
+        function getSafeSelector(attribute, value) {
+            // Escape any special characters and handle spaces
+            const escapedValue = CSS.escape(value.trim());
+            return `[${attribute}="${escapedValue}"]`;
+        }
+        
+        // Helper to get all checkboxes for an order
+        function getCheckboxesForOrder(orderId, paymentNumber) {
+            // Trim the values to remove spaces
+            const cleanOrderId = orderId.trim();
+            const cleanPaymentNumber = paymentNumber.toString().trim();
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            // Use the safe selector
+            return document.querySelectorAll(
+                `.item-checkbox${getSafeSelector('data-order-id', cleanOrderId)}${getSafeSelector('data-payment-number', cleanPaymentNumber)}`
+            );
+        }
+        
+        // Helper to get select all checkbox for an order
+        function getSelectAllCheckboxForOrder(orderId, paymentNumber) {
+            // Trim the values to remove spaces
+            const cleanOrderId = orderId.trim();
+            const cleanPaymentNumber = paymentNumber.toString().trim();
             
-            return await response.json();
+            // Use the safe selector
+            return document.querySelector(
+                `.select-all-checkbox${getSafeSelector('data-order-id', cleanOrderId)}${getSafeSelector('data-payment-number', cleanPaymentNumber)}`
+            );
         }
         
         // Pagination variables
@@ -501,13 +758,14 @@
                 if (!groupedOrders[orderKey]) {
                     groupedOrders[orderKey] = {
                         id: order.orderID,
-                        paymentNumber: order.paymentNumber,
+                        paymentNumber: order.paymentNumber.toString().trim(), // Trim spaces
                         time: calculateOrderTime(order.orderCreateDateAndTime),
                         type: order.orderType === 'dine-in' ? 'Dine in' : 'Takeout',
                         typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
                         payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
                         items: [],
-                        taxRate: 0.12
+                        taxRate: 0.12,
+                        status: order.orderStatus || 'pending'
                     };
                 }
                 
@@ -516,7 +774,8 @@
                     name: order.orderProductName,
                     price: parseFloat(order.orderTotalProductPrice) / order.orderQuantity,
                     quantity: order.orderQuantity,
-                    totalPrice: parseFloat(order.orderTotalProductPrice)
+                    totalPrice: parseFloat(order.orderTotalProductPrice),
+                    status: order.itemStatus || 'active'
                 });
             });
             
@@ -599,8 +858,16 @@
                     'payment-badge-cash' : 'payment-badge-electronic';
                 const paymentText = order.payment === 'Cash' ? 'Cash' : 'Electronic';
                 
+                // Check if order is in void state
+                const isVoidState = isOrderInVoidState(order.id, order.paymentNumber);
+                const voidStateClass = isVoidState ? 'void-state' : '';
+                
                 const orderCard = document.createElement('div');
-                orderCard.className = 'order-card bg-gray-800 rounded-xl border border-gray-700 overflow-hidden';
+                orderCard.className = `order-card bg-gray-800 rounded-xl border border-gray-700 overflow-hidden ${voidStateClass}`;
+                
+                // Check if order has items
+                const hasItems = order.items.length > 0;
+                
                 orderCard.innerHTML = `
                     <div class="p-5">
                         <!-- Order ID and Payment Number in same row -->
@@ -629,22 +896,75 @@
                                 </div>
                             </div>
                             
-                            <!-- Order Items with Quantities and Prices -->
-                            <ul class="space-y-2">
-                                ${order.items.map((item, itemIndex) => `
-                                    <li class="price-item">
-                                        <div class="flex items-start w-full">
-                                            <div class="item-details">
-                                                <span class="order-item-text">${item.name}</span>
-                                                <span class="quantity-badge">×${item.quantity}</span>
+                            <!-- Void State Warning -->
+                            ${isVoidState ? `
+                            <div class="void-warning mb-4">
+                                <div class="flex items-center">
+                                    <i class="fas fa-exclamation-triangle void-check-icon"></i>
+                                    <span class="void-warning-text">Select products to void, then click Confirm Void</span>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            ${hasItems ? `
+                            <!-- Select All Checkbox -->
+                            <div class="select-all-section ${isVoidState ? 'bg-red-900/30 border-red-700' : ''}">
+                                <label class="flex items-center cursor-pointer">
+                                    <input type="checkbox" 
+                                           class="select-all-checkbox ${isVoidState ? 'select-all-checkbox-void' : ''}" 
+                                           data-order-id="${order.id}" 
+                                           data-payment-number="${order.paymentNumber}"
+                                           ${isVoidState ? 'data-void-state="true"' : ''}>
+                                    <span class="${isVoidState ? 'text-red-300' : 'text-gray-300'} text-sm font-medium">
+                                        ${isVoidState ? 'Select All Products to Void' : 'Select All Items'}
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <!-- Order Items with Checkboxes, Quantities and Prices -->
+                            <ul class="space-y-2" id="items-list-${order.id}-${order.paymentNumber}">
+                                ${order.items.map((item, itemIndex) => {
+                                    const itemKey = getItemKey(order.id, order.paymentNumber, itemIndex);
+                                    const isChecked = checkedItemsState.get(itemKey) || false;
+                                    const itemClass = isChecked ? 'item-checked' : '';
+                                    const isVoidable = isVoidState;
+                                    const checkboxClass = isVoidState ? 'item-checkbox-void' : '';
+                                    
+                                    return `
+                                    <li class="price-item ${itemClass}" id="item-${order.id}-${order.paymentNumber}-${itemIndex}">
+                                        <div class="checkbox-container">
+                                            <input type="checkbox" 
+                                                   class="item-checkbox ${checkboxClass}" 
+                                                   id="${itemKey}"
+                                                   data-order-id="${order.id}"
+                                                   data-payment-number="${order.paymentNumber}"
+                                                   data-item-index="${itemIndex}"
+                                                   ${isChecked ? 'checked' : ''}>
+                                            <div class="flex items-start w-full">
+                                                <div class="item-details">
+                                                    <span class="order-item-text">
+                                                        ${item.name}
+                                                    </span>
+                                                    <span class="quantity-badge">×${item.quantity}</span>
+                                                </div>
                                             </div>
                                         </div>
-                                        <span class="price-tag">${formatCurrency(item.totalPrice)}</span>
+                                        <span class="price-tag">
+                                            ${formatCurrency(item.totalPrice)}
+                                        </span>
                                     </li>
-                                `).join('')}
+                                `}).join('')}
                             </ul>
+                            ` : `
+                            <!-- Empty Order Message -->
+                            <div class="empty-order-message">
+                                <i class="fas fa-ban text-2xl text-gray-500 mb-2"></i>
+                                <p class="empty-order-text">All products have been voided</p>
+                            </div>
+                            `}
                             
                             <!-- Price Summary Section -->
+                            ${hasItems ? `
                             <div class="price-section">
                                 <!-- Subtotal -->
                                 <div class="price-item">
@@ -664,6 +984,7 @@
                                     <span class="text-green-400 font-bold">${formatCurrency(totals.total)}</span>
                                 </div>
                             </div>
+                            ` : ''}
                             
                             <!-- Item count summary -->
                             <div class="mt-3 pt-3 border-t border-gray-700">
@@ -671,19 +992,47 @@
                                     <span class="text-gray-400 text-sm">Total items in order:</span>
                                     <span class="text-amber-400 font-medium">${order.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
                                 </div>
+                                <!-- Checked items summary -->
+                                <div class="flex justify-between items-center mt-1">
+                                    <span class="text-gray-400 text-sm">
+                                        ${isVoidState ? 'Products selected for voiding:' : 'Selected items:'}
+                                    </span>
+                                    <span class="${isVoidState ? 'text-red-400' : 'text-blue-400'} font-medium" id="checked-count-${order.id}-${order.paymentNumber}">0</span>
+                                </div>
                             </div>
                         </div>
                         
                         <div class="space-y-3">
+                            ${hasItems ? `
                             <button class="send-to-kitchen-btn w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
                                 Send to Kitchen
                             </button>
+                            ` : `
+                            <button class="send-to-kitchen-btn w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 rounded-lg transition cursor-not-allowed" disabled data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
+                                Order Empty
+                            </button>
+                            `}
                             <button class="cancel-order-btn w-full bg-amber-700 hover:bg-amber-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
                                 Cancel Order
                             </button>
-                            <button class="void-order-btn w-full bg-red-700 hover:bg-red-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
-                                Void Order
+                            ${hasItems ? `
+                            ${!isVoidState ? `
+                            <button class="void-product-btn w-full bg-red-700 hover:bg-red-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
+                                Void Product
                             </button>
+                            ` : `
+                            <button class="confirm-void-btn w-full bg-red-700 hover:bg-red-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
+                                Confirm Void
+                            </button>
+                            <button class="cancel-void-btn w-full bg-gray-700 hover:bg-gray-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
+                                Cancel Void
+                            </button>
+                            `}
+                            ` : `
+                            <button class="void-product-btn w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 rounded-lg transition cursor-not-allowed" disabled>
+                                No Products to Void
+                            </button>
+                            `}
                         </div>
                     </div>
                 `;
@@ -693,6 +1042,137 @@
             
             // Re-attach event listeners to new buttons
             attachOrderButtonListeners();
+            attachCheckboxListeners();
+            updateCheckedCounts();
+        }
+        
+        function attachCheckboxListeners() {
+            // Individual item checkbox listeners
+            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
+                    const itemIndex = this.getAttribute('data-item-index');
+                    const isChecked = this.checked;
+                    const isVoidState = this.classList.contains('item-checkbox-void');
+                    
+                    // Update state
+                    const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                    checkedItemsState.set(itemKey, isChecked);
+                    
+                    // Update UI
+                    const listItem = this.closest('li');
+                    if (isChecked) {
+                        listItem.classList.add('item-checked');
+                    } else {
+                        listItem.classList.remove('item-checked');
+                    }
+                    
+                    // Update "Select All" checkbox state
+                    updateSelectAllCheckbox(orderId, paymentNumber);
+                    
+                    // Update checked items count
+                    updateCheckedCount(orderId, paymentNumber);
+                    updateCheckedItemsCount();
+                    
+                    const message = isVoidState ? 
+                        `Product ${isChecked ? 'selected for voiding' : 'unselected'}` :
+                        `Item ${isChecked ? 'selected' : 'unselected'}`;
+                    
+                    showStatusMessage(message, isVoidState ? 'bg-red-600' : 'bg-blue-600');
+                });
+            });
+            
+            // "Select All" checkbox listeners
+            document.querySelectorAll('.select-all-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
+                    const selectAllChecked = this.checked;
+                    const isVoidState = this.classList.contains('select-all-checkbox-void');
+                    
+                    // Find all checkboxes for this order using safe selector
+                    const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    
+                    // Update all checkboxes
+                    itemCheckboxes.forEach(itemCheckbox => {
+                        const itemIndex = itemCheckbox.getAttribute('data-item-index');
+                        const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                        
+                        // Update state
+                        checkedItemsState.set(itemKey, selectAllChecked);
+                        
+                        // Update UI
+                        itemCheckbox.checked = selectAllChecked;
+                        const listItem = itemCheckbox.closest('li');
+                        if (selectAllChecked) {
+                            listItem.classList.add('item-checked');
+                        } else {
+                            listItem.classList.remove('item-checked');
+                        }
+                    });
+                    
+                    // Update checked items count
+                    updateCheckedCount(orderId, paymentNumber);
+                    updateCheckedItemsCount();
+                    
+                    const message = isVoidState ?
+                        (selectAllChecked ? 'All products selected for voiding' : 'All products unselected') :
+                        (selectAllChecked ? 'All items selected' : 'All items unselected');
+                    
+                    showStatusMessage(message, isVoidState ? 'bg-red-600' : 'bg-blue-600');
+                });
+            });
+        }
+        
+        function updateSelectAllCheckbox(orderId, paymentNumber) {
+            const selectAllCheckbox = getSelectAllCheckboxForOrder(orderId, paymentNumber);
+            
+            if (!selectAllCheckbox) return;
+            
+            const isVoidState = selectAllCheckbox.classList.contains('select-all-checkbox-void');
+            
+            // Find all checkboxes for this order using safe selector
+            const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+            
+            if (itemCheckboxes.length === 0) return;
+            
+            const allChecked = Array.from(itemCheckboxes).every(checkbox => checkbox.checked);
+            const anyChecked = Array.from(itemCheckboxes).some(checkbox => checkbox.checked);
+            
+            // Update select all checkbox state
+            selectAllCheckbox.checked = allChecked;
+            
+            // Set indeterminate state if some but not all are checked
+            selectAllCheckbox.indeterminate = anyChecked && !allChecked;
+        }
+        
+        function updateCheckedCount(orderId, paymentNumber) {
+            const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+            
+            const checkedCount = Array.from(itemCheckboxes).filter(checkbox => checkbox.checked).length;
+            
+            const countElement = document.getElementById(`checked-count-${orderId}-${paymentNumber}`);
+            if (countElement) {
+                countElement.textContent = checkedCount;
+            }
+        }
+        
+        function updateCheckedCounts() {
+            const allOrderCards = document.querySelectorAll('.order-card');
+            
+            allOrderCards.forEach(card => {
+                const orderIdElement = card.querySelector('h2.text-xl');
+                if (!orderIdElement) return;
+                
+                const orderId = orderIdElement.textContent;
+                const paymentNumberBadge = card.querySelector('.payment-number-badge');
+                if (!paymentNumberBadge) return;
+                
+                // Extract payment number and trim spaces
+                const paymentNumber = paymentNumberBadge.textContent.replace('Payment #', '').trim();
+                updateCheckedCount(orderId, paymentNumber);
+            });
         }
         
         function updateStatistics() {
@@ -716,14 +1196,30 @@
             // Send to Kitchen buttons
             document.querySelectorAll('.send-to-kitchen-btn').forEach(button => {
                 button.addEventListener('click', async function(e) {
+                    if (this.disabled) return;
+                    
                     const orderId = this.getAttribute('data-order-id');
                     const paymentNumber = this.getAttribute('data-payment-number');
+                    
+                    // Check if order is in void state
+                    if (isOrderInVoidState(orderId, paymentNumber)) {
+                        showStatusMessage('Cannot send to kitchen while in void state. Cancel void first.', 'bg-red-600');
+                        return;
+                    }
+                    
+                    // Get selected items using safe selector
+                    const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    
+                    const selectedItems = Array.from(itemCheckboxes)
+                        .filter(checkbox => checkbox.checked)
+                        .map(checkbox => checkbox.getAttribute('data-item-index'));
                     
                     try {
                         await apiCall('/api/staff/orders/update-all-status', 'POST', {
                             orderID: orderId,
                             paymentNumber: paymentNumber,
-                            status: 'In Progress'
+                            status: 'In Progress',
+                            selectedItems: selectedItems
                         });
                     } catch (error) {
                         console.error('Error sending to kitchen:', error);
@@ -752,6 +1248,12 @@
                     const orderId = this.getAttribute('data-order-id');
                     const paymentNumber = this.getAttribute('data-payment-number');
                     
+                    // Check if order is in void state
+                    if (isOrderInVoidState(orderId, paymentNumber)) {
+                        showStatusMessage('Cannot cancel order while in void state. Cancel void first.', 'bg-red-600');
+                        return;
+                    }
+                    
                     try {
                         await apiCall('/api/staff/orders/cancel', 'POST', {
                             orderID: orderId,
@@ -770,27 +1272,132 @@
                 });
             });
             
-            // Void Order buttons
-            document.querySelectorAll('.void-order-btn').forEach(button => {
+            // Void Product buttons
+            document.querySelectorAll('.void-product-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    if (this.disabled) return;
+                    
+                    const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
+                    
+                    // Set order to void state
+                    setOrderVoidState(orderId, paymentNumber, true);
+                    
+                    // Reset checkboxes for this order
+                    const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    
+                    itemCheckboxes.forEach(itemCheckbox => {
+                        const itemIndex = itemCheckbox.getAttribute('data-item-index');
+                        const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                        checkedItemsState.set(itemKey, false);
+                    });
+                    
+                    // Re-render orders to show void state
+                    renderOrders();
+                    
+                    showStatusMessage(`Order ${orderId} (Payment #${paymentNumber}) in void state. Select products to void.`, 'bg-red-600');
+                });
+            });
+            
+            // Confirm Void buttons
+            document.querySelectorAll('.confirm-void-btn').forEach(button => {
                 button.addEventListener('click', async function(e) {
                     const orderId = this.getAttribute('data-order-id');
                     const paymentNumber = this.getAttribute('data-payment-number');
                     
-                    try {
-                        await apiCall('/api/staff/orders/void', 'POST', {
-                            orderID: orderId,
-                            paymentNumber: paymentNumber
-                        });
-                    } catch (error) {
-                        console.error('Error voiding order:', error);
-                        showStatusMessage('Error voiding order', 'bg-red-600');
+                    // Get selected items for voiding using safe selector
+                    const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    
+                    const selectedItems = Array.from(itemCheckboxes)
+                        .filter(checkbox => checkbox.checked)
+                        .map(checkbox => parseInt(checkbox.getAttribute('data-item-index')));
+                    
+                    if (selectedItems.length === 0) {
+                        showStatusMessage('No products selected for voiding', 'bg-yellow-600');
                         return;
                     }
                     
-                    showStatusMessage(`Order ${orderId} (Payment #${paymentNumber}) voided!`, 'bg-red-600');
+                    // Animate removal of selected items
+                    selectedItems.forEach(itemIndex => {
+                        const itemElement = document.getElementById(`item-${orderId}-${paymentNumber}-${itemIndex}`);
+                        if (itemElement) {
+                            itemElement.classList.add('item-removing');
+                        }
+                    });
                     
-                    // Reload orders
-                    loadOrders();
+                    // Wait for animation to complete
+                    setTimeout(async () => {
+                        try {
+                            // Try to call API to void products
+                            try {
+                                await apiCall('/api/staff/orders/void-products', 'POST', {
+                                    orderID: orderId,
+                                    paymentNumber: paymentNumber,
+                                    items: selectedItems
+                                });
+                                showStatusMessage(`${selectedItems.length} product(s) voided on server`, 'bg-green-600');
+                            } catch (apiError) {
+                                console.warn('API call failed, but continuing with local removal:', apiError);
+                                // Continue with local removal even if API fails
+                                showStatusMessage(`${selectedItems.length} product(s) voided locally (server update failed)`, 'bg-yellow-600');
+                            }
+                            
+                            // Remove items from local data
+                            const orderRemoved = removeItemsFromOrder(orderId, paymentNumber, selectedItems.map(i => i.toString()));
+                            
+                            // Reset void state
+                            setOrderVoidState(orderId, paymentNumber, false);
+                            
+                            // Clear checkboxes for this order
+                            const allItemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                            
+                            allItemCheckboxes.forEach(itemCheckbox => {
+                                const itemIndex = itemCheckbox.getAttribute('data-item-index');
+                                const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                                checkedItemsState.set(itemKey, false);
+                            });
+                            
+                            // Update pagination and re-render
+                            totalPages = Math.ceil(allOrders.length / ordersPerPage);
+                            updatePagination();
+                            renderOrders();
+                            
+                            if (!orderRemoved) {
+                                showStatusMessage(`${selectedItems.length} product(s) removed from order ${orderId}`, 'bg-red-600');
+                            }
+                            
+                        } catch (error) {
+                            console.error('Error in void process:', error);
+                            showStatusMessage('Error voiding products: ' + error.message, 'bg-red-600');
+                            // Re-render to restore original state
+                            renderOrders();
+                        }
+                    }, 300); // Match animation duration
+                });
+            });
+            
+            // Cancel Void buttons
+            document.querySelectorAll('.cancel-void-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
+                    
+                    // Reset void state
+                    setOrderVoidState(orderId, paymentNumber, false);
+                    
+                    // Clear checkboxes for this order
+                    const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    
+                    itemCheckboxes.forEach(itemCheckbox => {
+                        const itemIndex = itemCheckbox.getAttribute('data-item-index');
+                        const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                        checkedItemsState.set(itemKey, false);
+                    });
+                    
+                    // Re-render orders to exit void state
+                    renderOrders();
+                    
+                    showStatusMessage('Void cancelled', 'bg-gray-600');
                 });
             });
         }
@@ -803,11 +1410,11 @@
             statusMessage.classList.remove('opacity-0', 'translate-y-4');
             statusMessage.classList.add('opacity-100', 'translate-y-0');
             
-            // Hide message after 2 seconds
+            // Hide message after 3 seconds (longer for important messages)
             setTimeout(() => {
                 statusMessage.classList.remove('opacity-100', 'translate-y-0');
                 statusMessage.classList.add('opacity-0', 'translate-y-4');
-            }, 2000);
+            }, 3000);
         }
         
         // Footer Modal Functions
