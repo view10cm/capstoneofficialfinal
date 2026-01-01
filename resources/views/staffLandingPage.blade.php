@@ -125,54 +125,6 @@
             margin-left: 8px;
             font-weight: 600;
         }
-        /* Custom checkbox styling */
-        .custom-checkbox {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #4B5563;
-            border-radius: 4px;
-            background-color: #1F2937;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
-        }
-        .custom-checkbox:hover {
-            border-color: #9CA3AF;
-        }
-        .custom-checkbox:checked {
-            background-color: #10B981;
-            border-color: #10B981;
-        }
-        .custom-checkbox:checked::after {
-            content: '✓';
-            position: absolute;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        .custom-checkbox:focus {
-            outline: 2px solid #3B82F6;
-            outline-offset: 2px;
-        }
-        /* Completed item styling */
-        .completed-item {
-            opacity: 0.7;
-            text-decoration: line-through;
-            color: #9CA3AF !important;
-        }
-        /* Select all button */
-        .select-all-btn {
-            background-color: #374151;
-            transition: all 0.2s ease;
-        }
-        .select-all-btn:hover {
-            background-color: #4B5563;
-        }
         /* Price styling */
         .price-item {
             display: flex;
@@ -530,7 +482,6 @@
                 
                 // Update statistics
                 updateStatistics();
-                updateCompletionStats();
                 updateRevenueStats();
             } catch (error) {
                 console.error('Error loading orders:', error);
@@ -556,7 +507,6 @@
                         typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
                         payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
                         items: [],
-                        checkedItems: [],
                         taxRate: 0.12
                     };
                 }
@@ -568,10 +518,6 @@
                     quantity: order.orderQuantity,
                     totalPrice: parseFloat(order.orderTotalProductPrice)
                 });
-                
-                // Initialize checked status based on orderProductStatus
-                const isCompleted = order.orderProductStatus === 'Completed';
-                groupedOrders[orderKey].checkedItems.push(isCompleted);
             });
             
             // Convert to array
@@ -653,11 +599,6 @@
                     'payment-badge-cash' : 'payment-badge-electronic';
                 const paymentText = order.payment === 'Cash' ? 'Cash' : 'Electronic';
                 
-                // Calculate checked items for this order
-                const checkedCount = order.checkedItems.filter(item => item).length;
-                const totalItems = order.items.length;
-                const allChecked = checkedCount === totalItems;
-                
                 const orderCard = document.createElement('div');
                 orderCard.className = 'order-card bg-gray-800 rounded-xl border border-gray-700 overflow-hidden';
                 orderCard.innerHTML = `
@@ -688,25 +629,11 @@
                                 </div>
                             </div>
                             
-                            <!-- Select All Button -->
-                            <div class="flex items-center justify-between mb-3">
-                                <span class="text-gray-400 text-sm">Select all items:</span>
-                                <button class="select-all-btn text-white px-3 py-1 rounded text-sm" 
-                                        data-order-index="${startIndex + orderIndex}">
-                                    ${allChecked ? 'Deselect All' : 'Select All'}
-                                </button>
-                            </div>
-                            
-                            <!-- Order Items with Checkboxes, Quantities and Prices -->
+                            <!-- Order Items with Quantities and Prices -->
                             <ul class="space-y-2">
                                 ${order.items.map((item, itemIndex) => `
-                                    <li class="price-item ${order.checkedItems[itemIndex] ? 'completed-item' : ''}">
+                                    <li class="price-item">
                                         <div class="flex items-start w-full">
-                                            <input type="checkbox" 
-                                                   class="custom-checkbox mr-3 mt-1" 
-                                                   data-order-index="${startIndex + orderIndex}"
-                                                   data-item-index="${itemIndex}"
-                                                   ${order.checkedItems[itemIndex] ? 'checked' : ''}>
                                             <div class="item-details">
                                                 <span class="order-item-text">${item.name}</span>
                                                 <span class="quantity-badge">×${item.quantity}</span>
@@ -745,17 +672,6 @@
                                     <span class="text-amber-400 font-medium">${order.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
                                 </div>
                             </div>
-                            
-                            <!-- Completion status for this order -->
-                            <div class="mt-4 pt-3 border-t border-gray-700">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-400 text-sm">Order completion:</span>
-                                    <span class="text-amber-400 font-medium">${checkedCount}/${totalItems}</span>
-                                </div>
-                                <div class="w-full bg-gray-700 rounded-full h-2 mt-1">
-                                    <div class="bg-green-500 h-2 rounded-full" style="width: ${(checkedCount / totalItems) * 100}%"></div>
-                                </div>
-                            </div>
                         </div>
                         
                         <div class="space-y-3">
@@ -777,8 +693,6 @@
             
             // Re-attach event listeners to new buttons
             attachOrderButtonListeners();
-            attachCheckboxListeners();
-            attachSelectAllListeners();
         }
         
         function updateStatistics() {
@@ -791,141 +705,11 @@
             orderCountElement.textContent = allOrders.length;
         }
         
-        function updateCompletionStats() {
-            let totalItems = 0;
-            let preparedItems = 0;
-            let completeOrders = 0;
-            
-            allOrders.forEach(order => {
-                const orderItemCount = order.items.length;
-                const checkedCount = order.checkedItems.filter(item => item).length;
-                
-                totalItems += orderItemCount;
-                preparedItems += checkedCount;
-                
-                if (checkedCount === orderItemCount && orderItemCount > 0) {
-                    completeOrders++;
-                }
-            });
-            
-            // These would update elements if they existed
-            // For now, we'll just calculate them
-        }
-        
         function updateRevenueStats() {
             const revenueStats = calculateRevenueStatistics();
             
             // These would update elements if they existed
             // For now, we'll just calculate them
-        }
-        
-        function attachCheckboxListeners() {
-            document.querySelectorAll('.custom-checkbox').forEach(checkbox => {
-                checkbox.addEventListener('change', async function(e) {
-                    const orderIndex = parseInt(this.getAttribute('data-order-index'));
-                    const itemIndex = parseInt(this.getAttribute('data-item-index'));
-                    
-                    // Update the checked status in the data
-                    allOrders[orderIndex].checkedItems[itemIndex] = this.checked;
-                    
-                    // Get the order ID, payment number, and item name for API call
-                    const orderId = allOrders[orderIndex].id;
-                    const paymentNumber = allOrders[orderIndex].paymentNumber;
-                    const itemName = allOrders[orderIndex].items[itemIndex].name;
-                    const itemQuantity = allOrders[orderIndex].items[itemIndex].quantity;
-                    const newStatus = this.checked ? 'Completed' : 'For Payment';
-                    
-                    // Send update to server
-                    try {
-                        await apiCall('/api/staff/orders/update-status', 'POST', {
-                            orderID: orderId,
-                            paymentNumber: paymentNumber,
-                            productName: itemName,
-                            quantity: itemQuantity,
-                            status: newStatus
-                        });
-                    } catch (error) {
-                        console.error('Error updating status:', error);
-                        showStatusMessage('Error updating item status', 'bg-red-600');
-                        return;
-                    }
-                    
-                    // Update the UI for this item
-                    const listItem = this.closest('li');
-                    if (this.checked) {
-                        listItem.classList.add('completed-item');
-                    } else {
-                        listItem.classList.remove('completed-item');
-                    }
-                    
-                    // Update the order completion status
-                    const order = allOrders[orderIndex];
-                    const checkedCount = order.checkedItems.filter(item => item).length;
-                    const totalItems = order.items.length;
-                    
-                    // Update the progress bar and count for this order
-                    const progressBar = listItem.closest('.order-card').querySelector('.bg-green-500');
-                    const countSpan = listItem.closest('.order-card').querySelector('.text-amber-400.font-medium');
-                    
-                    if (progressBar && countSpan) {
-                        progressBar.style.width = `${(checkedCount / totalItems) * 100}%`;
-                        countSpan.textContent = `${checkedCount}/${totalItems}`;
-                    }
-                    
-                    // Update the select all button for this order
-                    const selectAllBtn = listItem.closest('.order-card').querySelector('.select-all-btn');
-                    if (selectAllBtn) {
-                        selectAllBtn.textContent = checkedCount === totalItems ? 'Deselect All' : 'Select All';
-                    }
-                    
-                    // Update completion statistics
-                    updateCompletionStats();
-                    
-                    // Show status message
-                    const status = this.checked ? 'prepared' : 'pending';
-                    showStatusMessage(`${itemName} (×${itemQuantity}) marked as ${status}`, this.checked ? 'bg-green-600' : 'bg-yellow-600');
-                });
-            });
-        }
-        
-        function attachSelectAllListeners() {
-            document.querySelectorAll('.select-all-btn').forEach(button => {
-                button.addEventListener('click', async function(e) {
-                    const orderIndex = parseInt(this.getAttribute('data-order-index'));
-                    const order = allOrders[orderIndex];
-                    
-                    // Check if all items are currently checked
-                    const allChecked = order.checkedItems.every(item => item);
-                    
-                    // Toggle all items
-                    const newState = !allChecked;
-                    order.checkedItems = order.checkedItems.map(() => newState);
-                    const newStatus = newState ? 'Completed' : 'For Payment';
-                    
-                    // Send update to server for all items in this order
-                    try {
-                        await apiCall('/api/staff/orders/update-all-status', 'POST', {
-                            orderID: order.id,
-                            paymentNumber: order.paymentNumber,
-                            status: newStatus
-                        });
-                    } catch (error) {
-                        console.error('Error updating status:', error);
-                        showStatusMessage('Error updating order status', 'bg-red-600');
-                        return;
-                    }
-                    
-                    // Re-render the orders to update the UI
-                    renderOrders();
-                    
-                    // Update completion statistics
-                    updateCompletionStats();
-                    
-                    // Show status message
-                    const status = newState ? 'all items prepared' : 'all items pending';
-                    showStatusMessage(`Order ${order.id} (Payment #${order.paymentNumber}): ${status}`, newState ? 'bg-green-600' : 'bg-yellow-600');
-                });
-            });
         }
         
         function attachOrderButtonListeners() {
