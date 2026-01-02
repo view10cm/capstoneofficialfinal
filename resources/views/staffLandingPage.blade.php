@@ -1232,6 +1232,54 @@
             document.body.style.overflow = 'auto';
         }
         
+        // Function to download 5-inch thermal receipt
+        function downloadReceipt(orderId, paymentNumber, referenceNumber) {
+            // Create a temporary form to submit
+            const form = document.createElement('form');
+            form.method = 'GET';
+            form.action = '/api/staff/receipt/generate';
+            
+            // Add order ID
+            const orderIdInput = document.createElement('input');
+            orderIdInput.type = 'hidden';
+            orderIdInput.name = 'orderID';
+            orderIdInput.value = orderId;
+            form.appendChild(orderIdInput);
+            
+            // Add payment number
+            const paymentNumberInput = document.createElement('input');
+            paymentNumberInput.type = 'hidden';
+            paymentNumberInput.name = 'paymentNumber';
+            paymentNumberInput.value = paymentNumber;
+            form.appendChild(paymentNumberInput);
+            
+            // Add reference number if exists
+            if (referenceNumber) {
+                const refInput = document.createElement('input');
+                refInput.type = 'hidden';
+                refInput.name = 'referenceNumber';
+                refInput.value = referenceNumber;
+                form.appendChild(refInput);
+            }
+            
+            // Add CSRF token
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = document.querySelector('meta[name="csrf-token"]').content;
+            form.appendChild(csrfInput);
+            
+            // Submit form to download PDF
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+            
+            // Show message
+            setTimeout(() => {
+                showStatusMessage('5-inch thermal receipt downloaded!', 'bg-green-600');
+            }, 1000);
+        }
+        
         // Pagination Functions
         function updatePagination() {
             totalPages = Math.ceil(allOrders.length / ordersPerPage);
@@ -2051,40 +2099,43 @@
                 }
                 
                 // Update the button in the order card to "In Progress"
-const sendButton = document.querySelector(`.send-to-kitchen-btn[data-order-id="${orderId}"][data-payment-number="${paymentNumber}"]`);
-if (sendButton) {
-    sendButton.textContent = 'In Progress';
-    sendButton.classList.remove('bg-green-600', 'hover:bg-green-700');
-    sendButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
-    sendButton.disabled = true;
-}
+                const sendButton = document.querySelector(`.send-to-kitchen-btn[data-order-id="${orderId}"][data-payment-number="${paymentNumber}"]`);
+                if (sendButton) {
+                    sendButton.textContent = 'In Progress';
+                    sendButton.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    sendButton.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                    sendButton.disabled = true;
+                }
                 
                 // Update timer badge
-// Update timer badge - find the card by order ID
-const orderCards = document.querySelectorAll('.order-card');
-let cardToUpdate = null;
-
-for (const card of orderCards) {
-    const orderIdElement = card.querySelector('h2.text-xl');
-    if (orderIdElement && orderIdElement.textContent === orderId) {
-        const paymentBadge = card.querySelector('.payment-number-badge');
-        if (paymentBadge) {
-            const paymentText = paymentBadge.textContent.replace('Payment #', '').trim();
-            if (paymentText === paymentNumber) {
-                cardToUpdate = card;
-                break;
-            }
-        }
-    }
-}
-
-if (cardToUpdate) {
-    const timerBadge = cardToUpdate.querySelector('.status-timer');
-    if (timerBadge) {
-        timerBadge.textContent = '0m';
-        timerBadge.className = 'bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold status-timer';
-    }
-}
+                // Update timer badge - find the card by order ID
+                const orderCards = document.querySelectorAll('.order-card');
+                let cardToUpdate = null;
+                
+                for (const card of orderCards) {
+                    const orderIdElement = card.querySelector('h2.text-xl');
+                    if (orderIdElement && orderIdElement.textContent === orderId) {
+                        const paymentBadge = card.querySelector('.payment-number-badge');
+                        if (paymentBadge) {
+                            const paymentText = paymentBadge.textContent.replace('Payment #', '').trim();
+                            if (paymentText === paymentNumber) {
+                                cardToUpdate = card;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                if (cardToUpdate) {
+                    const timerBadge = cardToUpdate.querySelector('.status-timer');
+                    if (timerBadge) {
+                        timerBadge.textContent = '0m';
+                        timerBadge.className = 'bg-green-500 text-white px-3 py-1 rounded-full text-sm font-semibold status-timer';
+                    }
+                }
+                
+                // DOWNLOAD 5-INCH THERMAL RECEIPT AUTOMATICALLY
+                downloadReceipt(orderId, paymentNumber, referenceNumber);
                 
                 // Force reload orders to reflect changes
                 setTimeout(() => {
