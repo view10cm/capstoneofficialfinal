@@ -13,7 +13,7 @@ class CreateStaffToKitchenTransactionTable extends Migration
      */
     public function up()
     {
-        Schema::create('staff_to_kitchen_transactions', function (Blueprint $table) {
+        Schema::create('staff_to_kitchen_transaction', function (Blueprint $table) {
             $table->id();
             $table->string('orderID');
             $table->integer('paymentNumber');

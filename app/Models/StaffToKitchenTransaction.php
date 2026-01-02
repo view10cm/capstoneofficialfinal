@@ -1,5 +1,4 @@
 <?php
-// File: app/Models/StaffToKitchenTransaction.php
 
 namespace App\Models;
 
@@ -30,7 +29,8 @@ class StaffToKitchenTransaction extends Model
         'changeAmount',
         'referenceNumber',
         'staffName',
-        'paymentProcessedAt'
+        'paymentProcessedAt',
+        'cookingStatus' // Added new field
     ];
 
     protected $casts = [
@@ -42,5 +42,6 @@ class StaffToKitchenTransaction extends Model
         'amountPaid' => 'decimal:2',
         'changeAmount' => 'decimal:2',
         'paymentProcessedAt' => 'datetime'
+        // cookingStatus doesn't need casting as it's an enum
     ];
 }
