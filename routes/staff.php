@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffOrderController;
+use App\Http\Controllers\ReceiptController;
 
 Route::middleware(['auth', 'staff'])->group(function () {
     // Staff Landing Page/Dashboard
@@ -26,6 +27,10 @@ Route::middleware(['auth', 'staff'])->group(function () {
         // Keep original StaffController routes if needed elsewhere
         Route::post('/orders/update-status', [StaffController::class, 'updateStatus'])->name('staff.orders.update-status');
         Route::post('/orders/void', [StaffController::class, 'voidOrder'])->name('staff.orders.void');
+
+        // Receipt generation
+    Route::get('/receipt/generate', [ReceiptController::class, 'generateReceipt'])->name('staff.receipt.generate');
+    Route::get('/receipt/{transactionId}', [ReceiptController::class, 'generateReceiptFromId'])->name('staff.receipt.from-id');
     });
     
     // Add more staff-specific routes here
