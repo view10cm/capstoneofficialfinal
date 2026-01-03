@@ -15,6 +15,11 @@ Route::middleware(['auth', 'staff'])->group(function () {
         return view('staffLandingPage');
     })->name('staff.landingPage');
     
+    // Order Tracker Page
+    Route::get('/staff/order-tracker', function () {
+        return view('staffOrderTracker');
+    })->name('staff.order-tracker');
+    
     // API Routes for Staff
     Route::prefix('api/staff')->group(function () {
         // Using StaffOrderController for order operations
@@ -29,8 +34,8 @@ Route::middleware(['auth', 'staff'])->group(function () {
         Route::post('/orders/void', [StaffController::class, 'voidOrder'])->name('staff.orders.void');
 
         // Receipt generation
-    Route::get('/receipt/generate', [ReceiptController::class, 'generateReceipt'])->name('staff.receipt.generate');
-    Route::get('/receipt/{transactionId}', [ReceiptController::class, 'generateReceiptFromId'])->name('staff.receipt.from-id');
+        Route::get('/receipt/generate', [ReceiptController::class, 'generateReceipt'])->name('staff.receipt.generate');
+        Route::get('/receipt/{transactionId}', [ReceiptController::class, 'generateReceiptFromId'])->name('staff.receipt.from-id');
     });
     
     // Add more staff-specific routes here
