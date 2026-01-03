@@ -21,6 +21,13 @@ class VoiceTranscript extends Model
     protected $keyType = 'int';
 
     protected $fillable = [
-        'transcribedData'
+        'transcribedData',
+        'matchedMenuItem',
+        'confidence_level'
+    ];
+
+    // Cast confidence_level to string
+    protected $casts = [
+        'confidence_level' => 'string'
     ];
 }
