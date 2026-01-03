@@ -346,9 +346,11 @@
         <!-- Left Panel: Menu Content -->
         <div class="flex-1 flex flex-col h-full overflow-hidden">
             <!-- Blue Area: Brand Header -->
-            <div class="bg-white p-4 flex items-center justify-center">
-                <div class="w-full max-w-3xl">
-                    <img src="{{ asset('images/Brand Header.svg') }}" alt="Caffé Arabica" class="w-full h-auto">
+            <div class="bg-black w-full flex items-center justify-center overflow-hidden">
+                <div class="w-full max-h-[200px]"> 
+                    <img src="{{ asset('images/Brand Header.svg') }}" 
+                        alt="Caffé Arabica" 
+                        class="w-full h-full object-cover block">
                 </div>
             </div>
             
@@ -533,26 +535,27 @@
         <!-- Right Panel: Order Summary -->
         <div class="w-1/3 min-w-96 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden">
             <!-- Order Summary Header with Order Type Dropdown -->
-            <div class="bg-gradient-to-r from-red-600 to-red-500 p-4">
+            <div class="bg-white p-4 border-b border-gray-200 h-[94px] lg:h-[107px] flex flex-col justify-center transition-all duration-300">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h2 class="text-xl font-bold text-white">
-                            <i class="fas fa-shopping-cart mr-2"></i>Order Summary
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-shopping-cart mr-2 text-amber-700"></i>Order Summary
                         </h2>
-                        <p class="text-red-100 text-sm mt-1">Review your order</p>
+                        <p class="text-gray-500 text-sm mt-1">Review your order</p>
                     </div>
-                    <!-- Order Type Dropdown -->
+                    
                     <div class="flex items-center space-x-2">
-                        <span class="text-white text-sm font-medium">Order Type:</span>
+                        <span class="text-gray-600 text-sm font-medium">Order Type:</span>
                         <div class="relative">
-                            <select id="order-type-dropdown" class="order-type-dropdown bg-white bg-opacity-20 backdrop-filter backdrop-blur-sm text-white text-sm font-medium rounded-lg py-1 pl-3 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 border border-white border-opacity-30">
-                                <option value="dine-in" class="text-gray-800">Dine-in</option>
-                                <option value="takeout" class="text-gray-800">Takeout</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
-                                <i class="fas fa-chevron-down text-xs"></i>
-                            </div>
-                        </div>
+    <select id="order-type-dropdown" class="bg-amber-600 text-white text-sm font-medium rounded-lg py-2 pl-3 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-amber-300 border border-amber-600 cursor-pointer shadow-sm">
+        <option value="dine-in" class="text-gray-800 bg-white">Dine-in</option>
+        <option value="takeout" class="text-gray-800 bg-white">Takeout</option>
+    </select>
+    
+    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white">
+        <i class="fas fa-chevron-down text-xs"></i>
+    </div>
+</div>
                     </div>
                 </div>
             </div>
@@ -565,29 +568,30 @@
                         <i class="fas fa-credit-card mr-1"></i> Payment Method
                     </h4>
                     <div class="grid grid-cols-2 gap-2">
-                        <button id="cash-btn" class="payment-btn active bg-green-600 text-white py-2.5 rounded-lg font-medium transition-all duration-200 flex flex-col items-center justify-center">
-                            <i class="fas fa-money-bill-wave text-lg mb-1"></i>
-                            <span class="font-bold">Cash</span>
-                            <span class="text-xs opacity-90">Pay at counter</span>
+                        <button id="cash-btn" class="payment-btn active bg-green-600 text-white py-1 rounded-lg font-medium transition-all duration-200 flex flex-col items-center justify-center">
+                            <i class="fas fa-money-bill-wave text-sm mb-0.5"></i>
+                            <span class="font-bold text-sm leading-none">Cash</span>
+                            <span class="text-[10px] opacity-90 leading-tight mt-0.5">Pay at counter</span>
                         </button>
-                        <button id="electronic-btn" class="payment-btn bg-gray-200 text-gray-800 py-2.5 rounded-lg font-medium transition-all duration-200 flex flex-col items-center justify-center">
-                            <i class="fas fa-qrcode text-lg mb-1"></i>
-                            <span class="font-bold">Electronic</span>
-                            <span class="text-xs opacity-90">QR Code</span>
+                        
+                        <button id="electronic-btn" class="payment-btn bg-gray-200 text-gray-800 py-1 rounded-lg font-medium transition-all duration-200 flex flex-col items-center justify-center">
+                            <i class="fas fa-qrcode text-sm mb-0.5"></i>
+                            <span class="font-bold text-sm leading-none">Electronic</span>
+                            <span class="text-[10px] opacity-90 leading-tight mt-0.5">QR Code</span>
                         </button>
                     </div>
-                    <!-- Payment Method Info -->
+                    {{-- <!-- Payment Method Info -->
                     <div id="payment-info" class="mt-2 text-xs text-gray-600 p-2 bg-green-50 rounded border border-green-100">
                         <i class="fas fa-money-bill-wave text-green-500 mr-1"></i>
                         <span>Cash payment selected. Pay at the counter.</span>
-                    </div>
+                    </div> --}}
                 </div>
                 
-                <!-- Order Type Info -->
+                {{-- <!-- Order Type Info -->
                 <div id="order-type-info" class="mb-4 text-xs text-gray-600 p-2 bg-blue-50 rounded border border-blue-100">
                     <i class="fas fa-info-circle text-blue-500 mr-1"></i>
                     <span>Dine-in selected. Your order will be served at your table.</span>
-                </div>
+                </div> --}}
                 
                 <div id="order-items-container" class="order-items-container mb-4">
                     <!-- Empty State -->
@@ -603,17 +607,20 @@
                     <div id="order-items-list" class="space-y-3"></div>
                 </div>
                 
+                
+            </div>
+            
+            <!-- Order Totals and Actions -->
+            <div class="border-t border-gray-200 p-4 bg-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+
                 <!-- Order Notes -->
-                <div class="mb-4">
+                <div class="mb-1">
                     <label for="order-notes" class="block text-sm font-medium text-gray-700 mb-1">
                         <i class="fas fa-sticky-note mr-1 text-xs"></i> Order Notes
                     </label>
                     <textarea id="order-notes" rows="2" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm" placeholder="Special instructions..."></textarea>
                 </div>
-            </div>
-            
-            <!-- Order Totals and Actions -->
-            <div class="border-t border-gray-200 p-4 bg-gray-50">
+
                 <!-- Order Totals -->
                 <div class="space-y-2 mb-4">
                     <div class="flex justify-between text-gray-600 text-sm">
@@ -630,7 +637,7 @@
                     </div>
                 </div>
                 
-                <!-- Order Status -->
+                {{-- <!-- Order Status -->
                 <div class="mb-4">
                     <div class="flex items-center justify-between mb-1">
                         <h4 class="font-bold text-gray-800 text-sm">
@@ -641,7 +648,7 @@
                     <div class="w-full bg-gray-200 rounded-full h-1.5">
                         <div id="time-progress" class="bg-red-500 h-1.5 rounded-full" style="width: 30%"></div>
                     </div>
-                </div>
+                </div> --}}
                 
                 <!-- Action Buttons -->
                 <div class="space-y-2">
@@ -653,12 +660,12 @@
                     </button>
                 </div>
                 
-                <!-- Footer Note -->
+                {{-- <!-- Footer Note -->
                 <div class="mt-4 pt-3 border-t border-gray-300">
                     <p class="text-xs text-gray-500 text-center">
                         <i class="fas fa-shield-alt mr-1"></i> Secure checkout
                     </p>
-                </div>
+                </div> --}}
             </div>
         </div>
     </div>
