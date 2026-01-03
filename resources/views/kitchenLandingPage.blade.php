@@ -339,6 +339,29 @@
                 display: none;
             }
         }
+        /* Order removal animation */
+        .order-removing {
+            animation: removeOrder 0.5s ease-out forwards;
+        }
+        @keyframes removeOrder {
+            0% {
+                opacity: 1;
+                max-height: 500px;
+                transform: translateY(0);
+            }
+            50% {
+                opacity: 0.3;
+                transform: translateY(-10px);
+            }
+            100% {
+                opacity: 0;
+                max-height: 0;
+                padding: 0;
+                margin: 0;
+                transform: translateY(20px);
+                display: none;
+            }
+        }
         /* Empty order message */
         .empty-order-message {
             background-color: rgba(55, 65, 81, 0.5);
@@ -753,7 +776,7 @@
                         @foreach($orderGroups as $groupIndex => $group)
                         <div class="order-group @if($groupIndex > 0) hidden @endif" data-group-index="{{ $groupIndex }}">
                             @foreach($group as $order)
-                            <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700" data-order-id="{{ $order['orderID'] }}">
+                            <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700" data-order-id="{{ $order['orderID'] }}" data-payment-number="{{ $order['paymentNumber'] }}">
                                 <!-- Order Header -->
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
@@ -823,7 +846,7 @@
                                 <div class="mt-6 flex gap-3">
                                     <button 
                                         class="action-btn begin-preparing-btn flex-1"
-                                        onclick="beginPreparing('{{ $order['orderID'] }}')"
+                                        onclick="beginPreparing('{{ $order['orderID'] }}', '{{ $order['paymentNumber'] }}')"
                                         @if($order['status'] != 'pending') disabled @endif
                                     >
                                         <i class="fas fa-utensils mr-2"></i>
@@ -836,7 +859,7 @@
                                     
                                     <button 
                                         class="action-btn send-to-staff-btn flex-1"
-                                        onclick="sendToStaff('{{ $order['orderID'] }}')"
+                                        onclick="sendToStaff('{{ $order['orderID'] }}', '{{ $order['paymentNumber'] }}')"
                                         @if($order['status'] != 'preparing') disabled @endif
                                     >
                                         <i class="fas fa-paper-plane mr-2"></i>
@@ -1149,7 +1172,7 @@
         });
 
         // Order Action Functions
-        function beginPreparing(orderID) {
+        function beginPreparing(orderID, paymentNumber) {
             // Update cookingStatus to 'Cooking' via AJAX
             updateCookingStatus(orderID, 'Cooking');
             
@@ -1157,24 +1180,21 @@
             updateOrderStatus(orderID, 'preparing');
             
             // Show status message
-            showStatusMessage(`Order ${orderID} is now being prepared`, 'bg-blue-600');
+            showStatusMessage(`Order #${paymentNumber} is now being prepared`, 'bg-blue-600');
         }
 
-        function sendToStaff(orderID) {
-            // Update cookingStatus to 'Product Ready' via AJAX
-            updateCookingStatus(orderID, 'Product Ready');
+        function sendToStaff(orderID, paymentNumber) {
+            // Update cookingStatus to 'Completed' via AJAX (not 'Product Ready')
+            updateCookingStatus(orderID, 'Completed');
             
-            // Update UI immediately for better UX
-            updateOrderStatus(orderID, 'ready');
+            // Update UI immediately for better UX - mark as completed and remove
+            markOrderAsCompleted(orderID, paymentNumber);
             
             // Show status message
-            showStatusMessage(`Order ${orderID} is ready for pickup`, 'bg-green-600');
+            showStatusMessage(`Order #${paymentNumber} completed and sent to staff`, 'bg-green-600');
             
-            // After 5 seconds, mark as completed
-            setTimeout(() => {
-                updateCookingStatus(orderID, 'Completed');
-                updateOrderStatus(orderID, 'completed');
-            }, 5000);
+            // Update the completed orders count
+            updateCompletedOrdersCount();
         }
 
         // Function to update cookingStatus via AJAX
@@ -1198,13 +1218,88 @@
                 if (!data.success) {
                     console.error('Failed to update cooking status:', data.message);
                     // Revert UI changes if update failed
-                    showStatusMessage(`Failed to update order ${orderID}`, 'bg-red-600');
+                    const orderCard = document.querySelector(`.order-card[data-order-id="${orderID}"]`);
+                    const paymentNumber = orderCard ? orderCard.getAttribute('data-payment-number') : orderID;
+                    showStatusMessage(`Failed to update order #${paymentNumber}`, 'bg-red-600');
                 }
             })
             .catch(error => {
                 console.error('Error updating cooking status:', error);
-                showStatusMessage(`Error updating order ${orderID}`, 'bg-red-600');
+                const orderCard = document.querySelector(`.order-card[data-order-id="${orderID}"]`);
+                const paymentNumber = orderCard ? orderCard.getAttribute('data-payment-number') : orderID;
+                showStatusMessage(`Error updating order #${paymentNumber}`, 'bg-red-600');
             });
+        }
+
+        function markOrderAsCompleted(orderID, paymentNumber) {
+            // Find the order card
+            const orderCard = document.querySelector(`.order-card[data-order-id="${orderID}"]`);
+            if (!orderCard) return;
+            
+            // Update status badge
+            const statusBadge = orderCard.querySelector('.order-status');
+            if (statusBadge) {
+                statusBadge.textContent = 'Completed';
+                statusBadge.className = 'order-status status-completed';
+            }
+            
+            // Update button states
+            const beginBtn = orderCard.querySelector('.begin-preparing-btn');
+            const sendBtn = orderCard.querySelector('.send-to-staff-btn');
+            
+            if (beginBtn) {
+                beginBtn.disabled = true;
+                beginBtn.innerHTML = '<i class="fas fa-utensils mr-2"></i>Completed';
+            }
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Sent!';
+            }
+            
+            // Add removing animation class
+            orderCard.classList.add('order-removing');
+            
+            // Remove card after animation
+            setTimeout(() => {
+                // Check if there are other cards in this group
+                const currentGroup = orderCard.closest('.order-group');
+                orderCard.remove();
+                
+                // Update order count
+                updateOrderCount();
+                
+                // Check if this group is now empty
+                const remainingCards = currentGroup.querySelectorAll('.order-card');
+                if (remainingCards.length === 0) {
+                    // Remove placeholder cards if they exist
+                    const placeholders = currentGroup.querySelectorAll('.bg-gray-800\\/30');
+                    placeholders.forEach(placeholder => placeholder.remove());
+                    
+                    // Add a message for empty group
+                    const emptyMessage = document.createElement('div');
+                    emptyMessage.className = 'col-span-4 empty-order-message';
+                    emptyMessage.innerHTML = `
+                        <i class="fas fa-check-circle text-4xl text-green-600 mb-3"></i>
+                        <p class="empty-order-text text-lg">All orders completed in this group!</p>
+                    `;
+                    currentGroup.appendChild(emptyMessage);
+                    
+                    // Recalculate pagination if needed
+                    const totalGroups = document.querySelectorAll('.order-group').length;
+                    if (totalGroups > 1) {
+                        setTimeout(() => {
+                            // If all groups are empty, reload the page
+                            const allEmpty = Array.from(document.querySelectorAll('.order-group')).every(group => {
+                                return group.querySelectorAll('.order-card').length === 0;
+                            });
+                            
+                            if (allEmpty) {
+                                location.reload();
+                            }
+                        }, 1000);
+                    }
+                }
+            }, 500); // Match animation duration
         }
 
         function updateOrderStatus(orderID, status) {
@@ -1234,39 +1329,6 @@
                 if (sendBtn) {
                     sendBtn.disabled = false;
                 }
-            } else if (status === 'ready') {
-                if (beginBtn) {
-                    beginBtn.disabled = true;
-                }
-                if (sendBtn) {
-                    sendBtn.disabled = true;
-                    sendBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Sent!';
-                }
-            } else if (status === 'completed') {
-                // Remove card with animation
-                orderCard.style.opacity = '0';
-                orderCard.style.transform = 'translateY(10px)';
-                setTimeout(() => {
-                    // Check if there are other cards in this group
-                    const currentGroup = orderCard.closest('.order-group');
-                    orderCard.remove();
-                    
-                    // Update order count
-                    updateOrderCount();
-                    
-                    // If this was the last order in the group
-                    const remainingCards = currentGroup.querySelectorAll('.order-card');
-                    if (remainingCards.length === 0) {
-                        // Remove the entire group
-                        const groupIndex = parseInt(currentGroup.getAttribute('data-group-index'));
-                        currentGroup.remove();
-                        
-                        // Recalculate pagination
-                        setTimeout(() => {
-                            location.reload(); // Reload to recalculate groups
-                        }, 1000);
-                    }
-                }, 300);
             }
         }
 
@@ -1296,10 +1358,25 @@
                 totalOrders += cards.length;
             });
             
-            const orderCount = document.getElementById('order-count');
-            if (orderCount) {
-                orderCount.textContent = totalOrders;
-            }
+            // You might want to update a different counter for active orders
+            // This function currently updates the active orders count
+        }
+
+        function updateCompletedOrdersCount() {
+            // Update the completed orders badge count
+            fetch('/kitchen/completed-orders-count')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.count !== undefined) {
+                        const orderCountBadge = document.getElementById('order-count');
+                        if (orderCountBadge) {
+                            orderCountBadge.textContent = data.count;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating completed orders count:', error);
+                });
         }
 
         function ucfirst(str) {
@@ -1312,6 +1389,9 @@
         } else {
             updateOrderCount();
         }
+
+        // Initial update of completed orders count
+        updateCompletedOrdersCount();
     </script>
 </body>
 </html>

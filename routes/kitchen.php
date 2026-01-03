@@ -10,3 +10,12 @@ Route::middleware(['web', 'auth', 'kitchen'])->group(function () {
 });
 
 Route::get('/kitchen/completed-orders', [KitchenController::class, 'completedOrders'])->name('kitchen.completed-orders');
+
+Route::get('/kitchen/completed-orders-count', function() {
+    $count = DB::table('staff_to_kitchen_transaction')
+        ->where('cookingStatus', 'Completed')
+        ->distinct('orderID')
+        ->count();
+    
+    return response()->json(['count' => $count]);
+})->name('kitchen.completed-orders-count');
