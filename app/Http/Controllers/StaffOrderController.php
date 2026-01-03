@@ -261,4 +261,59 @@ class StaffOrderController extends Controller
             ], 500);
         }
     }
+
+        public function getOrderTrackerData()
+{
+    // Fetch all transactions from staff_to_kitchen_transaction table
+    $transactions = StaffToKitchenTransaction::all();
+    
+    // Group by orderID and paymentNumber
+    $groupedOrders = [];
+    
+    foreach ($transactions as $transaction) {
+        $key = $transaction->orderID . '-' . $transaction->paymentNumber;
+        
+        if (!isset($groupedOrders[$key])) {
+            $groupedOrders[$key] = [
+                'orderID' => $transaction->orderID,
+                'paymentNumber' => $transaction->paymentNumber,
+                'orderType' => $transaction->orderType,
+                'paymentMethod' => $transaction->paymentMethod,
+                'cookingStatus' => $transaction->cookingStatus ?? 'In Progress',
+                'staffName' => $transaction->staffName,
+                'paymentProcessedAt' => $transaction->paymentProcessedAt,
+                'items' => []
+            ];
+        }
+        
+        // Add item to the order
+        $groupedOrders[$key]['items'][] = [
+            'productName' => $transaction->productName,
+            'quantity' => $transaction->quantity,
+            'unitPrice' => $transaction->unitPrice,
+            'totalPrice' => $transaction->totalPrice,
+            'productNotes' => $transaction->productNotes
+        ];
+    }
+    
+    // Calculate total items for each order
+    foreach ($groupedOrders as &$order) {
+        $order['totalItems'] = count($order['items']);
+    }
+    
+    // Convert to array
+    $orders = array_values($groupedOrders);
+    
+    // Sort by paymentProcessedAt (newest first)
+    usort($orders, function($a, $b) {
+        return strtotime($b['paymentProcessedAt']) - strtotime($a['paymentProcessedAt']);
+    });
+    
+    return response()->json([
+        'success' => true,
+        'orders' => $orders,
+        'total' => count($orders)
+    ]);
+}
+
 }
