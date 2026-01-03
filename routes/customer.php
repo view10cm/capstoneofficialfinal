@@ -37,4 +37,8 @@ Route::middleware(['auth', 'customer'])->group(function () {
     // NEW: AJAX route for saving voice transcripts
     Route::post('/customer/save-transcript', [CustomerController::class, 'saveVoiceTranscript'])
         ->name('customer.saveTranscript');
+
+    // AJAX route for matching utterances
+    Route::post('/customer/match-utterance', [CustomerController::class, 'matchUtterance'])
+        ->name('customer.matchUtterance');
 });

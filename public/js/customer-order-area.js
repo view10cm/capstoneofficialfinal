@@ -1290,7 +1290,10 @@ async function saveTranscript(transcript) {
     });
     localStorage.setItem('voiceTranscripts', JSON.stringify(transcripts));
     
-    // Try to save to server if route exists
+    // NEW: Try to match the transcript with utterance gallery
+    const matchedMenuItem = await matchTranscriptWithMenuItem(transcript);
+    
+    // Save to server
     try {
         const response = await fetch('/customer/save-transcript', {
             method: 'POST',
@@ -1299,18 +1302,211 @@ async function saveTranscript(transcript) {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             body: JSON.stringify({
-                transcribedData: transcript
+                transcribedData: transcript,
+                matchedMenuItem: matchedMenuItem // Add matched item to the request
             })
         });
         
         if (response.ok) {
             const result = await response.json();
             console.log('Transcript saved to server:', result);
+            
+            // If we found a match, show it in the UI
+            if (matchedMenuItem) {
+                showMatchedMenuItem(transcript, matchedMenuItem);
+            }
         } else {
             console.log('Server save failed, transcript stored locally');
+            // Still show match if found locally
+            if (matchedMenuItem) {
+                showMatchedMenuItem(transcript, matchedMenuItem);
+            }
         }
     } catch (error) {
         console.log('Could not reach server, transcript stored locally');
+        // Still show match if found locally
+        if (matchedMenuItem) {
+            showMatchedMenuItem(transcript, matchedMenuItem);
+        }
+    }
+}
+
+async function matchTranscriptWithMenuItem(transcript) {
+    const normalizedTranscript = transcript.toLowerCase().trim();
+    
+    try {
+        // Fetch all utterance gallery data or search for match
+        const response = await fetch('/customer/match-utterance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                transcript: normalizedTranscript
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.matchedMenuItem) {
+                console.log('Found matching menu item:', result.matchedMenuItem);
+                return result.matchedMenuItem;
+            }
+        }
+    } catch (error) {
+        console.error('Error matching utterance:', error);
+    }
+    
+    return null; // No match found
+}
+
+// NEW: Show matched menu item in UI
+function showMatchedMenuItem(transcript, menuItem) {
+    // Create or update a display element
+    let matchDisplay = document.getElementById('voice-match-display');
+    
+    if (!matchDisplay) {
+        matchDisplay = document.createElement('div');
+        matchDisplay.id = 'voice-match-display';
+        matchDisplay.className = 'mt-3 bg-green-50 border border-green-200 rounded-lg p-3 fade-in';
+        voiceCommandDisplay.parentNode.insertBefore(matchDisplay, voiceCommandDisplay.nextSibling);
+    }
+    
+    matchDisplay.innerHTML = `
+        <div class="flex items-start">
+            <div class="bg-green-100 text-green-600 p-1.5 rounded-full mr-2">
+                <i class="fas fa-check-circle text-sm"></i>
+            </div>
+            <div class="flex-1">
+                <h4 class="font-bold text-gray-800 text-sm mb-1">Menu Item Found!</h4>
+                <p class="text-gray-700 text-sm mb-1">You said: "<span class="font-medium">${transcript}</span>"</p>
+                <p class="text-gray-700 text-sm">Matched: <span class="font-bold text-green-600">${menuItem}</span></p>
+                
+                <!-- Auto-add button -->
+                <div class="mt-2">
+                    <button class="auto-add-menu-btn bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-xs"
+                            data-menu-item="${menuItem}">
+                        <i class="fas fa-plus mr-1"></i> Auto-Add "${menuItem}" to Order
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add event listener to auto-add button
+    const autoAddBtn = matchDisplay.querySelector('.auto-add-menu-btn');
+    if (autoAddBtn) {
+        autoAddBtn.addEventListener('click', function() {
+            const menuItemName = this.getAttribute('data-menu-item');
+            autoAddMenuItemToOrder(menuItemName);
+        });
+    }
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        if (matchDisplay && matchDisplay.parentNode) {
+            matchDisplay.classList.add('hidden');
+            setTimeout(() => {
+                if (matchDisplay && matchDisplay.parentNode) {
+                    matchDisplay.remove();
+                }
+            }, 500);
+        }
+    }, 5000);
+}
+
+// NEW: Auto-add menu item to order
+function autoAddMenuItemToOrder(menuItemName) {
+    console.log('Attempting to auto-add:', menuItemName);
+    
+    // Search for matching product in the current view
+    const addButtons = document.querySelectorAll('.add-to-order-btn');
+    let found = false;
+    
+    addButtons.forEach(btn => {
+        const name = btn.getAttribute('data-name');
+        // Simple matching - check if menuItemName contains product name or vice versa
+        if (name.toLowerCase().includes(menuItemName.toLowerCase()) || 
+            menuItemName.toLowerCase().includes(name.toLowerCase())) {
+            
+            const price = btn.getAttribute('data-price');
+            const category = btn.getAttribute('data-category');
+            const image = btn.getAttribute('data-image');
+            addToOrder(name, price, category, image);
+            
+            // Show success feedback
+            voiceFeedback.textContent = `Successfully added "${name}" to order!`;
+            voiceFeedback.style.color = '#10B981';
+            
+            found = true;
+        }
+    });
+    
+    if (!found) {
+        // If not found in current view, try to load the appropriate category
+        voiceFeedback.textContent = `"${menuItemName}" not found in current view. Try navigating to the correct category.`;
+        voiceFeedback.style.color = '#EF4444';
+        
+        // Try to guess category based on menu item name
+        let categoryToLoad = 'main-course'; // default
+        
+        if (menuItemName.toLowerCase().includes('hot') || 
+            menuItemName.toLowerCase().includes('iced') ||
+            menuItemName.toLowerCase().includes('frappe') ||
+            menuItemName.toLowerCase().includes('milktea') ||
+            menuItemName.toLowerCase().includes('cappuccino') ||
+            menuItemName.toLowerCase().includes('latte') ||
+            menuItemName.toLowerCase().includes('espresso') ||
+            menuItemName.toLowerCase().includes('mocha') ||
+            menuItemName.toLowerCase().includes('americano')) {
+            categoryToLoad = 'drinks';
+        } else if (menuItemName.toLowerCase().includes('salad') ||
+                  menuItemName.toLowerCase().includes('nachos') ||
+                  menuItemName.toLowerCase().includes('fries') ||
+                  menuItemName.toLowerCase().includes('sandwich') ||
+                  menuItemName.toLowerCase().includes('quesadilla') ||
+                  menuItemName.toLowerCase().includes('wrap')) {
+            categoryToLoad = 'appetizers';
+        } else if (menuItemName.toLowerCase().includes('pasta') ||
+                  menuItemName.toLowerCase().includes('noodles') ||
+                  menuItemName.toLowerCase().includes('lasagna') ||
+                  menuItemName.toLowerCase().includes('paella')) {
+            categoryToLoad = 'main-course';
+        }
+        
+        // Switch to the guessed category
+        const categoryBtn = document.querySelector(`[data-category="${categoryToLoad}"]`);
+        if (categoryBtn) {
+            categoryBtn.click();
+            
+            // After switching category, try to find and add the item
+            setTimeout(() => {
+                const newAddButtons = document.querySelectorAll('.add-to-order-btn');
+                let itemFound = false;
+                
+                newAddButtons.forEach(btn => {
+                    const name = btn.getAttribute('data-name');
+                    if (name.toLowerCase().includes(menuItemName.toLowerCase()) || 
+                        menuItemName.toLowerCase().includes(name.toLowerCase())) {
+                        
+                        const price = btn.getAttribute('data-price');
+                        const category = btn.getAttribute('data-category');
+                        const image = btn.getAttribute('data-image');
+                        addToOrder(name, price, category, image);
+                        
+                        voiceFeedback.textContent = `Successfully added "${name}" to order!`;
+                        voiceFeedback.style.color = '#10B981';
+                        itemFound = true;
+                    }
+                });
+                
+                if (!itemFound) {
+                    voiceFeedback.textContent = `"${menuItemName}" not found. Please try searching manually.`;
+                    voiceFeedback.style.color = '#EF4444';
+                }
+            }, 1000); // Wait for category to load
+        }
     }
 }
 
@@ -1319,40 +1515,56 @@ function processVoiceCommand(transcript) {
     const command = transcript.toLowerCase();
     let feedback = '';
     
-    // Command patterns
+    // First check if it's a command
     if (command.includes('add') || command.includes('order')) {
         // Extract product name from command
         const words = command.split(' ');
         const addIndex = words.findIndex(w => w === 'add' || w === 'order');
         
         if (addIndex !== -1 && words.length > addIndex + 1) {
-            // Try to find the product
+            // Extract the product name from command
             const productNameWords = words.slice(addIndex + 1);
             const productName = productNameWords.join(' ');
             
-            // Search for matching product
-            const addButtons = document.querySelectorAll('.add-to-order-btn');
-            let found = false;
-            
-            addButtons.forEach(btn => {
-                const name = btn.getAttribute('data-name').toLowerCase();
-                if (name.includes(productName.toLowerCase()) || 
-                    productName.toLowerCase().includes(name)) {
+            // Try to match with utterance gallery first
+            matchTranscriptWithMenuItem(productName).then(matchedMenuItem => {
+                if (matchedMenuItem) {
+                    // If we found a match, auto-add it
+                    autoAddMenuItemToOrder(matchedMenuItem);
+                    feedback = `Found "${matchedMenuItem}" in menu`;
+                } else {
+                    // Fall back to old search method
+                    const addButtons = document.querySelectorAll('.add-to-order-btn');
+                    let found = false;
                     
-                    // Add the product
-                    const price = btn.getAttribute('data-price');
-                    const category = btn.getAttribute('data-category');
-                    const image = btn.getAttribute('data-image');
-                    addToOrder(btn.getAttribute('data-name'), price, category, image);
+                    addButtons.forEach(btn => {
+                        const name = btn.getAttribute('data-name').toLowerCase();
+                        if (name.includes(productName.toLowerCase()) || 
+                            productName.toLowerCase().includes(name)) {
+                            
+                            const price = btn.getAttribute('data-price');
+                            const category = btn.getAttribute('data-category');
+                            const image = btn.getAttribute('data-image');
+                            addToOrder(btn.getAttribute('data-name'), price, category, image);
+                            
+                            feedback = `Added ${btn.getAttribute('data-name')} to your order`;
+                            found = true;
+                        }
+                    });
                     
-                    feedback = `Added ${btn.getAttribute('data-name')} to your order`;
-                    found = true;
+                    if (!found) {
+                        feedback = `Product "${productName}" not found. Please try again.`;
+                    }
                 }
+                voiceFeedback.textContent = feedback;
+                
+                // Auto-stop after processing command
+                setTimeout(() => {
+                    stopVoiceAssistant();
+                }, 2000);
             });
             
-            if (!found) {
-                feedback = `Product "${productName}" not found. Please try again.`;
-            }
+            return; // Exit early since we're handling asynchronously
         } else {
             feedback = 'Please specify what you want to add. Example: "Add pork barbecue"';
         }
@@ -1360,14 +1572,27 @@ function processVoiceCommand(transcript) {
     else if (command.includes('clear') && command.includes('order')) {
         clearOrder();
         feedback = 'Order cleared';
+        voiceFeedback.textContent = feedback;
+        
+        // Auto-stop after processing command
+        setTimeout(() => {
+            stopVoiceAssistant();
+        }, 2000);
+        return;
     }
     else if (command.includes('checkout') || command.includes('pay')) {
         showCheckoutModal();
         feedback = 'Opening checkout...';
+        voiceFeedback.textContent = feedback;
+        
+        // Auto-stop after processing command
+        setTimeout(() => {
+            stopVoiceAssistant();
+        }, 2000);
+        return;
     }
     else if (command.includes('show') || command.includes('view')) {
         if (command.includes('specials')) {
-            // Click on specials category
             const specialsBtn = document.querySelector('[data-category="specials"]');
             if (specialsBtn) {
                 specialsBtn.click();
@@ -1392,16 +1617,46 @@ function processVoiceCommand(transcript) {
                 feedback = 'Showing drinks';
             }
         }
+        voiceFeedback.textContent = feedback;
+        
+        // Auto-stop after processing command
+        setTimeout(() => {
+            stopVoiceAssistant();
+        }, 2000);
+        return;
     }
     else if (command.includes('help')) {
         showVoiceHelp();
         feedback = 'Showing help';
+        voiceFeedback.textContent = feedback;
+        
+        // Auto-stop after processing command
+        setTimeout(() => {
+            stopVoiceAssistant();
+        }, 2000);
+        return;
     }
     else {
-        feedback = 'Command not recognized. Try: "Add [item]", "Show specials", "Clear order", or "Checkout"';
+        // If it's not a recognized command, try to match it as a menu item
+        matchTranscriptWithMenuItem(transcript).then(matchedMenuItem => {
+            if (matchedMenuItem) {
+                autoAddMenuItemToOrder(matchedMenuItem);
+                feedback = `Found "${matchedMenuItem}" in menu`;
+            } else {
+                feedback = 'Command not recognized. Try: "Add [item]", "Show specials", "Clear order", or "Checkout"';
+            }
+            voiceFeedback.textContent = feedback;
+            
+            // Auto-stop after processing command
+            setTimeout(() => {
+                stopVoiceAssistant();
+            }, 2000);
+        });
+        
+        return; // Exit early since we're handling asynchronously
     }
     
-    // Update feedback
+    // Update feedback for synchronous commands
     voiceFeedback.textContent = feedback;
     
     // Auto-stop after processing command
