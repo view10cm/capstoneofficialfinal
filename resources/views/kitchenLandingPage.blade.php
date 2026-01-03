@@ -671,11 +671,18 @@
                 
                 <!-- Order Tracker Button -->
                 <div class="relative">
-                    <button id="order-tracker-btn" class="order-tracker-btn bg-amber-900 border border-amber-800 rounded-lg px-4 py-2">
+                    <a href="{{ route('kitchen.completed-orders') }}" id="order-tracker-btn" class="order-tracker-btn bg-amber-900 border border-amber-800 rounded-lg px-4 py-2 inline-flex items-center">
+                        <i class="fas fa-clipboard-check text-amber-100 mr-2"></i>
                         <p class="text-amber-100 font-medium" style="font-size: 15px;">Completed Orders</p>
-                    </button>
+                    </a>
                     <div class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                        <span id="order-count" class="text-white text-xs font-bold">0</span>
+                        @php
+                            $completedCount = DB::table('staff_to_kitchen_transaction')
+                                ->where('cookingStatus', 'Completed')
+                                ->distinct('orderID')
+                                ->count();
+                        @endphp
+                        <span id="order-count" class="text-white text-xs font-bold">{{ $completedCount }}</span>
                     </div>
                 </div>
                 
@@ -886,7 +893,7 @@
 
     <!-- Status Message (Hidden by default) -->
     <div id="status-message" class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transform translate-y-4 transition-all duration-300 z-50">
-        Completed Orders clicked! Opening order details...
+        Redirecting to completed orders...
     </div>
 
     <!-- Modal for Terms and Conditions -->
@@ -1010,16 +1017,20 @@
             document.getElementById('privacy-modal').classList.add('hidden');
         });
 
-        // Order Tracker Button
-        document.getElementById('order-tracker-btn').addEventListener('click', () => {
+        // Order Tracker Button - Redirect to completed orders page
+        document.getElementById('order-tracker-btn').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Show status message
             const statusMessage = document.getElementById('status-message');
+            statusMessage.textContent = "Opening completed orders...";
             statusMessage.classList.remove('opacity-0', 'translate-y-4');
             statusMessage.classList.add('opacity-100', 'translate-y-0');
             
+            // Navigate after a brief delay
             setTimeout(() => {
-                statusMessage.classList.remove('opacity-100', 'translate-y-0');
-                statusMessage.classList.add('opacity-0', 'translate-y-4');
-            }, 3000);
+                window.location.href = this.href;
+            }, 500);
         });
 
         // Pagination functionality
