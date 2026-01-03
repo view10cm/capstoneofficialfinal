@@ -8,25 +8,14 @@
         @include('admin.adminSidebar')
 
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex flex-col overflow-y-auto">
             <!-- Header -->
-            <div class="bg-white shadow p-6">
+            <div class="bg-white p-5 shadow-sm shadow-gray-500/50">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:space-x-6">
                         <div class="text-center lg:text-left">
-                            <h1 class="text-2xl font-bold text-gray-800">Inventory</h1>
-                            <p class="text-gray-600 mt-1">Manage your inventory items</p>
-                        </div>
-                        <!-- Oblong Search Bar - Centered but beside text -->
-                        <div class="relative mt-4 lg:mt-0 lg:mx-6">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
-                            <input type="text" 
-                                   placeholder="Search inventory..." 
-                                   class="pl-12 pr-6 py-3 w-full lg:w-96 border border-gray-300 rounded-full focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors">
+                            <h1 class="text-3xl font-bold text-gray-900">Inventory</h1>
+                            <p class="text-gray-500 text-sm">Manage your inventory items</p>
                         </div>
                     </div>
                 </div>
