@@ -1076,6 +1076,15 @@ function renderOrderItems() {
         orderItemsList.appendChild(itemElement);
     });
 
+    // Show/hide empty state based on items
+    if (orderItems.length === 0) {
+        emptyOrder.style.display = 'block';
+        orderItemsList.style.display = 'none';
+    } else {
+        emptyOrder.style.display = 'none';
+        orderItemsList.style.display = 'block';
+    }
+
     // Add event listeners to new buttons
     document.querySelectorAll('.remove-item-btn').forEach(btn => {
         btn.addEventListener('click', function() {
