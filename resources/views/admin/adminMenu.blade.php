@@ -8,36 +8,30 @@
         @include('admin.adminSidebar')
 
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex flex-col overflow-y-auto">
             <!-- Header -->
-            <div class="bg-white shadow p-6">
+            <div class="bg-white p-5 shadow-sm shadow-gray-500/50">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:space-x-6">
                         <div class="text-center lg:text-left">
-                            <h1 class="text-2xl font-bold text-gray-800">Menu</h1>
-                            <p class="text-gray-600 mt-1">Manage your menu items</p>
-                        </div>
-                        <!-- Oblong Search Bar - Centered but beside text -->
-                        <div class="relative mt-4 lg:mt-0 lg:mx-6">
-                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
-                            <input type="text" 
-                                   placeholder="Search Menu..." 
-                                   class="pl-12 pr-6 py-3 w-full lg:w-96 border border-gray-300 rounded-full focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors">
+                            <h1 class="text-3xl font-bold text-gray-900">Menu</h1>
+                            <p class="text-gray-500 text-sm">Manage your menu items</p>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Second Row: Menu Icon, Text, Search, Filter, and Add Button -->
-                <div class="mt-6 flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            </div>
+
+            <!-- Content area below the header -->
+            <div class="flex-1 p-5">
+                <!-- Table Container -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <!-- Second Row: Menu Icon, Text, Search, Filter, and Add Button -->
+                <div class="p-2 flex flex-col lg:flex-row lg:items-center lg:justify-between">
                     <!-- Left side: Inventory Icon and Text -->
                     <div class="flex items-center mb-4 lg:mb-0">
                         <!-- Inventory Icon -->
-                        <div class="bg-amber-100 p-3 rounded-lg mr-3">
-                            <img src="{{ asset('images/inventoryIcon.svg') }}" alt="Inventory Icon" class="h-6 w-6">
+                        <div class="bg-white p-3 rounded-lg mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><g fill="none" fill-rule="evenodd"><path d="m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z"/><path fill="#f59e0b" d="M9 4a1 1 0 0 1 1-1h4a1 1 0 1 1 0 2h-1v1.035c5.44.49 9.01 6.132 6.929 11.336A1 1 0 0 1 19 18H5a1 1 0 0 1-.928-.629C1.99 12.167 5.56 6.525 11 6.035V5h-1a1 1 0 0 1-1-1m2.77 4c-4.226 0-7.184 4.053-6.057 8h12.574c1.127-3.947-1.831-8-6.057-8zM3 20a1 1 0 0 1 1-1h16a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1"/></g></svg>
                         </div>
                         <!-- Menu Text -->
                         <div>
@@ -50,7 +44,7 @@
                         <!-- Search Bar -->
                         <div class="relative w-full sm:w-auto">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
@@ -63,80 +57,74 @@
                         <!-- Beautiful Orange-Themed Category Dropdown -->
                         <div class="relative w-full sm:w-56 group">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                                <svg class="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-3 w-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                                 </svg>
                             </div>
                             <select id="categoryFilter" 
-                                    class="w-full pl-10 pr-10 py-2.5 bg-white border-2 border-amber-300 text-gray-800 rounded-xl focus:ring-2 focus:ring-amber-400 focus:border-amber-400 focus:outline-none transition-all duration-200 shadow-sm hover:border-amber-400 appearance-none cursor-pointer [&>option]:text-gray-800 [&>option]:py-2 [&>option]:px-4 [&>option]:hover:bg-amber-50 [&>option]:hover:text-amber-700 [&>option]:checked:bg-amber-100 [&>option]:checked:text-amber-800 [&>option]:font-medium">
+                                    class="w-full pl-10 pr-10 py-2 bg-white border-2 border-amber-300 text-gray-800 rounded-xl focus:ring-1 focus:ring-amber-400 focus:border-amber-400 focus:outline-none transition-all duration-200 shadow-sm hover:border-amber-400 appearance-none cursor-pointer [&>option]:text-gray-800 [&>option]:py-2 [&>option]:px-4 [&>option]:hover:bg-amber-50 [&>option]:hover:text-amber-700 [&>option]:checked:bg-amber-100 [&>option]:checked:text-amber-800 [&>option]:font-medium">
                                 <option value="">All Categories</option>
                                 <option value="main-course">Main Course</option>
                                 <option value="appetizers">Appetizers</option>
                                 <option value="drinks">Drinks</option>
                             </select>
                             <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none z-10">
-                                <svg class="h-5 w-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="h-4 w-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                                 </svg>
                             </div>
                         </div>
                         
                         <!-- Add Menu Item Button -->
-                        <button onclick="openCreatePopup()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow hover:shadow-md w-full sm:w-auto">
+                        <button onclick="openCreatePopup()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-2 px-5 rounded-xl transition-all duration-200 shadow hover:shadow-md w-full sm:w-auto">
                             + Add Menu Item
                         </button>
                     </div>
                 </div>
-            </div>
-
-            <!-- Content area below the header -->
-            <div class="flex-1 p-6">
-                <!-- Table Container -->
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                     <!-- Table -->
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <!-- Checkbox Header -->
-                                    <th scope="col" class="px-6 py-4 text-left">
+                                    <th scope="col" class="px-4 py-3 text-left">
                                         <div class="flex items-center">
                                             <input type="checkbox" id="selectAll" class="h-5 w-5 text-amber-500 focus:ring-amber-400 border-gray-300 rounded">
                                         </div>
                                     </th>
                                     
                                     <!-- Image Header -->
-                                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Image
                                     </th>
                                     
                                     <!-- Menu Name Header -->
-                                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Menu Name
                                     </th>
                                     
                                     <!-- Category Header -->
-                                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Category
                                     </th>
                                     
                                     <!-- Subcategory Header -->
-                                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Subcategory
                                     </th>
                                     
                                     <!-- Price Header -->
-                                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Price
                                     </th>
                                     
                                     <!-- Status Header -->
-                                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Status
                                     </th>
                                     
                                     <!-- Actions Header -->
-                                    <th scope="col" class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
@@ -145,7 +133,7 @@
                             <tbody id="menuTableBody" class="bg-white divide-y divide-gray-200">
                                 <!-- Table rows will be dynamically populated here -->
                                 <tr>
-                                    <td class="px-6 py-8 text-center text-gray-500 italic" colspan="8">
+                                    <td class="px-4 py-3 text-center text-gray-500 italic" colspan="8">
                                         Loading menu items...
                                     </td>
                                 </tr>
@@ -154,7 +142,7 @@
                     </div>
                     
                     <!-- Pagination -->
-                    <div class="flex items-center justify-between px-6 py-4 bg-white border-t border-gray-200">
+                    <div class="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200">
                         <!-- Previous Button -->
                         <button id="prevPage" class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -938,7 +926,7 @@
                 const tableBody = document.getElementById('menuTableBody');
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-gray-500 italic">
+                        <td colspan="8" class="px-4 py-3 text-center text-gray-500 italic">
                             Loading menu items...
                         </td>
                     </tr>
@@ -949,6 +937,7 @@
                 if (search) params.append('search', search);
                 if (category) params.append('category', category);
                 params.append('page', page);
+                params.append('per_page', 7);
                 
                 // Fetch data from server
                 const response = await fetch(`{{ route("admin.menu.list") }}?${params.toString()}`);
@@ -966,7 +955,7 @@
                 const tableBody = document.getElementById('menuTableBody');
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-red-500">
+                        <td colspan="8" class="px-4 py-3 text-center text-red-500">
                             Failed to load menu items. Please try again.
                         </td>
                     </tr>
@@ -981,7 +970,7 @@
             if (!data.data || data.data.length === 0) {
                 tableBody.innerHTML = `
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-gray-500 italic">
+                        <td colspan="8" class="px-4 py-3 text-center text-gray-500 italic">
                             No menu items found. Click "Add Menu Item" to create your first item.
                         </td>
                     </tr>
@@ -1038,14 +1027,14 @@
                 html += `
                     <tr class="hover:bg-gray-50 transition-colors">
                         <!-- Checkbox -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <div class="flex items-center">
                                 <input type="checkbox" class="item-checkbox h-5 w-5 text-amber-500 focus:ring-amber-400 border-gray-300 rounded" value="${item.menuID}">
                             </div>
                         </td>
                         
                         <!-- Image -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <div class="h-10 w-10 rounded-lg overflow-hidden">
                                 <img src="${imageUrl}" 
                                      alt="${item.menuName}" 
@@ -1055,28 +1044,28 @@
                         </td>
                         
                         <!-- Menu Name -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">${item.menuName}</div>
                             <div class="text-sm text-gray-500">${item.menuID}</div>
                         </td>
                         
                         <!-- Category -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${categoryNames[item.menuCategory] || item.menuCategory}</div>
                         </td>
                         
                         <!-- Subcategory -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${subcategoryNames[item.menuSubcategory] || item.menuSubcategory}</div>
                         </td>
                         
                         <!-- Price -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">PHP ${parseFloat(item.menuPrice).toFixed(2)}</div>
                         </td>
                         
                         <!-- Status -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <div class="relative w-32">
                                 <select onchange="updateStatus('${item.menuID}', this.value)" 
                                         class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors ${getStatusClasses(item.menuStatus)}">
@@ -1087,7 +1076,7 @@
                         </td>
                         
                         <!-- Actions -->
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center space-x-3">
                                 <button onclick="editMenuItem('${item.menuID}')" class="text-blue-600 hover:text-blue-900 transition-colors">
                                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
