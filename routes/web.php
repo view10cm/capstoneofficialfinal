@@ -36,4 +36,7 @@ Route::get('/admin/dashboard', function () {
 // Logout route
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Add this line to include customer routes
+require __DIR__.'/customer.php';
+
 // Remove the customer/home route from here since it's in routes/customer.php

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Admin\MenuProduct;
 use App\Models\OrderToStaffTransaction;
+use App\Models\VoiceTranscript; // Make sure this line exists
 
 class CustomerController extends Controller
 {
@@ -236,4 +237,34 @@ public function saveOrderToStaffTransaction(Request $request)
         ], 500);
     }
 }
+
+    public function saveVoiceTranscript(Request $request)
+    {
+        try {
+            // Validate the request
+            $validated = $request->validate([
+                'transcribedData' => 'required|string|max:1000',
+            ]);
+            
+            // Create new voice transcript record
+            $transcript = new VoiceTranscript();
+            $transcript->transcribedData = $validated['transcribedData'];
+            $transcript->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Transcript saved successfully',
+                'voiceID' => $transcript->voiceID
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error saving voice transcript: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save transcript: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
