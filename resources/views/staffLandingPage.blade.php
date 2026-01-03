@@ -1,3 +1,5 @@
+[file name]: staffLandingPage.blade.php
+[file content begin]
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -498,7 +500,7 @@
                 
                 <!-- Order Tracker Button -->
                 <div class="relative">
-                    <button id="order-tracker-btn" class="order-tracker-btn bg-amber-900 border border-amber-800 rounded-lg px-4 py-2">
+                    <button id="order-tracker-btn" onclick="navigateToOrderTracker()" class="order-tracker-btn bg-amber-900 border border-amber-800 rounded-lg px-4 py-2">
                         <p class="text-amber-100 font-medium" style="font-size: 15px;">Order Tracker</p>
                     </button>
                     <div class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
@@ -974,6 +976,17 @@
             return document.querySelector(
                 `.select-all-checkbox${getSafeSelector('data-order-id', cleanOrderId)}${getSafeSelector('data-payment-number', cleanPaymentNumber)}`
             );
+        }
+        
+        // Function to navigate to Order Tracker page
+        function navigateToOrderTracker() {
+            // Show status message
+            showStatusMessage('Navigating to Order Tracker...', 'bg-green-600');
+            
+            // Add a small delay for better UX
+            setTimeout(() => {
+                window.location.href = '/staff/order-tracker';
+            }, 500);
         }
         
         // Pagination variables
@@ -2237,9 +2250,8 @@
             }
         });
         
-        orderTrackerBtn.addEventListener('click', function() {
-            showStatusMessage('Order tracker clicked! Opening order details...', 'bg-green-600');
-        });
+        // Order Tracker Button click
+        orderTrackerBtn.addEventListener('click', navigateToOrderTracker);
         
         // Live Clock Functionality
         function updateClock() {
@@ -2286,3 +2298,4 @@
     </script>
 </body>
 </html>
+[file content end]
