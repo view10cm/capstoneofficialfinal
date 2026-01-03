@@ -38,7 +38,9 @@ let orderType = 'dine-in'; // Default order type
 let paymentMethod = 'cash'; // Default payment method
 
 // Voice chat state
+let speechRecognition = null;
 let isListening = false;
+let recognitionTimeout = null;
 
 // Carousel state
 let currentSlide = 0;
@@ -59,6 +61,8 @@ let checkoutModal, confirmOrderBtn, cancelOrderBtn, orderDetailsList;
 
 // Initialize DOM elements
 function initializeDOMElements() {
+    console.log('Initializing DOM elements...');
+    
     upperNavBtns = document.querySelectorAll('.upper-nav-btn');
     lowerNav = document.getElementById('lower-nav');
     orderItemsList = document.getElementById('order-items-list');
@@ -86,6 +90,12 @@ function initializeDOMElements() {
     carouselPrev = document.getElementById('carousel-prev');
     carouselNext = document.getElementById('carousel-next');
     carouselIndicators = document.getElementById('carousel-indicators');
+    
+    console.log('Voice buttons found:', {
+        startBtn: voiceStartBtn,
+        stopBtn: voiceStopBtn,
+        helpBtn: voiceHelpBtn
+    });
 }
 
 // Create checkout modal
@@ -841,7 +851,7 @@ function updateModalContent() {
     
     // Update order items
     orderDetailsList.innerHTML = '';
-    orderItems.forEach(item => {
+    orderItems.forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
         const itemElement = document.createElement('div');
         itemElement.className = 'flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100';
@@ -1114,28 +1124,293 @@ function clearOrder() {
     }
 }
 
-// Voice chat functions
+// ==================== VOICE TRANSCRIPTION FUNCTIONS ====================
+
+// Start silence timeout
+function startSilenceTimeout() {
+    // Clear any existing timeout
+    if (recognitionTimeout) {
+        clearTimeout(recognitionTimeout);
+    }
+    
+    // Set timeout for 3 seconds of silence
+    recognitionTimeout = setTimeout(() => {
+        if (isListening) {
+            console.log('No speech detected for 3 seconds, stopping...');
+            voiceFeedback.textContent = 'No speech detected. Stopping...';
+            stopVoiceAssistant();
+        }
+    }, 3000); // 3 seconds
+}
+
+// Reset silence timeout
+function resetSilenceTimeout() {
+    // Clear existing timeout and start a new one
+    if (recognitionTimeout) {
+        clearTimeout(recognitionTimeout);
+    }
+    startSilenceTimeout();
+}
+
+// Start voice assistant with microphone
 function startVoiceAssistant() {
+    console.log('Start voice assistant clicked');
+    
+    // Check if browser supports speech recognition
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert('Sorry, your browser does not support speech recognition. Please use Chrome, Edge, or Safari.');
+        return;
+    }
+
+    // Initialize speech recognition
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    speechRecognition = new SpeechRecognition();
+    
+    // Configure recognition
+    speechRecognition.continuous = false; // Stop automatically when user stops speaking
+    speechRecognition.interimResults = false; // Only final results
+    speechRecognition.lang = 'en-US'; // Set language to English
+
+    // Start listening
+    try {
+        speechRecognition.start();
+        console.log('Speech recognition started successfully');
+    } catch (error) {
+        console.error('Failed to start speech recognition:', error);
+        alert('Failed to start microphone. Please check your microphone settings.');
+        return;
+    }
+    
+    // Update UI
     isListening = true;
     voiceStatus.textContent = 'Status: Listening...';
-    voiceFeedback.textContent = 'Speak now. Try: "Add pork barbecue"';
+    voiceFeedback.textContent = 'Speak now. I\'m listening...';
     voiceCommandDisplay.classList.remove('hidden');
     voiceStartBtn.disabled = true;
     voiceStopBtn.disabled = false;
+    
+    // Start timeout for 3 seconds of silence
+    startSilenceTimeout();
 
-    // Simulate voice recognition
-    simulateVoiceRecognition();
+    // Event handlers for speech recognition
+    speechRecognition.onstart = function() {
+        console.log('Speech recognition started');
+        voiceTranscript.textContent = 'Listening...';
+    };
+
+    speechRecognition.onresult = function(event) {
+        // Reset silence timeout when speech is detected
+        resetSilenceTimeout();
+        
+        const transcript = event.results[0][0].transcript;
+        console.log('Transcript:', transcript);
+        
+        // Update UI with transcript
+        voiceTranscript.textContent = `"${transcript}"`;
+        voiceFeedback.textContent = 'Processing your command...';
+        
+        // Save transcript to database
+        saveTranscript(transcript);
+        
+        // Process voice command
+        processVoiceCommand(transcript);
+    };
+
+    speechRecognition.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        
+        if (event.error === 'not-allowed') {
+            voiceFeedback.textContent = 'Microphone access denied. Please allow microphone access.';
+            alert('Microphone access is required for voice commands. Please allow microphone access in your browser settings.');
+        } else if (event.error === 'no-speech') {
+            voiceFeedback.textContent = 'No speech detected. Try speaking louder.';
+        } else {
+            voiceFeedback.textContent = `Error: ${event.error}`;
+        }
+        
+        stopVoiceAssistant();
+    };
+
+    speechRecognition.onend = function() {
+        console.log('Speech recognition ended');
+        
+        if (isListening) {
+            // Auto-restart if still in listening mode
+            setTimeout(() => {
+                if (isListening) {
+                    try {
+                        speechRecognition.start();
+                    } catch (e) {
+                        console.error('Failed to restart speech recognition:', e);
+                    }
+                }
+            }, 500);
+        }
+    };
 }
 
+// Stop voice assistant
 function stopVoiceAssistant() {
+    console.log('Stop voice assistant clicked');
     isListening = false;
-    voiceStatus.textContent = 'Status: Stopped';
-    voiceFeedback.textContent = 'Voice assistant stopped';
+    
+    // Stop speech recognition if active
+    if (speechRecognition) {
+        try {
+            speechRecognition.stop();
+        } catch (e) {
+            console.log('Speech recognition already stopped');
+        }
+        speechRecognition = null;
+    }
+    
+    // Clear silence timeout
+    if (recognitionTimeout) {
+        clearTimeout(recognitionTimeout);
+        recognitionTimeout = null;
+    }
+    
+    // Update UI
+    voiceStatus.textContent = 'Status: Ready';
+    voiceFeedback.textContent = 'Click Start to begin voice ordering';
     voiceCommandDisplay.classList.add('hidden');
     voiceStartBtn.disabled = false;
     voiceStopBtn.disabled = true;
 }
 
+// Save transcript to database
+async function saveTranscript(transcript) {
+    console.log('Voice transcript recorded:', transcript);
+    
+    // Store transcript locally for now
+    const transcripts = JSON.parse(localStorage.getItem('voiceTranscripts') || '[]');
+    transcripts.push({
+        text: transcript,
+        timestamp: new Date().toISOString()
+    });
+    localStorage.setItem('voiceTranscripts', JSON.stringify(transcripts));
+    
+    // Try to save to server if route exists
+    try {
+        const response = await fetch('/customer/save-transcript', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                transcribedData: transcript
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Transcript saved to server:', result);
+        } else {
+            console.log('Server save failed, transcript stored locally');
+        }
+    } catch (error) {
+        console.log('Could not reach server, transcript stored locally');
+    }
+}
+
+// Process voice commands
+function processVoiceCommand(transcript) {
+    const command = transcript.toLowerCase();
+    let feedback = '';
+    
+    // Command patterns
+    if (command.includes('add') || command.includes('order')) {
+        // Extract product name from command
+        const words = command.split(' ');
+        const addIndex = words.findIndex(w => w === 'add' || w === 'order');
+        
+        if (addIndex !== -1 && words.length > addIndex + 1) {
+            // Try to find the product
+            const productNameWords = words.slice(addIndex + 1);
+            const productName = productNameWords.join(' ');
+            
+            // Search for matching product
+            const addButtons = document.querySelectorAll('.add-to-order-btn');
+            let found = false;
+            
+            addButtons.forEach(btn => {
+                const name = btn.getAttribute('data-name').toLowerCase();
+                if (name.includes(productName.toLowerCase()) || 
+                    productName.toLowerCase().includes(name)) {
+                    
+                    // Add the product
+                    const price = btn.getAttribute('data-price');
+                    const category = btn.getAttribute('data-category');
+                    const image = btn.getAttribute('data-image');
+                    addToOrder(btn.getAttribute('data-name'), price, category, image);
+                    
+                    feedback = `Added ${btn.getAttribute('data-name')} to your order`;
+                    found = true;
+                }
+            });
+            
+            if (!found) {
+                feedback = `Product "${productName}" not found. Please try again.`;
+            }
+        } else {
+            feedback = 'Please specify what you want to add. Example: "Add pork barbecue"';
+        }
+    } 
+    else if (command.includes('clear') && command.includes('order')) {
+        clearOrder();
+        feedback = 'Order cleared';
+    }
+    else if (command.includes('checkout') || command.includes('pay')) {
+        showCheckoutModal();
+        feedback = 'Opening checkout...';
+    }
+    else if (command.includes('show') || command.includes('view')) {
+        if (command.includes('specials')) {
+            // Click on specials category
+            const specialsBtn = document.querySelector('[data-category="specials"]');
+            if (specialsBtn) {
+                specialsBtn.click();
+                feedback = 'Showing specials';
+            }
+        } else if (command.includes('main') || command.includes('course')) {
+            const mainCourseBtn = document.querySelector('[data-category="main-course"]');
+            if (mainCourseBtn) {
+                mainCourseBtn.click();
+                feedback = 'Showing main courses';
+            }
+        } else if (command.includes('appetizers')) {
+            const appetizersBtn = document.querySelector('[data-category="appetizers"]');
+            if (appetizersBtn) {
+                appetizersBtn.click();
+                feedback = 'Showing appetizers';
+            }
+        } else if (command.includes('drinks') || command.includes('beverages')) {
+            const drinksBtn = document.querySelector('[data-category="drinks"]');
+            if (drinksBtn) {
+                drinksBtn.click();
+                feedback = 'Showing drinks';
+            }
+        }
+    }
+    else if (command.includes('help')) {
+        showVoiceHelp();
+        feedback = 'Showing help';
+    }
+    else {
+        feedback = 'Command not recognized. Try: "Add [item]", "Show specials", "Clear order", or "Checkout"';
+    }
+    
+    // Update feedback
+    voiceFeedback.textContent = feedback;
+    
+    // Auto-stop after processing command
+    setTimeout(() => {
+        stopVoiceAssistant();
+    }, 2000);
+}
+
+// Show voice help
 function showVoiceHelp() {
     alert('Voice Commands:\n\n' +
           '• "Add [item name]" - Add item to cart\n' +
@@ -1145,47 +1420,7 @@ function showVoiceHelp() {
           '• "Help" - Show this help');
 }
 
-function simulateVoiceRecognition() {
-    if (!isListening) return;
-
-    // Simulate random voice commands for demo
-    const commands = [
-        "Add pork barbecue",
-        "Show specials",
-        "Add iced caramel macchiato",
-        "Clear order",
-        "Show chicken items"
-    ];
-
-    // Randomly show a command after 2-4 seconds
-    setTimeout(() => {
-        if (!isListening) return;
-
-        const randomCommand = commands[Math.floor(Math.random() * commands.length)];
-        voiceTranscript.textContent = `"${randomCommand}"`;
-
-        // Process the command (simulated)
-        if (randomCommand.includes("Add pork barbecue")) {
-            setTimeout(() => {
-                // Find and add pork barbecue
-                const addBtns = document.querySelectorAll('.add-to-order-btn');
-                addBtns.forEach(btn => {
-                    if (btn.dataset.name && btn.dataset.name.includes('Pork Barbeque')) {
-                        const name = btn.dataset.name;
-                        const price = btn.dataset.price;
-                        const category = btn.dataset.category;
-                        const image = btn.dataset.image;
-                        addToOrder(name, price, category, image);
-                    }
-                });
-                voiceFeedback.textContent = 'Added Pork Barbecue';
-            }, 800);
-        }
-
-        // Continue listening
-        simulateVoiceRecognition();
-    }, 2000 + Math.random() * 2000);
-}
+// ==================== CAROUSEL FUNCTIONS ====================
 
 // Update carousel indicators
 function updateCarouselIndicators() {
@@ -1357,11 +1592,17 @@ function updateLowerNav(category) {
     }
 }
 
+// ==================== INITIALIZATION FUNCTIONS ====================
+
 // Initialize event listeners
 function initializeEventListeners() {
+    console.log('Initializing event listeners...');
+    
     // Set Main Course as active
     const mainCourseBtn = document.querySelector('[data-category="main-course"]');
-    setActiveUpperNav(mainCourseBtn);
+    if (mainCourseBtn) {
+        setActiveUpperNav(mainCourseBtn);
+    }
 
     // Add event listeners to upper navigation buttons
     upperNavBtns.forEach(btn => {
@@ -1376,74 +1617,116 @@ function initializeEventListeners() {
     reattachEventListeners();
 
     // Add event listeners to carousel arrows
-    carouselPrev.addEventListener('click', prevSlide);
-    carouselNext.addEventListener('click', nextSlide);
+    if (carouselPrev) carouselPrev.addEventListener('click', prevSlide);
+    if (carouselNext) carouselNext.addEventListener('click', nextSlide);
 
     // Add event listener to order type dropdown
-    orderTypeDropdown.addEventListener('change', function() {
-        setOrderType(this.value);
-    });
+    if (orderTypeDropdown) {
+        orderTypeDropdown.addEventListener('change', function() {
+            setOrderType(this.value);
+        });
+    }
 
     // Add event listeners to payment method buttons
-    cashBtn.addEventListener('click', function() {
-        setPaymentMethod('cash');
-    });
+    if (cashBtn) {
+        cashBtn.addEventListener('click', function() {
+            setPaymentMethod('cash');
+        });
+    }
 
-    electronicBtn.addEventListener('click', function() {
-        setPaymentMethod('electronic');
-    });
+    if (electronicBtn) {
+        electronicBtn.addEventListener('click', function() {
+            setPaymentMethod('electronic');
+        });
+    }
 
     // Add event listeners to order action buttons
-    clearOrderBtn.addEventListener('click', clearOrder);
-    checkoutBtn.addEventListener('click', showCheckoutModal);
+    if (clearOrderBtn) clearOrderBtn.addEventListener('click', clearOrder);
+    if (checkoutBtn) checkoutBtn.addEventListener('click', showCheckoutModal);
 
     // Add event listeners to voice chat buttons
-    voiceStartBtn.addEventListener('click', startVoiceAssistant);
-    voiceStopBtn.addEventListener('click', stopVoiceAssistant);
-    voiceHelpBtn.addEventListener('click', showVoiceHelp);
+    if (voiceStartBtn) {
+        console.log('Adding click event to voice start button');
+        voiceStartBtn.addEventListener('click', startVoiceAssistant);
+    } else {
+        console.error('Voice start button not found!');
+    }
+    
+    if (voiceStopBtn) {
+        console.log('Adding click event to voice stop button');
+        voiceStopBtn.addEventListener('click', stopVoiceAssistant);
+    } else {
+        console.error('Voice stop button not found!');
+    }
+    
+    if (voiceHelpBtn) {
+        console.log('Adding click event to voice help button');
+        voiceHelpBtn.addEventListener('click', showVoiceHelp);
+    } else {
+        console.error('Voice help button not found!');
+    }
+    
+    console.log('Event listeners initialized');
 }
 
 // Initialize the application
 function initializeApp() {
-    // Initialize DOM elements
-    initializeDOMElements();
+    console.log('Initializing app...');
     
-    // Create checkout modal
-    createCheckoutModal();
-    
-    // Create payment queue modal
-    createPaymentQueueModal();
-    
-    // Create thank you modal (it will be created dynamically when needed)
-    
-    // Initialize event listeners
-    initializeEventListeners();
-    
-    // Initialize payment method
-    setPaymentMethod('cash');
-    
-    // Initialize order type
-    setOrderType(orderTypeDropdown.value);
-    
-    // Initialize voice stop button as disabled
-    voiceStopBtn.disabled = true;
-    
-    // Initialize calculations
-    calculateTotals();
-    
-    // Initialize carousel
-    const initialSlides = document.querySelectorAll('.carousel-page');
-    totalSlides = initialSlides.length;
-    updateCarouselIndicators();
-    
-    // Store initial slides
-    initialSlides.forEach((slide, index) => {
-        allSlides[index] = slide.innerHTML;
-    });
-    
-    // Prevent scrolling on the entire page
-    document.body.style.overflow = 'hidden';
+    try {
+        // Initialize DOM elements
+        initializeDOMElements();
+        
+        // Create checkout modal
+        createCheckoutModal();
+        
+        // Create payment queue modal
+        createPaymentQueueModal();
+        
+        // Create thank you modal (it will be created dynamically when needed)
+        
+        // Initialize event listeners
+        initializeEventListeners();
+        
+        // Initialize payment method
+        setPaymentMethod('cash');
+        
+        // Initialize order type
+        if (orderTypeDropdown) {
+            setOrderType(orderTypeDropdown.value);
+        }
+        
+        // Initialize voice stop button as disabled
+        if (voiceStopBtn) {
+            voiceStopBtn.disabled = true;
+        }
+        
+        // Initialize calculations
+        calculateTotals();
+        
+        // Initialize carousel
+        const initialSlides = document.querySelectorAll('.carousel-page');
+        totalSlides = initialSlides.length;
+        updateCarouselIndicators();
+        
+        // Store initial slides
+        initialSlides.forEach((slide, index) => {
+            allSlides[index] = slide.innerHTML;
+        });
+        
+        // Prevent scrolling on the entire page
+        document.body.style.overflow = 'hidden';
+        
+        console.log('App initialization complete');
+    } catch (error) {
+        console.error('Error during app initialization:', error);
+    }
 }
 
 // Initialize when DOM is fully loaded
 document.addEventListener('DOMContentLoaded', initializeApp);
+
+// Also try to initialize if DOM is already loaded
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(initializeApp, 100);
+}

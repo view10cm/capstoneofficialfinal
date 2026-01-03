@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
+use App\Models\VoiceTranscript; // Add this line
 
 // Customer routes - protected by customer middleware
 Route::middleware(['auth', 'customer'])->group(function () {
@@ -32,4 +33,8 @@ Route::middleware(['auth', 'customer'])->group(function () {
     // AJAX route for saving order to staff transaction
     Route::post('/customer/save-order', [CustomerController::class, 'saveOrderToStaffTransaction'])
         ->name('customer.saveOrder');
+        
+    // NEW: AJAX route for saving voice transcripts
+    Route::post('/customer/save-transcript', [CustomerController::class, 'saveVoiceTranscript'])
+        ->name('customer.saveTranscript');
 });
