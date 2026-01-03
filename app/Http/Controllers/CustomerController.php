@@ -242,87 +242,95 @@ class CustomerController extends Controller
     /**
      * Match transcribed utterance with menu items
      */
-    public function matchUtterance(Request $request)
-    {
-        try {
-            $transcript = strtolower(trim($request->input('transcript')));
-            
-            // Remove common filler words and normalize
-            $transcript = $this->normalizeTranscript($transcript);
-            
-            // First, try exact match or contains match
-            $exactMatches = UtteranceGallery::where('acceptedUtterance', 'LIKE', "%{$transcript}%")
-                ->orWhere('acceptedUtterance', $transcript)
-                ->get();
-            
-            if ($exactMatches->count() > 0) {
-                // Get the first match
-                $match = $exactMatches->first();
-                
-                return response()->json([
-                    'success' => true,
-                    'matchedMenuItem' => $match->menuItem,
-                    'confidence' => 'high',
-                    'matchType' => 'exact'
-                ]);
-            }
-            
-            // If no direct match, try soundex or metaphone matching
-            $allUtterances = UtteranceGallery::all();
-            $bestMatch = null;
-            $highestSimilarity = 0;
-            
-            foreach ($allUtterances as $utterance) {
-                $utteranceText = strtolower($utterance->acceptedUtterance);
-                $utteranceText = $this->normalizeTranscript($utteranceText);
-                
-                // Calculate similarity using multiple methods
-                $similarity = $this->calculateSimilarity($transcript, $utteranceText);
-                
-                // Also check if transcript contains key words from menu item
-                $menuItemWords = explode(' ', strtolower($utterance->menuItem));
-                $wordMatchCount = 0;
-                foreach ($menuItemWords as $word) {
-                    if (strlen($word) > 2 && strpos($transcript, $word) !== false) {
-                        $wordMatchCount++;
-                    }
-                }
-                
-                // Boost similarity if we have word matches
-                if ($wordMatchCount > 0) {
-                    $similarity += ($wordMatchCount * 0.1);
-                }
-                
-                if ($similarity > $highestSimilarity) {
-                    $highestSimilarity = $similarity;
-                    $bestMatch = $utterance;
-                }
-            }
-            
-            if ($bestMatch && $highestSimilarity >= 0.5) { // 50% similarity threshold
-                return response()->json([
-                    'success' => true,
-                    'matchedMenuItem' => $bestMatch->menuItem,
-                    'confidence' => $highestSimilarity >= 0.7 ? 'medium' : 'low',
-                    'similarity' => $highestSimilarity,
-                    'matchType' => 'fuzzy'
-                ]);
-            }
+public function matchUtterance(Request $request)
+{
+    try {
+        $transcript = strtolower(trim($request->input('transcript')));
+        
+        // Remove common filler words and normalize
+        $transcript = $this->normalizeTranscript($transcript);
+        
+        // First, try exact match or contains match
+        $exactMatches = UtteranceGallery::where('acceptedUtterance', 'LIKE', "%{$transcript}%")
+            ->orWhere('acceptedUtterance', $transcript)
+            ->get();
+        
+        if ($exactMatches->count() > 0) {
+            // Get the first match
+            $match = $exactMatches->first();
             
             return response()->json([
-                'success' => false,
-                'message' => 'No matching menu item found'
+                'success' => true,
+                'matchedMenuItem' => $match->menuItem,
+                'confidence' => 'Confident',
+                'matchType' => 'exact'
             ]);
+        }
+        
+        // If no direct match, try soundex or metaphone matching
+        $allUtterances = UtteranceGallery::all();
+        $bestMatch = null;
+        $highestSimilarity = 0;
+        
+        foreach ($allUtterances as $utterance) {
+            $utteranceText = strtolower($utterance->acceptedUtterance);
+            $utteranceText = $this->normalizeTranscript($utteranceText);
             
-        } catch (\Exception $e) {
-            \Log::error('Error matching utterance: ' . $e->getMessage());
+            // Calculate similarity using multiple methods
+            $similarity = $this->calculateSimilarity($transcript, $utteranceText);
+            
+            // Also check if transcript contains key words from menu item
+            $menuItemWords = explode(' ', strtolower($utterance->menuItem));
+            $wordMatchCount = 0;
+            foreach ($menuItemWords as $word) {
+                if (strlen($word) > 2 && strpos($transcript, $word) !== false) {
+                    $wordMatchCount++;
+                }
+            }
+            
+            // Boost similarity if we have word matches
+            if ($wordMatchCount > 0) {
+                $similarity += ($wordMatchCount * 0.1);
+            }
+            
+            if ($similarity > $highestSimilarity) {
+                $highestSimilarity = $similarity;
+                $bestMatch = $utterance;
+            }
+        }
+        
+        if ($bestMatch) {
+            // Determine confidence level based on similarity
+            $confidence = 'Not Confident';
+            if ($highestSimilarity >= 0.7) {
+                $confidence = 'Confident';
+            } elseif ($highestSimilarity >= 0.5) {
+                $confidence = 'Partially Confident';
+            }
             
             return response()->json([
-                'success' => false,
-                'message' => 'Error matching utterance: ' . $e->getMessage()
-            ], 500);
+                'success' => true,
+                'matchedMenuItem' => $bestMatch->menuItem,
+                'confidence' => $confidence,
+                'similarity' => $highestSimilarity,
+                'matchType' => 'fuzzy'
+            ]);
         }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'No matching menu item found'
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error matching utterance: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error matching utterance: ' . $e->getMessage()
+        ], 500);
     }
+}
     
     /**
      * Normalize transcript text
@@ -369,39 +377,48 @@ class CustomerController extends Controller
     /**
      * Save voice transcript
      */
-    public function saveVoiceTranscript(Request $request)
-    {
-        try {
-            // Validate the request
-            $validated = $request->validate([
-                'transcribedData' => 'required|string|max:1000',
-                'matchedMenuItem' => 'nullable|string',
-            ]);
-            
-            // Create new voice transcript record
-            $transcript = new VoiceTranscript();
-            $transcript->transcribedData = $validated['transcribedData'];
-            
-            // Add matched menu item if available
-            if (isset($validated['matchedMenuItem'])) {
-                $transcript->matchedMenuItem = $validated['matchedMenuItem'];
-            }
-            
-            $transcript->save();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Transcript saved successfully',
-                'voiceID' => $transcript->voiceID
-            ]);
-            
-        } catch (\Exception $e) {
-            \Log::error('Error saving voice transcript: ' . $e->getMessage());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to save transcript: ' . $e->getMessage()
-            ], 500);
+public function saveVoiceTranscript(Request $request)
+{
+    try {
+        // Validate the request
+        $validated = $request->validate([
+            'transcribedData' => 'required|string|max:1000',
+            'matchedMenuItem' => 'nullable|string',
+            'confidenceLevel' => 'nullable|in:Not Confident,Partially Confident,Confident',
+        ]);
+        
+        // Create new voice transcript record
+        $transcript = new VoiceTranscript();
+        $transcript->transcribedData = $validated['transcribedData'];
+        
+        // Add matched menu item if available
+        if (isset($validated['matchedMenuItem'])) {
+            $transcript->matchedMenuItem = $validated['matchedMenuItem'];
         }
+        
+        // Add confidence level
+        if (isset($validated['confidenceLevel'])) {
+            $transcript->confidence_level = $validated['confidenceLevel'];
+        } else {
+            $transcript->confidence_level = 'Not Confident';
+        }
+        
+        $transcript->save();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Transcript saved successfully',
+            'voiceID' => $transcript->voiceID,
+            'confidenceLevel' => $transcript->confidence_level
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error saving voice transcript: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to save transcript: ' . $e->getMessage()
+        ], 500);
     }
+}
 }
