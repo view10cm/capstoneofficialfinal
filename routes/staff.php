@@ -37,6 +37,8 @@ Route::middleware(['auth', 'staff'])->group(function () {
         Route::get('/receipt/generate', [ReceiptController::class, 'generateReceipt'])->name('staff.receipt.generate');
         Route::get('/receipt/{transactionId}', [ReceiptController::class, 'generateReceiptFromId'])->name('staff.receipt.from-id');
     });
+
+    Route::get('/api/staff/order-tracker', [StaffOrderController::class, 'getOrderTrackerData'])->name('staff.order-tracker.api');
     
     // Add more staff-specific routes here
     // Route::get('/staff/orders', [StaffController::class, 'viewOrders'])->name('staff.orders');
