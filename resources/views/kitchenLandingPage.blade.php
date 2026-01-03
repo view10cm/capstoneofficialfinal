@@ -114,6 +114,11 @@
         .payment-number-badge {
             background-color: #DC2626;
             color: #FFFFFF;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 8px;
         }
         /* Quantity badge */
         .quantity-badge {
@@ -642,6 +647,24 @@
         .page-dot:hover {
             background-color: #6B7280;
         }
+        /* Payment Number Display */
+        .payment-number-display {
+            background-color: #1E40AF;
+            color: white;
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        /* Order header info container */
+        .order-header-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col min-h-screen">
@@ -734,8 +757,12 @@
                                 <!-- Order Header -->
                                 <div class="flex justify-between items-start mb-4">
                                     <div>
-                                        <div class="flex items-center gap-2 mb-2">
+                                        <!-- Order ID and Payment Number -->
+                                        <div class="order-header-info">
                                             <span class="text-white font-bold text-lg">Order #{{ $order['paymentNumber'] }}</span>
+                                            <span class="payment-number-display">
+                                                Payment: {{ $order['paymentNumber'] }}
+                                            </span>
                                             <span class="order-status 
                                                 @if($order['status'] == 'pending') status-pending
                                                 @elseif($order['status'] == 'preparing') status-preparing
@@ -744,7 +771,9 @@
                                                 {{ ucfirst($order['status']) }}
                                             </span>
                                         </div>
-                                        <div class="flex items-center gap-4 text-sm">
+                                        
+                                        <!-- Order Details -->
+                                        <div class="flex items-center gap-4 text-sm mt-2">
                                             <span class="text-gray-300">ID: {{ $order['orderID'] }}</span>
                                             <span class="px-3 py-1 rounded-full 
                                                 @if($order['orderType'] == 'dine-in') bg-blue-900 text-blue-200
@@ -778,8 +807,12 @@
                                     @endforeach
                                 </div>
 
-                                <!-- Total Items -->
+                                <!-- Order Summary -->
                                 <div class="mt-4 pt-4 border-t border-gray-700">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-gray-400">Payment Number:</span>
+                                        <span class="text-white font-bold">{{ $order['paymentNumber'] }}</span>
+                                    </div>
                                     <div class="flex justify-between items-center">
                                         <span class="text-gray-400">Total Items:</span>
                                         <span class="text-white font-bold">{{ count($order['orderGroup']) }}</span>
