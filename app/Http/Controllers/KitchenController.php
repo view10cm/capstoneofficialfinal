@@ -83,4 +83,30 @@ class KitchenController extends Controller
             ], 500);
         }
     }
+
+    public function completedOrders()
+{
+    // Get all orders with cookingStatus = 'Completed'
+    $completedOrders = DB::table('staff_to_kitchen_transaction')
+        ->select('orderID', 'paymentNumber', 'orderType', 'paymentMethod', 
+                'productName', 'quantity', 'unitPrice', 'totalPrice',
+                'taxAmount', 'productNotes', 'staffName', 'paymentProcessedAt',
+                'cookingStatus')
+        ->where('cookingStatus', 'Completed')
+        ->orderBy('paymentProcessedAt', 'desc')
+        ->get();
+
+    // Group by orderID
+    $groupedOrders = [];
+    foreach ($completedOrders as $order) {
+        $orderID = $order->orderID;
+        if (!isset($groupedOrders[$orderID])) {
+            $groupedOrders[$orderID] = [];
+        }
+        $groupedOrders[$orderID][] = $order;
+    }
+
+    return view('kitchen.completed-orders', compact('groupedOrders'));
+}
+
 }
