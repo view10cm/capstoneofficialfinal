@@ -243,31 +243,75 @@ class CustomerController extends Controller
      * Match transcribed utterance with menu items
      */
     public function matchUtterance(Request $request)
-    {
-        try {
-            $transcript = strtolower(trim($request->input('transcript')));
+{
+    try {
+        $transcript = strtolower(trim($request->input('transcript')));
+        
+        // Remove common filler words and normalize
+        $transcript = $this->normalizeTranscript($transcript);
+        
+        // Extract order item from phrase (but keep original for exact matching)
+        $cleanedTranscript = $this->extractOrderItemFromPhrase($transcript);
+        
+        // Store both versions for matching
+        $searchTerms = [];
+        if (!empty($cleanedTranscript) && $cleanedTranscript !== $transcript) {
+            $searchTerms[] = $cleanedTranscript;
+        }
+        $searchTerms[] = $transcript;
+        
+        // Remove duplicates
+        $searchTerms = array_unique($searchTerms);
+        
+        // NEW: First, check if this is an exact product name in the menu
+        foreach ($searchTerms as $searchTerm) {
+            $exactProductMatch = MenuProduct::where('menuStatus', 'Available')
+                ->where(function($query) use ($searchTerm) {
+                    $query->whereRaw('LOWER(menuName) LIKE ?', ["%{$searchTerm}%"])
+                          ->orWhere('menuName', 'LIKE', "%{$searchTerm}%");
+                })
+                ->orderBy('menuName')
+                ->first();
             
-            // Remove common filler words and normalize
-            $transcript = $this->normalizeTranscript($transcript);
-            
-            // Extract order item from phrase
-            $cleanedTranscript = $this->extractOrderItemFromPhrase($transcript);
-            $transcript = $cleanedTranscript ?: $transcript;
-            
-            if (empty($transcript)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No clear menu item detected in your request',
-                    'similarity' => 0
-                ]);
+            if ($exactProductMatch) {
+                // Check if we have this in utterance gallery
+                $utteranceMatch = UtteranceGallery::where('menuItem', $exactProductMatch->menuName)
+                    ->where(function($query) use ($searchTerm) {
+                        $query->where('acceptedUtterance', 'LIKE', "%{$searchTerm}%")
+                              ->orWhere('acceptedUtterance', $searchTerm);
+                    })
+                    ->first();
+                
+                if ($utteranceMatch) {
+                    // We have a match in utterance gallery
+                    return response()->json([
+                        'success' => true,
+                        'matchedMenuItem' => $exactProductMatch->menuName,
+                        'confidence' => 'Confident',
+                        'matchType' => 'exact_product',
+                        'similarity' => 1.0
+                    ]);
+                } else {
+                    // Product exists but not in utterance gallery - still return it as a match
+                    return response()->json([
+                        'success' => true,
+                        'matchedMenuItem' => $exactProductMatch->menuName,
+                        'confidence' => 'Partially Confident',
+                        'matchType' => 'product_direct',
+                        'similarity' => 0.9,
+                        'message' => 'Product found in menu but not in utterance gallery'
+                    ]);
+                }
             }
-            
-            // Check for ambiguous/general terms
-            $ambiguousTerms = $this->getAmbiguousTerms();
-            
+        }
+        
+        // Check for ambiguous/general terms (only if not an exact product match)
+        $ambiguousTerms = $this->getAmbiguousTerms();
+        
+        foreach ($searchTerms as $searchTerm) {
             foreach ($ambiguousTerms as $term => $info) {
-                // Check if the term appears in the transcript
-                if (strpos($transcript, $term) !== false) {
+                // Check if the term appears in the search term
+                if (strpos($searchTerm, $term) !== false) {
                     // This is an ambiguous term, search for all matching products
                     $matchingProducts = $this->searchForProducts($term);
                     
@@ -285,71 +329,77 @@ class CustomerController extends Controller
                     }
                 }
             }
-            
-            // First, try exact match or contains match
-            $exactMatches = UtteranceGallery::where('acceptedUtterance', 'LIKE', "%{$transcript}%")
-                ->orWhere('acceptedUtterance', $transcript)
+        }
+        
+        // Then try utterance gallery matching
+        foreach ($searchTerms as $searchTerm) {
+            // First, try exact match or contains match in utterance gallery
+            $exactMatches = UtteranceGallery::where('acceptedUtterance', 'LIKE', "%{$searchTerm}%")
+                ->orWhere('acceptedUtterance', $searchTerm)
                 ->get();
             
             if ($exactMatches->count() > 0) {
                 // Get the first match
                 $match = $exactMatches->first();
                 
-                // Check if this is a valid exact match (not just partial)
-                $similarity = $this->calculateSimilarity($transcript, strtolower($match->acceptedUtterance));
+                // Check if this is a valid exact match
+                $similarity = $this->calculateSimilarity($searchTerm, strtolower($match->acceptedUtterance));
                 
-                return response()->json([
-                    'success' => true,
-                    'matchedMenuItem' => $match->menuItem,
-                    'confidence' => $similarity >= 0.8 ? 'Confident' : 'Partially Confident',
-                    'matchType' => 'exact',
-                    'similarity' => $similarity
-                ]);
+                // If similarity is high, return confident
+                if ($similarity >= 0.8) {
+                    return response()->json([
+                        'success' => true,
+                        'matchedMenuItem' => $match->menuItem,
+                        'confidence' => 'Confident',
+                        'matchType' => 'exact',
+                        'similarity' => $similarity
+                    ]);
+                }
             }
-            
-            // If no direct match, try fuzzy matching but with stricter rules
-            $allUtterances = UtteranceGallery::all();
-            $bestMatch = null;
-            $highestSimilarity = 0;
-            
-            foreach ($allUtterances as $utterance) {
+        }
+        
+        // If no direct match, try fuzzy matching but with improved logic
+        $allUtterances = UtteranceGallery::all();
+        $bestMatch = null;
+        $highestSimilarity = 0;
+        
+        foreach ($allUtterances as $utterance) {
+            foreach ($searchTerms as $searchTerm) {
                 $utteranceText = strtolower($utterance->acceptedUtterance);
                 $utteranceText = $this->normalizeTranscript($utteranceText);
                 
                 // Calculate similarity
-                $similarity = $this->calculateSimilarity($transcript, $utteranceText);
+                $similarity = $this->calculateSimilarity($searchTerm, $utteranceText);
                 
-                // Check for significant word overlap - more strict
-                $menuItemWords = explode(' ', strtolower($utterance->menuItem));
-                $transcriptWords = explode(' ', $transcript);
+                // NEW: Check if search term contains the menu item or vice versa
+                $menuItemLower = strtolower($utterance->menuItem);
+                if (strpos($menuItemLower, $searchTerm) !== false || strpos($searchTerm, $menuItemLower) !== false) {
+                    $similarity = max($similarity, 0.8); // Boost similarity for name matches
+                }
+                
+                // Check for word-by-word matching
+                $menuItemWords = explode(' ', $menuItemLower);
+                $searchWords = explode(' ', $searchTerm);
                 
                 $wordMatchCount = 0;
-                foreach ($menuItemWords as $word) {
-                    if (strlen($word) > 2) {
-                        foreach ($transcriptWords as $tWord) {
-                            // Use string comparison instead of just contains
-                            if (levenshtein($word, $tWord) <= 2) {
-                                $wordMatchCount++;
-                                break;
-                            }
+                $totalMenuWords = count($menuItemWords);
+                
+                foreach ($searchWords as $searchWord) {
+                    if (strlen($searchWord) < 3) continue; // Skip short words
+                    
+                    foreach ($menuItemWords as $menuWord) {
+                        if (levenshtein($searchWord, $menuWord) <= 1) {
+                            $wordMatchCount++;
+                            break;
                         }
                     }
                 }
                 
-                // REQUIREMENT: For a match to be considered at all, we need at least one keyword match
-                if ($wordMatchCount === 0 && $similarity < 0.7) {
-                    continue; // Skip this match entirely
-                }
-                
-                // Boost similarity if we have word matches
+                // Boost similarity based on word matches
                 if ($wordMatchCount > 0) {
-                    $similarity += ($wordMatchCount * 0.15); // Increased weight
-                }
-                
-                // Penalize matches that are too short compared to the transcript
-                $lengthRatio = strlen($utteranceText) / strlen($transcript);
-                if ($lengthRatio < 0.3 || $lengthRatio > 3.0) {
-                    $similarity *= 0.5; // Reduce similarity for very different lengths
+                    $wordMatchRatio = $wordMatchCount / max(count($searchWords), $totalMenuWords);
+                    $similarity += ($wordMatchRatio * 0.3);
+                    $similarity = min(1.0, $similarity); // Cap at 1.0
                 }
                 
                 if ($similarity > $highestSimilarity) {
@@ -357,621 +407,248 @@ class CustomerController extends Controller
                     $bestMatch = $utterance;
                 }
             }
-            
-            // Set a minimum similarity threshold for ANY match
-            $minimumSimilarity = 0.5; // 50% similarity required for any match
-            
-            if ($bestMatch && $highestSimilarity >= $minimumSimilarity) {
-                // ADJUSTED CONFIDENCE THRESHOLDS:
-                // Confident ≥ 80%, Partially Confident ≥ 60%, Not Confident < 60%
-                $confidence = 'Not Confident';
-                if ($highestSimilarity >= 0.8) {
-                    $confidence = 'Confident';
-                } elseif ($highestSimilarity >= 0.6) {
-                    $confidence = 'Partially Confident';
-                }
-                
-                // Even if we have a "Not Confident" match, return it but with low confidence
-                return response()->json([
-                    'success' => true,
-                    'matchedMenuItem' => $bestMatch->menuItem,
-                    'confidence' => $confidence,
-                    'similarity' => $highestSimilarity,
-                    'matchType' => 'fuzzy'
-                ]);
-            }
-            
-            // If we have a match but below minimum similarity, return as not confident
-            if ($bestMatch && $highestSimilarity < $minimumSimilarity) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Poor match quality',
-                    'matchedMenuItem' => $bestMatch->menuItem,
-                    'confidence' => 'Not Confident',
-                    'similarity' => $highestSimilarity,
-                    'matchType' => 'poor_fuzzy'
-                ]);
+        }
+        
+        // Set a minimum similarity threshold for ANY match
+        $minimumSimilarity = 0.4; // Lowered from 0.5 to 0.4 for better matching
+        
+        if ($bestMatch && $highestSimilarity >= $minimumSimilarity) {
+            // ADJUSTED CONFIDENCE THRESHOLDS (more generous):
+            // Confident ≥ 70%, Partially Confident ≥ 50%, Not Confident < 50%
+            $confidence = 'Not Confident';
+            if ($highestSimilarity >= 0.7) { // Lowered from 0.8
+                $confidence = 'Confident';
+            } elseif ($highestSimilarity >= 0.5) { // Lowered from 0.6
+                $confidence = 'Partially Confident';
             }
             
             return response()->json([
-                'success' => false,
-                'message' => 'No matching menu item found'
+                'success' => true,
+                'matchedMenuItem' => $bestMatch->menuItem,
+                'confidence' => $confidence,
+                'similarity' => $highestSimilarity,
+                'matchType' => 'fuzzy'
             ]);
-            
-        } catch (\Exception $e) {
-            \Log::error('Error matching utterance: ' . $e->getMessage());
-            
+        }
+        
+        // If we have a match but below minimum similarity, return as not confident
+        if ($bestMatch && $highestSimilarity < $minimumSimilarity) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error matching utterance: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Poor match quality',
+                'matchedMenuItem' => $bestMatch->menuItem,
+                'confidence' => 'Not Confident',
+                'similarity' => $highestSimilarity,
+                'matchType' => 'poor_fuzzy'
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'No matching menu item found'
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error matching utterance: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error matching utterance: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Extract order item from common ordering phrases
+ */
+private function extractOrderItemFromPhrase($transcript)
+{
+    // Common ordering phrases to remove
+    $orderingPhrases = [
+        'i want to order',
+        'i would like to order',
+        'i\'d like to order',
+        'can i have',
+        'can i get',
+        'i want',
+        'i\'d like',
+        'give me',
+        'please give me',
+        'let me have',
+        'i need',
+        'i\'ll take',
+        'i\'ll have',
+        'order',
+        'add'
+    ];
+    
+    $cleaned = $transcript;
+    
+    // Only remove ordering phrases if they appear at the beginning
+    foreach ($orderingPhrases as $phrase) {
+        // Check if phrase is at the beginning of the string
+        if (strpos($cleaned, $phrase) === 0) {
+            $cleaned = trim(substr($cleaned, strlen($phrase)));
+            break;
         }
     }
     
-    /**
-     * Get list of ambiguous terms that need clarification
-     */
-    private function getAmbiguousTerms()
-    {
-        return [
-            // Main Protein Categories
-            'chicken' => [
-                'name' => 'Chicken',
-                'category' => 'main-course',
-                'subcategories' => ['chicken'],
-                'prompt' => 'What type of chicken dish would you like?'
-            ],
-            'pork' => [
-                'name' => 'Pork',
-                'category' => 'main-course',
-                'subcategories' => ['pork'],
-                'prompt' => 'What type of pork dish would you like?'
-            ],
-            'beef' => [
-                'name' => 'Beef',
-                'category' => 'main-course',
-                'subcategories' => ['beef'],
-                'prompt' => 'What type of beef dish would you like?'
-            ],
-            'steak' => [
-                'name' => 'Steak',
-                'category' => 'main-course',
-                'subcategories' => ['beef'],
-                'prompt' => 'What type of steak would you like?'
-            ],
-            
-            // Seafood Categories
-            'seafood' => [
-                'name' => 'Seafood',
-                'category' => 'main-course',
-                'subcategories' => ['fish-seafood'],
-                'prompt' => 'What type of seafood dish would you like?'
-            ],
-            'fish' => [
-                'name' => 'Fish',
-                'category' => 'main-course',
-                'subcategories' => ['fish-seafood'],
-                'prompt' => 'What type of fish dish would you like?'
-            ],
-            'shrimp' => [
-                'name' => 'Shrimp',
-                'category' => 'main-course',
-                'subcategories' => ['fish-seafood'],
-                'prompt' => 'What type of shrimp dish would you like?'
-            ],
-            'crab' => [
-                'name' => 'Crab',
-                'category' => 'main-course',
-                'subcategories' => ['fish-seafood'],
-                'prompt' => 'What type of crab dish would you like?'
-            ],
-            
-            // Pasta & Noodles
-            'pasta' => [
-                'name' => 'Pasta',
-                'category' => 'main-course',
-                'subcategories' => ['pasta'],
-                'prompt' => 'What type of pasta would you like?'
-            ],
-            'paella' => [
-                'name' => 'Paella',
-                'category' => 'main-course',
-                'subcategories' => ['pasta', 'fish-seafood'],
-                'prompt' => 'What type of paella would you like?'
-            ],
-            'noodle' => [
-                'name' => 'Noodles',
-                'category' => 'main-course',
-                'subcategories' => ['noodles'],
-                'prompt' => 'What type of noodles would you like?'
-            ],
-            
-            // Appetizers & Sides
-            'salad' => [
-                'name' => 'Salad',
-                'category' => 'appetizers',
-                'subcategories' => ['salads'],
-                'prompt' => 'What type of salad would you like?'
-            ],
-            'sandwich' => [
-                'name' => 'Sandwich',
-                'category' => 'appetizers',
-                'subcategories' => ['sandwiches'],
-                'prompt' => 'What type of sandwich would you like?'
-            ],
-            'wrap' => [
-                'name' => 'Wrap',
-                'category' => 'appetizers',
-                'subcategories' => ['sandwiches'],
-                'prompt' => 'What type of wrap would you like?'
-            ],
-            'quesadilla' => [
-                'name' => 'Quesadilla',
-                'category' => 'appetizers',
-                'subcategories' => ['knick-knacks'],
-                'prompt' => 'What type of quesadilla would you like?'
-            ],
-            'fries' => [
-                'name' => 'Fries',
-                'category' => 'appetizers',
-                'subcategories' => ['knick-knacks'],
-                'prompt' => 'What type of fries would you like?'
-            ],
-            'wings' => [
-                'name' => 'Wings',
-                'category' => 'appetizers',
-                'subcategories' => ['knick-knacks'],
-                'prompt' => 'What type of wings would you like?'
-            ],
-            
-            // Drink Types
-            'drink' => [
-                'name' => 'Drink',
-                'category' => 'drinks',
-                'subcategories' => ['hot', 'iced', 'frappe', 'milktea'],
-                'prompt' => 'What type of drink would you like?'
-            ],
-            'coffee' => [
-                'name' => 'Coffee',
-                'category' => 'drinks',
-                'subcategories' => ['hot'],
-                'prompt' => 'What type of coffee would you like?'
-            ],
-            'espresso' => [
-                'name' => 'Espresso',
-                'category' => 'drinks',
-                'subcategories' => ['hot'],
-                'prompt' => 'What type of espresso drink would you like?'
-            ],
-            'americano' => [
-                'name' => 'Americano',
-                'category' => 'drinks',
-                'subcategories' => ['hot'],
-                'prompt' => 'What type of Americano would you like?'
-            ],
-            'latte' => [
-                'name' => 'Latte',
-                'category' => 'drinks',
-                'subcategories' => ['hot'],
-                'prompt' => 'What type of latte would you like?'
-            ],
-            'cappuccino' => [
-                'name' => 'Cappuccino',
-                'category' => 'drinks',
-                'subcategories' => ['hot'],
-                'prompt' => 'What type of cappuccino would you like?'
-            ],
-            'mocha' => [
-                'name' => 'Mocha',
-                'category' => 'drinks',
-                'subcategories' => ['hot'],
-                'prompt' => 'What type of mocha would you like?'
-            ],
-            'macchiato' => [
-                'name' => 'Macchiato',
-                'category' => 'drinks',
-                'subcategories' => ['hot'],
-                'prompt' => 'What type of macchiato would you like?'
-            ],
-            'tea' => [
-                'name' => 'Tea',
-                'category' => 'drinks',
-                'subcategories' => ['hot', 'iced'],
-                'prompt' => 'What type of tea would you like?'
-            ],
-            'milktea' => [
-                'name' => 'Milk Tea',
-                'category' => 'drinks',
-                'subcategories' => ['milktea'],
-                'prompt' => 'What type of milk tea would you like?'
-            ],
-            'frappe' => [
-                'name' => 'Frappe',
-                'category' => 'drinks',
-                'subcategories' => ['frappe'],
-                'prompt' => 'What type of frappe would you like?'
-            ],
-            'iced' => [
-                'name' => 'Iced Drink',
-                'category' => 'drinks',
-                'subcategories' => ['iced'],
-                'prompt' => 'What type of iced drink would you like?'
-            ],
-            
-            // Desserts & Sweets
-            'dessert' => [
-                'name' => 'Dessert',
-                'prompt' => 'What type of dessert would you like?'
-            ],
-            'cheesecake' => [
-                'name' => 'Cheesecake',
-                'prompt' => 'What type of cheesecake would you like?'
-            ],
-            'chocolate' => [
-                'name' => 'Chocolate',
-                'prompt' => 'What type of chocolate item would you like?'
-            ],
-            'caramel' => [
-                'name' => 'Caramel',
-                'prompt' => 'What type of caramel item would you like?'
-            ],
-            'vanilla' => [
-                'name' => 'Vanilla',
-                'prompt' => 'What type of vanilla item would you like?'
-            ],
-            'matcha' => [
-                'name' => 'Matcha',
-                'prompt' => 'What type of matcha item would you like?'
-            ],
-            'hazelnut' => [
-                'name' => 'Hazelnut',
-                'prompt' => 'What type of hazelnut item would you like?'
-            ],
-            'butterscotch' => [
-                'name' => 'Butterscotch',
-                'prompt' => 'What type of butterscotch item would you like?'
-            ],
-            'mango' => [
-                'name' => 'Mango',
-                'prompt' => 'What type of mango item would you like?'
-            ],
-            
-            // Cooking Styles & Preparations
-            'grilled' => [
-                'name' => 'Grilled',
-                'prompt' => 'What type of grilled item would you like?'
-            ],
-            'roasted' => [
-                'name' => 'Roasted',
-                'prompt' => 'What type of roasted item would you like?'
-            ],
-            'crispy' => [
-                'name' => 'Crispy',
-                'prompt' => 'What type of crispy item would you like?'
-            ],
-            'barbecue' => [
-                'name' => 'Barbecue',
-                'prompt' => 'What type of barbecue item would you like?'
-            ],
-            'barbeque' => [
-                'name' => 'Barbecue',
-                'prompt' => 'What type of barbecue item would you like?'
-            ],
-            'french' => [
-                'name' => 'French',
-                'prompt' => 'What type of French item would you like?'
-            ],
-            
-            // Sauces & Toppings
-            'garlic' => [
-                'name' => 'Garlic',
-                'prompt' => 'What type of garlic item would you like?'
-            ],
-            'cheesy' => [
-                'name' => 'Cheesy',
-                'prompt' => 'What type of cheesy item would you like?'
-            ],
-            'cream' => [
-                'name' => 'Cream',
-                'prompt' => 'What type of cream item would you like?'
-            ],
-            'butter' => [
-                'name' => 'Butter',
-                'prompt' => 'What type of butter item would you like?'
-            ],
-            'sauce' => [
-                'name' => 'Sauce',
-                'prompt' => 'What type of sauced item would you like?'
-            ],
-            'salted' => [
-                'name' => 'Salted',
-                'prompt' => 'What type of salted item would you like?'
-            ],
-            'white' => [
-                'name' => 'White',
-                'prompt' => 'What type of white item would you like?'
-            ],
-            'plain' => [
-                'name' => 'Plain',
-                'prompt' => 'What type of plain item would you like?'
-            ],
-            
-            // Special Items
-            'platter' => [
-                'name' => 'Platter',
-                'prompt' => 'What type of platter would you like?'
-            ],
-            'bagnet' => [
-                'name' => 'Bagnet',
-                'category' => 'main-course',
-                'subcategories' => ['pork'],
-                'prompt' => 'What type of bagnet dish would you like?'
-            ],
-            'double' => [
-                'name' => 'Double',
-                'prompt' => 'What type of double item would you like?'
-            ],
-            
-            // Brand/Specific Names
-            'arabica' => [
-                'name' => 'Arabica',
-                'prompt' => 'What type of Arabica item would you like?'
-            ],
-            'adora' => [
-                'name' => 'Adora\'s',
-                'prompt' => 'What type of Adora\'s item would you like?'
-            ],
-            'caffe' => [
-                'name' => 'Caffé',
-                'prompt' => 'What type of Caffé item would you like?'
-            ]
-        ];
-    }
-
-    /**
-     * Search for products matching an ambiguous term
-     */
-    private function searchForProducts($term)
-    {
-        $products = [];
-        
-        // Get ambiguous term info
-        $ambiguousTerms = $this->getAmbiguousTerms();
-        
-        if (!isset($ambiguousTerms[$term])) {
-            return $products;
+    // Remove quantity words (but only if they're separate words)
+    $quantityWords = ['a', 'an', 'one', 'two', 'three', 'four', 'five', 'some'];
+    $words = explode(' ', $cleaned);
+    $filteredWords = [];
+    
+    foreach ($words as $word) {
+        // Only remove quantity words if they're standalone
+        if (!in_array($word, $quantityWords)) {
+            $filteredWords[] = $word;
         }
+    }
+    
+    $cleaned = implode(' ', $filteredWords);
+    
+    // Don't remove punctuation here - keep it for matching
+    // Just clean up extra spaces
+    $cleaned = preg_replace('/\s+/', ' ', $cleaned);
+    
+    return trim($cleaned);
+}
+
+/**
+ * Normalize transcript text
+ */
+private function normalizeTranscript($text)
+{
+    // Only remove common filler words that are standalone
+    $fillerWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'please', 'thank you', 'thanks'];
+    
+    // Split into words and filter
+    $words = explode(' ', $text);
+    $filteredWords = [];
+    
+    foreach ($words as $word) {
+        // Only remove filler words if they're exactly the word
+        // This preserves words like "beef" which might contain "ee" but aren't filler words
+        if (!in_array($word, $fillerWords)) {
+            $filteredWords[] = $word;
+        }
+    }
+    
+    $normalized = implode(' ', $filteredWords);
+    
+    // Remove extra spaces but keep other characters
+    $normalized = preg_replace('/\s+/', ' ', $normalized);
+    
+    return trim($normalized);
+}
+
+/**
+ * Calculate similarity between two strings
+ */
+private function calculateSimilarity($str1, $str2)
+{
+    // Remove non-alphanumeric characters
+    $str1 = preg_replace('/[^a-z0-9]/', '', $str1);
+    $str2 = preg_replace('/[^a-z0-9]/', '', $str2);
+    
+    // If both strings are empty, return 0
+    if (empty($str1) && empty($str2)) return 0;
+    
+    // If one is empty and the other isn't, return very low similarity
+    if (empty($str1) || empty($str2)) return 0.1;
+    
+    // Use levenshtein distance for short strings
+    $len1 = strlen($str1);
+    $len2 = strlen($str2);
+    $maxLen = max($len1, $len2);
+    
+    $distance = levenshtein($str1, $str2);
+    $similarity = 1 - ($distance / $maxLen);
+    
+    // NEW: Use Jaro-Winkler distance for better string matching
+    $jaroSimilarity = $this->jaroWinklerSimilarity($str1, $str2);
+    
+    // Take the better of the two similarity scores
+    $finalSimilarity = max($similarity, $jaroSimilarity);
+    
+    return max(0, min(1, $finalSimilarity));
+}
+
+private function jaroWinklerSimilarity($str1, $str2)
+{
+    $len1 = strlen($str1);
+    $len2 = strlen($str2);
+    
+    if ($len1 == 0 && $len2 == 0) return 0;
+    
+    // Calculate matching characters
+    $matchDistance = (int)floor(max($len1, $len2) / 2) - 1;
+    $matches = 0;
+    $transpositions = 0;
+    
+    $str1Matches = array_fill(0, $len1, false);
+    $str2Matches = array_fill(0, $len2, false);
+    
+    // Find matching characters
+    for ($i = 0; $i < $len1; $i++) {
+        $start = max(0, $i - $matchDistance);
+        $end = min($i + $matchDistance + 1, $len2);
         
-        $termInfo = $ambiguousTerms[$term];
-        
-        // Search in specific categories/subcategories if defined
-        if (isset($termInfo['category']) && isset($termInfo['subcategories'])) {
-            foreach ($termInfo['subcategories'] as $subcategory) {
-                $foundProducts = MenuProduct::where('menuStatus', 'Available')
-                    ->where('menuCategory', $termInfo['category'])
-                    ->where('menuSubcategory', $subcategory)
-                    ->orderBy('menuName')
-                    ->limit(10) // Limit to 10 products per subcategory
-                    ->get(['menuName', 'menuPrice', 'menuImage', 'menuDescription']);
-                
-                foreach ($foundProducts as $product) {
-                    $products[] = [
-                        'name' => $product->menuName,
-                        'price' => $product->menuPrice,
-                        'image' => $product->menuImage,
-                        'description' => $product->menuDescription,
-                        'category' => $termInfo['category'],
-                        'subcategory' => $subcategory
-                    ];
-                }
+        for ($j = $start; $j < $end; $j++) {
+            if (!$str2Matches[$j] && $str1[$i] == $str2[$j]) {
+                $str1Matches[$i] = true;
+                $str2Matches[$j] = true;
+                $matches++;
+                break;
             }
+        }
+    }
+    
+    if ($matches == 0) return 0;
+    
+    // Count transpositions
+    $k = 0;
+    for ($i = 0; $i < $len1; $i++) {
+        if ($str1Matches[$i]) {
+            while (!$str2Matches[$k]) $k++;
+            if ($str1[$i] != $str2[$k]) $transpositions++;
+            $k++;
+        }
+    }
+    
+    $transpositions /= 2;
+    
+    // Calculate Jaro similarity
+    $jaro = (($matches / $len1) + ($matches / $len2) + (($matches - $transpositions) / $matches)) / 3;
+    
+    // Calculate Jaro-Winkler similarity (prefix bonus)
+    $prefix = 0;
+    $maxPrefix = min(4, $len1, $len2);
+    for ($i = 0; $i < $maxPrefix; $i++) {
+        if ($str1[$i] == $str2[$i]) {
+            $prefix++;
         } else {
-            // Broader search across all products
-            $foundProducts = MenuProduct::where('menuStatus', 'Available')
-                ->where(function($query) use ($term) {
-                    $query->where('menuName', 'LIKE', "%{$term}%")
-                          ->orWhere('menuDescription', 'LIKE', "%{$term}%");
-                })
-                ->orderBy('menuName')
-                ->limit(15) // Limit total results
-                ->get(['menuName', 'menuPrice', 'menuImage', 'menuDescription', 'menuCategory', 'menuSubcategory']);
-            
-            foreach ($foundProducts as $product) {
-                $products[] = [
-                    'name' => $product->menuName,
-                    'price' => $product->menuPrice,
-                    'image' => $product->menuImage,
-                    'description' => $product->menuDescription,
-                    'category' => $product->menuCategory,
-                    'subcategory' => $product->menuSubcategory
-                ];
-            }
+            break;
         }
-        
-        return $products;
     }
     
-    /**
-     * Extract order item from common ordering phrases
-     */
-    private function extractOrderItemFromPhrase($transcript)
-    {
-        // Common ordering phrases to remove
-        $orderingPhrases = [
-            'i want to order',
-            'i would like to order',
-            'i\'d like to order',
-            'can i have',
-            'can i get',
-            'i want',
-            'i\'d like',
-            'give me',
-            'please give me',
-            'let me have',
-            'i need',
-            'i\'ll take',
-            'i\'ll have',
-            'order',
-            'add'
-        ];
-        
-        $cleaned = $transcript;
-        
-        // Remove ordering phrases
-        foreach ($orderingPhrases as $phrase) {
-            if (strpos($cleaned, $phrase) === 0) {
-                $cleaned = trim(str_replace($phrase, '', $cleaned));
-                break;
-            }
-        }
-        
-        // Remove quantity words
-        $quantityWords = ['a', 'an', 'one', 'two', 'three', 'four', 'five', 'some'];
-        $words = explode(' ', $cleaned);
-        $filteredWords = array_filter($words, function($word) use ($quantityWords) {
-            return !in_array($word, $quantityWords);
-        });
-        
-        $cleaned = implode(' ', $filteredWords);
-        
-        // Remove punctuation
-        $cleaned = preg_replace('/[^a-z0-9\s]/', '', $cleaned);
-        
-        // Remove filler words again (including 'and' and 'with')
-        $cleaned = $this->normalizeTranscript($cleaned);
-        
-        return trim($cleaned);
-    }
-
-    /**
-     * Normalize transcript text
-     */
-    private function normalizeTranscript($text)
-    {
-        // Remove common filler words (including 'and' and 'with' from your list)
-        $fillerWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'please', 'thank you', 'thanks'];
-        $words = explode(' ', $text);
-        $filteredWords = array_filter($words, function($word) use ($fillerWords) {
-            return !in_array($word, $fillerWords) && strlen($word) > 0;
-        });
-        
-        // Remove punctuation and extra spaces
-        $normalized = implode(' ', $filteredWords);
-        $normalized = preg_replace('/[^a-z0-9\s]/', '', $normalized);
-        $normalized = preg_replace('/\s+/', ' ', $normalized);
-        
-        return trim($normalized);
-    }
+    $winkler = $jaro + ($prefix * 0.1 * (1 - $jaro));
     
-    /**
-     * Calculate similarity between two strings
-     */
-    private function calculateSimilarity($str1, $str2)
-    {
-        // Remove non-alphanumeric characters
-        $str1 = preg_replace('/[^a-z0-9]/', '', $str1);
-        $str2 = preg_replace('/[^a-z0-9]/', '', $str2);
-        
-        // If both strings are empty, return 0
-        if (empty($str1) && empty($str2)) return 0;
-        
-        // If one is empty and the other isn't, return very low similarity
-        if (empty($str1) || empty($str2)) return 0.1;
-        
-        // Use levenshtein distance for short strings
-        $len1 = strlen($str1);
-        $len2 = strlen($str2);
-        $maxLen = max($len1, $len2);
-        
-        $distance = levenshtein($str1, $str2);
-        $similarity = 1 - ($distance / $maxLen);
-        
-        // Use Jaro-Winkler distance for better string matching
-        $jaroSimilarity = $this->jaroWinklerSimilarity($str1, $str2);
-        
-        // Take the better of the two similarity scores
-        $finalSimilarity = max($similarity, $jaroSimilarity);
-        
-        return max(0, min(1, $finalSimilarity));
-    }
+    return $winkler;
+}
 
-    /**
-     * Calculate Jaro-Winkler similarity
-     */
-    private function jaroWinklerSimilarity($str1, $str2)
-    {
-        $len1 = strlen($str1);
-        $len2 = strlen($str2);
-        
-        if ($len1 == 0 && $len2 == 0) return 0;
-        
-        // Calculate matching characters
-        $matchDistance = (int)floor(max($len1, $len2) / 2) - 1;
-        $matches = 0;
-        $transpositions = 0;
-        
-        $str1Matches = array_fill(0, $len1, false);
-        $str2Matches = array_fill(0, $len2, false);
-        
-        // Find matching characters
-        for ($i = 0; $i < $len1; $i++) {
-            $start = max(0, $i - $matchDistance);
-            $end = min($i + $matchDistance + 1, $len2);
-            
-            for ($j = $start; $j < $end; $j++) {
-                if (!$str2Matches[$j] && $str1[$i] == $str2[$j]) {
-                    $str1Matches[$i] = true;
-                    $str2Matches[$j] = true;
-                    $matches++;
-                    break;
-                }
-            }
-        }
-        
-        if ($matches == 0) return 0;
-        
-        // Count transpositions
-        $k = 0;
-        for ($i = 0; $i < $len1; $i++) {
-            if ($str1Matches[$i]) {
-                while (!$str2Matches[$k]) $k++;
-                if ($str1[$i] != $str2[$k]) $transpositions++;
-                $k++;
-            }
-        }
-        
-        $transpositions /= 2;
-        
-        // Calculate Jaro similarity
-        $jaro = (($matches / $len1) + ($matches / $len2) + (($matches - $transpositions) / $matches)) / 3;
-        
-        // Calculate Jaro-Winkler similarity (prefix bonus)
-        $prefix = 0;
-        $maxPrefix = min(4, $len1, $len2);
-        for ($i = 0; $i < $maxPrefix; $i++) {
-            if ($str1[$i] == $str2[$i]) {
-                $prefix++;
-            } else {
-                break;
-            }
-        }
-        
-        $winkler = $jaro + ($prefix * 0.1 * (1 - $jaro));
-        
-        return $winkler;
-    }
 
     /**
      * Save voice transcript
      */
-    public function saveVoiceTranscript(Request $request)
+public function saveVoiceTranscript(Request $request)
     {
         try {
             // Validate the request
             $validated = $request->validate([
                 'transcribedData' => 'required|string|max:1000',
                 'matchedMenuItem' => 'nullable|string',
-                'confidenceLevel' => 'nullable|in:Not Confident,Partially Confident,Confident,Ambiguous',
+                'confidenceLevel' => 'nullable|in:Not Confident,Partially Confident,Confident',
             ]);
             
             // Create new voice transcript record
