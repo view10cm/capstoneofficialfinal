@@ -1467,19 +1467,24 @@ async function matchTranscriptWithMenuItem(transcript) {
 }
 
 // NEW: Auto-add menu item to order
-    async function autoAddMenuItemToOrder(menuItemName, confidenceLevel) {
+async function autoAddMenuItemToOrder(menuItemName, confidenceLevel) {
     console.log('Attempting to auto-add:', menuItemName, 'with confidence:', confidenceLevel);
     
-    // NEW LOWERED THRESHOLDS:
-    // - Confident (≥80%): Add automatically
-    // - Partially Confident (60-79%): Quick confirmation
-    // - Not Confident (40-59%): Full confirmation
-    
+    // NEW LOGIC: Only add items with at least "Partially Confident" confidence (≥60%)
     if (confidenceLevel === 'Not Confident') {
-        // For 40-59% similarity, ask for confirmation
-        if (!confirm(`Low confidence match: "${menuItemName}".\n\nThis match has 40-59% similarity.\nAdd to order anyway?`)) {
-            voiceFeedback.textContent = 'Cancelled adding item to order';
+        // For 40-59% similarity, DO NOT add to order - show a rejection message instead
+        const confirmed = await showLowConfidenceRejection(menuItemName, '40-59%');
+        if (confirmed) {
+            // If user confirms despite low confidence, proceed with manual addition
+            voiceFeedback.textContent = `Manually adding "${menuItemName}" despite low confidence match`;
+            voiceFeedback.style.color = '#F59E0B';
+            // Fall through to continue with manual addition
+        } else {
+            voiceFeedback.textContent = `Low confidence match (40-59%). "${menuItemName}" was NOT added to order.`;
             voiceFeedback.style.color = '#EF4444';
+            
+            // Show a more specific rejection message
+            showRejectionMessage(menuItemName, '40-59%');
             return;
         }
     }
@@ -1517,9 +1522,8 @@ async function matchTranscriptWithMenuItem(transcript) {
                 confidenceText = ' (High confidence - ≥80% match)';
             } else if (confidenceLevel === 'Partially Confident') {
                 confidenceText = ' (Medium confidence - 60-79% match)';
-            } else {
-                confidenceText = ' (Low confidence - 40-59% match)';
             }
+            // Note: No success message for "Not Confident" since we don't add those
             
             voiceFeedback.textContent = `Added "${name}" to order${confidenceText}`;
             voiceFeedback.style.color = '#10B981';
@@ -1607,6 +1611,114 @@ async function matchTranscriptWithMenuItem(transcript) {
     }
 }
 
+// NEW: Show rejection modal for low confidence matches
+function showLowConfidenceRejection(menuItemName, similarityRange) {
+    return new Promise((resolve) => {
+        // Create rejection modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg p-6 max-w-sm mx-4 animate__animated animate__fadeIn">
+                <div class="flex items-center mb-4">
+                    <div class="bg-red-100 text-red-600 p-2 rounded-full mr-3">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">Low Confidence Match</h3>
+                </div>
+                <p class="text-gray-600 mb-4">
+                    This match has <span class="font-bold">${similarityRange} similarity</span>, which is below the acceptable threshold.
+                    <br><br>
+                    Match: <span class="font-bold text-red-600">"${menuItemName}"</span>
+                    <br><br>
+                    <span class="font-bold">This item will NOT be added to your order automatically.</span>
+                    <br><br>
+                    You can:
+                    <ol class="list-decimal pl-4 mt-2 text-sm">
+                        <li>Search for the item manually</li>
+                        <li>Speak more clearly and try again</li>
+                        <li>Use the menu buttons instead</li>
+                    </ol>
+                </p>
+                <div class="flex space-x-3">
+                    <button id="ok-rejection" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg font-medium transition-colors">
+                        OK, I'll Search Manually
+                    </button>
+                    <button id="add-anyway" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition-colors">
+                        Add Anyway (Not Recommended)
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Add event listeners
+        modal.querySelector('#ok-rejection').addEventListener('click', () => {
+            modal.remove();
+            resolve(false);
+        });
+        
+        modal.querySelector('#add-anyway').addEventListener('click', () => {
+            modal.remove();
+            resolve(true);
+        });
+        
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+                resolve(false);
+            }
+        });
+    });
+}
+
+// NEW: Show rejection message in the UI
+function showRejectionMessage(menuItemName, similarityRange) {
+    // Create rejection display
+    let rejectionDisplay = document.getElementById('voice-rejection-display');
+    
+    if (!rejectionDisplay) {
+        rejectionDisplay = document.createElement('div');
+        rejectionDisplay.id = 'voice-rejection-display';
+        rejectionDisplay.className = 'mt-3 border border-red-200 bg-red-50 rounded-lg p-3 fade-in';
+        voiceCommandDisplay.parentNode.insertBefore(rejectionDisplay, voiceCommandDisplay.nextSibling);
+    }
+    
+    rejectionDisplay.innerHTML = `
+        <div class="flex items-start">
+            <div class="text-red-500 p-1.5 rounded-full mr-2">
+                <i class="fas fa-exclamation-circle text-sm"></i>
+            </div>
+            <div class="flex-1">
+                <h4 class="font-bold text-gray-800 text-sm mb-1">Item Not Added</h4>
+                <p class="text-gray-700 text-sm mb-1">"${menuItemName}" was NOT added to your order.</p>
+                <p class="text-xs text-gray-500 mb-2">Reason: Low confidence match (${similarityRange} similarity)</p>
+                <p class="text-xs text-gray-600 mb-2">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    For better results: Speak clearly, specify the full item name, or use manual selection.
+                </p>
+                <div class="mt-2">
+                    <button onclick="window.location.reload()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-xs">
+                        <i class="fas fa-search mr-1"></i> Search Manually
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        if (rejectionDisplay && rejectionDisplay.parentNode) {
+            rejectionDisplay.classList.add('hidden');
+            setTimeout(() => {
+                if (rejectionDisplay && rejectionDisplay.parentNode) {
+                    rejectionDisplay.remove();
+                }
+            }, 500);
+        }
+    }, 10000);
+}
 
 function showPartialConfirmation(menuItemName, similarityRange) {
     return new Promise((resolve) => {
@@ -1751,7 +1863,7 @@ function processVoiceCommand(transcript) {
     }, 2000);
 }
 
-// Show voice help
+// Also update the showVoiceHelp function to reflect the new behavior
 function showVoiceHelp() {
     alert('Voice Commands:\n\n' +
           '• "Add [item name]" - Add item to cart\n' +
@@ -1760,11 +1872,12 @@ function showVoiceHelp() {
           '• "Checkout" - Proceed to checkout\n' +
           '• "Help" - Show this help\n\n' +
           'Confidence Levels:\n' +
-          '• High (≥80% match) - Auto-adds\n' +
-          '• Medium (60-79% match) - Quick confirm\n' +
-          '• Low (40-59% match) - Full confirm\n' +
-          '• <40% match - Not added');
+          '• High (≥80% match) - Auto-adds to order\n' +
+          '• Medium (60-79% match) - Quick confirmation required\n' +
+          '• Low (40-59% match) - NOT added to order automatically\n' +
+          '• <40% match - Not recognized');
 }
+
 // ==================== CAROUSEL FUNCTIONS ====================
 
 // Update carousel indicators
