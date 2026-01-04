@@ -242,7 +242,7 @@ class CustomerController extends Controller
     /**
      * Match transcribed utterance with menu items
      */
-public function matchUtterance(Request $request)
+    public function matchUtterance(Request $request)
 {
     try {
         $transcript = strtolower(trim($request->input('transcript')));
@@ -262,12 +262,12 @@ public function matchUtterance(Request $request)
             return response()->json([
                 'success' => true,
                 'matchedMenuItem' => $match->menuItem,
-                'confidence' => 'Confident',
+                'confidence' => 'Confident', // Exact matches are always Confident
                 'matchType' => 'exact'
             ]);
         }
         
-        // If no direct match, try soundex or metaphone matching
+        // If no direct match, try fuzzy matching
         $allUtterances = UtteranceGallery::all();
         $bestMatch = null;
         $highestSimilarity = 0;
@@ -276,7 +276,7 @@ public function matchUtterance(Request $request)
             $utteranceText = strtolower($utterance->acceptedUtterance);
             $utteranceText = $this->normalizeTranscript($utteranceText);
             
-            // Calculate similarity using multiple methods
+            // Calculate similarity
             $similarity = $this->calculateSimilarity($transcript, $utteranceText);
             
             // Also check if transcript contains key words from menu item
@@ -300,12 +300,22 @@ public function matchUtterance(Request $request)
         }
         
         if ($bestMatch) {
-            // Determine confidence level based on similarity
+            // LOWERED CONFIDENCE THRESHOLDS:
+            // Confident ≥ 80%, Partially Confident ≥ 60%, Not Confident ≥ 40%
             $confidence = 'Not Confident';
-            if ($highestSimilarity >= 0.7) {
+            if ($highestSimilarity >= 0.8) { // Lowered from 0.9 to 0.8
                 $confidence = 'Confident';
-            } elseif ($highestSimilarity >= 0.5) {
+            } elseif ($highestSimilarity >= 0.6) { // Lowered from 0.7 to 0.6
                 $confidence = 'Partially Confident';
+            } elseif ($highestSimilarity >= 0.4) { // Lowered from 0.5 to 0.4
+                $confidence = 'Not Confident';
+            } else {
+                // Below 40% similarity, don't return a match
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No matching menu item found (similarity too low)',
+                    'similarity' => $highestSimilarity
+                ]);
             }
             
             return response()->json([
@@ -378,47 +388,120 @@ public function matchUtterance(Request $request)
      * Save voice transcript
      */
 public function saveVoiceTranscript(Request $request)
-{
-    try {
-        // Validate the request
-        $validated = $request->validate([
-            'transcribedData' => 'required|string|max:1000',
-            'matchedMenuItem' => 'nullable|string',
-            'confidenceLevel' => 'nullable|in:Not Confident,Partially Confident,Confident',
-        ]);
-        
-        // Create new voice transcript record
-        $transcript = new VoiceTranscript();
-        $transcript->transcribedData = $validated['transcribedData'];
-        
-        // Add matched menu item if available
-        if (isset($validated['matchedMenuItem'])) {
-            $transcript->matchedMenuItem = $validated['matchedMenuItem'];
+    {
+        try {
+            // Validate the request
+            $validated = $request->validate([
+                'transcribedData' => 'required|string|max:1000',
+                'matchedMenuItem' => 'nullable|string',
+                'confidenceLevel' => 'nullable|in:Not Confident,Partially Confident,Confident',
+            ]);
+            
+            // Create new voice transcript record
+            $transcript = new VoiceTranscript();
+            $transcript->transcribedData = $validated['transcribedData'];
+            
+            // Add matched menu item if available
+            if (isset($validated['matchedMenuItem'])) {
+                $transcript->matchedMenuItem = $validated['matchedMenuItem'];
+            }
+            
+            // Add confidence level
+            if (isset($validated['confidenceLevel'])) {
+                $transcript->confidence_level = $validated['confidenceLevel'];
+            } else {
+                $transcript->confidence_level = 'Not Confident';
+            }
+            
+            $transcript->save();
+            
+            // AUTO-ADD TO UTTERANCE GALLERY FOR CONFIDENT OR PARTIALLY CONFIDENT MATCHES
+            if (isset($validated['matchedMenuItem']) && 
+                isset($validated['confidenceLevel']) &&
+                in_array($validated['confidenceLevel'], ['Confident', 'Partially Confident'])) {
+                
+                $this->addToUtteranceGallery(
+                    $validated['matchedMenuItem'],
+                    $validated['transcribedData'],
+                    $validated['confidenceLevel']
+                );
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Transcript saved successfully',
+                'voiceID' => $transcript->voiceID,
+                'confidenceLevel' => $transcript->confidence_level,
+                'addedToGallery' => isset($validated['matchedMenuItem']) && 
+                                    isset($validated['confidenceLevel']) &&
+                                    in_array($validated['confidenceLevel'], ['Confident', 'Partially Confident'])
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error saving voice transcript: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save transcript: ' . $e->getMessage()
+            ], 500);
         }
-        
-        // Add confidence level
-        if (isset($validated['confidenceLevel'])) {
-            $transcript->confidence_level = $validated['confidenceLevel'];
-        } else {
-            $transcript->confidence_level = 'Not Confident';
-        }
-        
-        $transcript->save();
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Transcript saved successfully',
-            'voiceID' => $transcript->voiceID,
-            'confidenceLevel' => $transcript->confidence_level
-        ]);
-        
-    } catch (\Exception $e) {
-        \Log::error('Error saving voice transcript: ' . $e->getMessage());
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to save transcript: ' . $e->getMessage()
-        ], 500);
     }
-}
+
+    private function addToUtteranceGallery($menuItem, $utterance, $confidenceLevel)
+    {
+        try {
+            // Normalize the utterance
+            $normalizedUtterance = $this->normalizeUtteranceForGallery($utterance);
+            
+            // Check if this exact utterance already exists for this menu item
+            $existing = UtteranceGallery::where('menuItem', $menuItem)
+                ->where('acceptedUtterance', $normalizedUtterance)
+                ->first();
+            
+            if (!$existing) {
+                // Add new utterance to gallery
+                $galleryEntry = new UtteranceGallery();
+                $galleryEntry->menuItem = $menuItem;
+                $galleryEntry->acceptedUtterance = $normalizedUtterance;
+                $galleryEntry->save();
+                
+                \Log::info('Added new utterance to gallery:', [
+                    'menuItem' => $menuItem,
+                    'utterance' => $normalizedUtterance,
+                    'confidence' => $confidenceLevel
+                ]);
+                
+                return true;
+            }
+            
+            return false; // Already exists
+            
+        } catch (\Exception $e) {
+            \Log::error('Error adding to utterance gallery: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    private function normalizeUtteranceForGallery($utterance)
+    {
+        // Convert to lowercase
+        $normalized = strtolower(trim($utterance));
+        
+        // Remove extra whitespace
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+        
+        // Remove common filler words but keep the utterance mostly intact
+        $fillerWords = ['um', 'uh', 'like', 'you know', 'i mean', 'so', 'well', 'actually', 'basically'];
+        foreach ($fillerWords as $filler) {
+            $normalized = str_replace($filler, '', $normalized);
+        }
+        
+        // Remove any double spaces created by removing filler words
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+        
+        return trim($normalized);
+    }
+
+
+
 }
