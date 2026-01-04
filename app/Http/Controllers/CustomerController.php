@@ -243,163 +243,54 @@ class CustomerController extends Controller
      * Match transcribed utterance with menu items
      */
     public function matchUtterance(Request $request)
-{
-    try {
-        $transcript = strtolower(trim($request->input('transcript')));
-        
-        // Remove common filler words and normalize
-        $transcript = $this->normalizeTranscript($transcript);
-        
-        // Extract order item from phrase (but keep original for exact matching)
-        $cleanedTranscript = $this->extractOrderItemFromPhrase($transcript);
-        
-        // Store both versions for matching
-        $searchTerms = [];
-        if (!empty($cleanedTranscript) && $cleanedTranscript !== $transcript) {
-            $searchTerms[] = $cleanedTranscript;
-        }
-        $searchTerms[] = $transcript;
-        
-        // Remove duplicates
-        $searchTerms = array_unique($searchTerms);
-        
-        // NEW: First, check if this is an exact product name in the menu
-        foreach ($searchTerms as $searchTerm) {
-            $exactProductMatch = MenuProduct::where('menuStatus', 'Available')
-                ->where(function($query) use ($searchTerm) {
-                    $query->whereRaw('LOWER(menuName) LIKE ?', ["%{$searchTerm}%"])
-                          ->orWhere('menuName', 'LIKE', "%{$searchTerm}%");
-                })
-                ->orderBy('menuName')
-                ->first();
+    {
+        try {
+            $transcript = strtolower(trim($request->input('transcript')));
             
-            if ($exactProductMatch) {
-                // Check if we have this in utterance gallery
-                $utteranceMatch = UtteranceGallery::where('menuItem', $exactProductMatch->menuName)
-                    ->where(function($query) use ($searchTerm) {
-                        $query->where('acceptedUtterance', 'LIKE', "%{$searchTerm}%")
-                              ->orWhere('acceptedUtterance', $searchTerm);
-                    })
-                    ->first();
-                
-                if ($utteranceMatch) {
-                    // We have a match in utterance gallery
-                    return response()->json([
-                        'success' => true,
-                        'matchedMenuItem' => $exactProductMatch->menuName,
-                        'confidence' => 'Confident',
-                        'matchType' => 'exact_product',
-                        'similarity' => 1.0
-                    ]);
-                } else {
-                    // Product exists but not in utterance gallery - still return it as a match
-                    return response()->json([
-                        'success' => true,
-                        'matchedMenuItem' => $exactProductMatch->menuName,
-                        'confidence' => 'Partially Confident',
-                        'matchType' => 'product_direct',
-                        'similarity' => 0.9,
-                        'message' => 'Product found in menu but not in utterance gallery'
-                    ]);
-                }
-            }
-        }
-        
-        // Check for ambiguous/general terms (only if not an exact product match)
-        $ambiguousTerms = $this->getAmbiguousTerms();
-        
-        foreach ($searchTerms as $searchTerm) {
-            foreach ($ambiguousTerms as $term => $info) {
-                // Check if the term appears in the search term
-                if (strpos($searchTerm, $term) !== false) {
-                    // This is an ambiguous term, search for all matching products
-                    $matchingProducts = $this->searchForProducts($term);
-                    
-                    if (count($matchingProducts) > 0) {
-                        return response()->json([
-                            'success' => true,
-                            'matchedMenuItem' => null, // No specific item
-                            'ambiguousTerm' => $term,
-                            'termName' => $info['name'],
-                            'matchingProducts' => $matchingProducts,
-                            'message' => 'Multiple options found',
-                            'confidence' => 'Ambiguous',
-                            'matchType' => 'ambiguous'
-                        ]);
-                    }
-                }
-            }
-        }
-        
-        // Then try utterance gallery matching
-        foreach ($searchTerms as $searchTerm) {
-            // First, try exact match or contains match in utterance gallery
-            $exactMatches = UtteranceGallery::where('acceptedUtterance', 'LIKE', "%{$searchTerm}%")
-                ->orWhere('acceptedUtterance', $searchTerm)
+            // Remove common filler words and normalize
+            $transcript = $this->normalizeTranscript($transcript);
+            
+            // First, try exact match or contains match
+            $exactMatches = UtteranceGallery::where('acceptedUtterance', 'LIKE', "%{$transcript}%")
+                ->orWhere('acceptedUtterance', $transcript)
                 ->get();
             
             if ($exactMatches->count() > 0) {
                 // Get the first match
                 $match = $exactMatches->first();
                 
-                // Check if this is a valid exact match
-                $similarity = $this->calculateSimilarity($searchTerm, strtolower($match->acceptedUtterance));
-                
-                // If similarity is high, return confident
-                if ($similarity >= 0.8) {
-                    return response()->json([
-                        'success' => true,
-                        'matchedMenuItem' => $match->menuItem,
-                        'confidence' => 'Confident',
-                        'matchType' => 'exact',
-                        'similarity' => $similarity
-                    ]);
-                }
+                return response()->json([
+                    'success' => true,
+                    'matchedMenuItem' => $match->menuItem,
+                    'confidence' => 'Confident', // Exact matches are always Confident
+                    'matchType' => 'exact'
+                ]);
             }
-        }
-        
-        // If no direct match, try fuzzy matching but with improved logic
-        $allUtterances = UtteranceGallery::all();
-        $bestMatch = null;
-        $highestSimilarity = 0;
-        
-        foreach ($allUtterances as $utterance) {
-            foreach ($searchTerms as $searchTerm) {
+            
+            // If no direct match, try fuzzy matching
+            $allUtterances = UtteranceGallery::all();
+            $bestMatch = null;
+            $highestSimilarity = 0;
+            
+            foreach ($allUtterances as $utterance) {
                 $utteranceText = strtolower($utterance->acceptedUtterance);
                 $utteranceText = $this->normalizeTranscript($utteranceText);
                 
                 // Calculate similarity
-                $similarity = $this->calculateSimilarity($searchTerm, $utteranceText);
+                $similarity = $this->calculateSimilarity($transcript, $utteranceText);
                 
-                // NEW: Check if search term contains the menu item or vice versa
-                $menuItemLower = strtolower($utterance->menuItem);
-                if (strpos($menuItemLower, $searchTerm) !== false || strpos($searchTerm, $menuItemLower) !== false) {
-                    $similarity = max($similarity, 0.8); // Boost similarity for name matches
-                }
-                
-                // Check for word-by-word matching
-                $menuItemWords = explode(' ', $menuItemLower);
-                $searchWords = explode(' ', $searchTerm);
-                
+                // Also check if transcript contains key words from menu item
+                $menuItemWords = explode(' ', strtolower($utterance->menuItem));
                 $wordMatchCount = 0;
-                $totalMenuWords = count($menuItemWords);
-                
-                foreach ($searchWords as $searchWord) {
-                    if (strlen($searchWord) < 3) continue; // Skip short words
-                    
-                    foreach ($menuItemWords as $menuWord) {
-                        if (levenshtein($searchWord, $menuWord) <= 1) {
-                            $wordMatchCount++;
-                            break;
-                        }
+                foreach ($menuItemWords as $word) {
+                    if (strlen($word) > 2 && strpos($transcript, $word) !== false) {
+                        $wordMatchCount++;
                     }
                 }
                 
-                // Boost similarity based on word matches
+                // Boost similarity if we have word matches
                 if ($wordMatchCount > 0) {
-                    $wordMatchRatio = $wordMatchCount / max(count($searchWords), $totalMenuWords);
-                    $similarity += ($wordMatchRatio * 0.3);
-                    $similarity = min(1.0, $similarity); // Cap at 1.0
+                    $similarity += ($wordMatchCount * 0.1);
                 }
                 
                 if ($similarity > $highestSimilarity) {
@@ -407,241 +298,96 @@ class CustomerController extends Controller
                     $bestMatch = $utterance;
                 }
             }
-        }
-        
-        // Set a minimum similarity threshold for ANY match
-        $minimumSimilarity = 0.4; // Lowered from 0.5 to 0.4 for better matching
-        
-        if ($bestMatch && $highestSimilarity >= $minimumSimilarity) {
-            // ADJUSTED CONFIDENCE THRESHOLDS (more generous):
-            // Confident ≥ 70%, Partially Confident ≥ 50%, Not Confident < 50%
-            $confidence = 'Not Confident';
-            if ($highestSimilarity >= 0.7) { // Lowered from 0.8
-                $confidence = 'Confident';
-            } elseif ($highestSimilarity >= 0.5) { // Lowered from 0.6
-                $confidence = 'Partially Confident';
+            
+            if ($bestMatch) {
+                // LOWERED CONFIDENCE THRESHOLDS:
+                // Confident ≥ 80%, Partially Confident ≥ 60%, Not Confident ≥ 40%
+                $confidence = 'Not Confident';
+                if ($highestSimilarity >= 0.8) { // Lowered from 0.9 to 0.8
+                    $confidence = 'Confident';
+                } elseif ($highestSimilarity >= 0.6) { // Lowered from 0.7 to 0.6
+                    $confidence = 'Partially Confident';
+                } elseif ($highestSimilarity >= 0.4) { // Lowered from 0.5 to 0.4
+                    $confidence = 'Not Confident';
+                } else {
+                    // Below 40% similarity, don't return a match
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No matching menu item found (similarity too low)',
+                        'similarity' => $highestSimilarity
+                    ]);
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'matchedMenuItem' => $bestMatch->menuItem,
+                    'confidence' => $confidence,
+                    'similarity' => $highestSimilarity,
+                    'matchType' => 'fuzzy'
+                ]);
             }
             
             return response()->json([
-                'success' => true,
-                'matchedMenuItem' => $bestMatch->menuItem,
-                'confidence' => $confidence,
-                'similarity' => $highestSimilarity,
-                'matchType' => 'fuzzy'
+                'success' => false,
+                'message' => 'No matching menu item found'
             ]);
-        }
-        
-        // If we have a match but below minimum similarity, return as not confident
-        if ($bestMatch && $highestSimilarity < $minimumSimilarity) {
+            
+        } catch (\Exception $e) {
+            \Log::error('Error matching utterance: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Poor match quality',
-                'matchedMenuItem' => $bestMatch->menuItem,
-                'confidence' => 'Not Confident',
-                'similarity' => $highestSimilarity,
-                'matchType' => 'poor_fuzzy'
-            ]);
+                'message' => 'Error matching utterance: ' . $e->getMessage()
+            ], 500);
         }
+    }
+    
+    /**
+     * Normalize transcript text
+     */
+    private function normalizeTranscript($text)
+    {
+        // Remove common filler words
+        $fillerWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
+        $words = explode(' ', $text);
+        $filteredWords = array_filter($words, function($word) use ($fillerWords) {
+            return !in_array($word, $fillerWords) && strlen($word) > 0;
+        });
         
-        return response()->json([
-            'success' => false,
-            'message' => 'No matching menu item found'
-        ]);
+        // Remove punctuation and extra spaces
+        $normalized = implode(' ', $filteredWords);
+        $normalized = preg_replace('/[^a-z0-9\s]/', '', $normalized);
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
         
-    } catch (\Exception $e) {
-        \Log::error('Error matching utterance: ' . $e->getMessage());
+        return trim($normalized);
+    }
+    
+    /**
+     * Calculate similarity between two strings
+     */
+    private function calculateSimilarity($str1, $str2)
+    {
+        // Remove non-alphanumeric characters
+        $str1 = preg_replace('/[^a-z0-9]/', '', $str1);
+        $str2 = preg_replace('/[^a-z0-9]/', '', $str2);
         
-        return response()->json([
-            'success' => false,
-            'message' => 'Error matching utterance: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-/**
- * Extract order item from common ordering phrases
- */
-private function extractOrderItemFromPhrase($transcript)
-{
-    // Common ordering phrases to remove
-    $orderingPhrases = [
-        'i want to order',
-        'i would like to order',
-        'i\'d like to order',
-        'can i have',
-        'can i get',
-        'i want',
-        'i\'d like',
-        'give me',
-        'please give me',
-        'let me have',
-        'i need',
-        'i\'ll take',
-        'i\'ll have',
-        'order',
-        'add'
-    ];
-    
-    $cleaned = $transcript;
-    
-    // Only remove ordering phrases if they appear at the beginning
-    foreach ($orderingPhrases as $phrase) {
-        // Check if phrase is at the beginning of the string
-        if (strpos($cleaned, $phrase) === 0) {
-            $cleaned = trim(substr($cleaned, strlen($phrase)));
-            break;
-        }
-    }
-    
-    // Remove quantity words (but only if they're separate words)
-    $quantityWords = ['a', 'an', 'one', 'two', 'three', 'four', 'five', 'some'];
-    $words = explode(' ', $cleaned);
-    $filteredWords = [];
-    
-    foreach ($words as $word) {
-        // Only remove quantity words if they're standalone
-        if (!in_array($word, $quantityWords)) {
-            $filteredWords[] = $word;
-        }
-    }
-    
-    $cleaned = implode(' ', $filteredWords);
-    
-    // Don't remove punctuation here - keep it for matching
-    // Just clean up extra spaces
-    $cleaned = preg_replace('/\s+/', ' ', $cleaned);
-    
-    return trim($cleaned);
-}
-
-/**
- * Normalize transcript text
- */
-private function normalizeTranscript($text)
-{
-    // Only remove common filler words that are standalone
-    $fillerWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'please', 'thank you', 'thanks'];
-    
-    // Split into words and filter
-    $words = explode(' ', $text);
-    $filteredWords = [];
-    
-    foreach ($words as $word) {
-        // Only remove filler words if they're exactly the word
-        // This preserves words like "beef" which might contain "ee" but aren't filler words
-        if (!in_array($word, $fillerWords)) {
-            $filteredWords[] = $word;
-        }
-    }
-    
-    $normalized = implode(' ', $filteredWords);
-    
-    // Remove extra spaces but keep other characters
-    $normalized = preg_replace('/\s+/', ' ', $normalized);
-    
-    return trim($normalized);
-}
-
-/**
- * Calculate similarity between two strings
- */
-private function calculateSimilarity($str1, $str2)
-{
-    // Remove non-alphanumeric characters
-    $str1 = preg_replace('/[^a-z0-9]/', '', $str1);
-    $str2 = preg_replace('/[^a-z0-9]/', '', $str2);
-    
-    // If both strings are empty, return 0
-    if (empty($str1) && empty($str2)) return 0;
-    
-    // If one is empty and the other isn't, return very low similarity
-    if (empty($str1) || empty($str2)) return 0.1;
-    
-    // Use levenshtein distance for short strings
-    $len1 = strlen($str1);
-    $len2 = strlen($str2);
-    $maxLen = max($len1, $len2);
-    
-    $distance = levenshtein($str1, $str2);
-    $similarity = 1 - ($distance / $maxLen);
-    
-    // NEW: Use Jaro-Winkler distance for better string matching
-    $jaroSimilarity = $this->jaroWinklerSimilarity($str1, $str2);
-    
-    // Take the better of the two similarity scores
-    $finalSimilarity = max($similarity, $jaroSimilarity);
-    
-    return max(0, min(1, $finalSimilarity));
-}
-
-private function jaroWinklerSimilarity($str1, $str2)
-{
-    $len1 = strlen($str1);
-    $len2 = strlen($str2);
-    
-    if ($len1 == 0 && $len2 == 0) return 0;
-    
-    // Calculate matching characters
-    $matchDistance = (int)floor(max($len1, $len2) / 2) - 1;
-    $matches = 0;
-    $transpositions = 0;
-    
-    $str1Matches = array_fill(0, $len1, false);
-    $str2Matches = array_fill(0, $len2, false);
-    
-    // Find matching characters
-    for ($i = 0; $i < $len1; $i++) {
-        $start = max(0, $i - $matchDistance);
-        $end = min($i + $matchDistance + 1, $len2);
+        // Use levenshtein distance for short strings
+        $len1 = strlen($str1);
+        $len2 = strlen($str2);
+        $maxLen = max($len1, $len2);
         
-        for ($j = $start; $j < $end; $j++) {
-            if (!$str2Matches[$j] && $str1[$i] == $str2[$j]) {
-                $str1Matches[$i] = true;
-                $str2Matches[$j] = true;
-                $matches++;
-                break;
-            }
-        }
+        if ($maxLen == 0) return 0;
+        
+        $distance = levenshtein($str1, $str2);
+        $similarity = 1 - ($distance / $maxLen);
+        
+        return max(0, min(1, $similarity));
     }
-    
-    if ($matches == 0) return 0;
-    
-    // Count transpositions
-    $k = 0;
-    for ($i = 0; $i < $len1; $i++) {
-        if ($str1Matches[$i]) {
-            while (!$str2Matches[$k]) $k++;
-            if ($str1[$i] != $str2[$k]) $transpositions++;
-            $k++;
-        }
-    }
-    
-    $transpositions /= 2;
-    
-    // Calculate Jaro similarity
-    $jaro = (($matches / $len1) + ($matches / $len2) + (($matches - $transpositions) / $matches)) / 3;
-    
-    // Calculate Jaro-Winkler similarity (prefix bonus)
-    $prefix = 0;
-    $maxPrefix = min(4, $len1, $len2);
-    for ($i = 0; $i < $maxPrefix; $i++) {
-        if ($str1[$i] == $str2[$i]) {
-            $prefix++;
-        } else {
-            break;
-        }
-    }
-    
-    $winkler = $jaro + ($prefix * 0.1 * (1 - $jaro));
-    
-    return $winkler;
-}
-
 
     /**
      * Save voice transcript
      */
-public function saveVoiceTranscript(Request $request)
+    public function saveVoiceTranscript(Request $request)
     {
         try {
             // Validate the request
@@ -650,6 +396,8 @@ public function saveVoiceTranscript(Request $request)
                 'matchedMenuItem' => 'nullable|string',
                 'confidenceLevel' => 'nullable|in:Not Confident,Partially Confident,Confident',
             ]);
+            
+            \Log::info('Saving voice transcript:', $validated);
             
             // Create new voice transcript record
             $transcript = new VoiceTranscript();
@@ -669,16 +417,27 @@ public function saveVoiceTranscript(Request $request)
             
             $transcript->save();
             
+            \Log::info('Transcript saved successfully with ID: ' . $transcript->voiceID);
+            
             // AUTO-ADD TO UTTERANCE GALLERY FOR CONFIDENT OR PARTIALLY CONFIDENT MATCHES
+            $addedToGallery = false;
             if (isset($validated['matchedMenuItem']) && 
                 isset($validated['confidenceLevel']) &&
                 in_array($validated['confidenceLevel'], ['Confident', 'Partially Confident'])) {
                 
-                $this->addToUtteranceGallery(
+                \Log::info('Attempting to add to utterance gallery:', [
+                    'menuItem' => $validated['matchedMenuItem'],
+                    'utterance' => $validated['transcribedData'],
+                    'confidence' => $validated['confidenceLevel']
+                ]);
+                
+                $addedToGallery = $this->addToUtteranceGallery(
                     $validated['matchedMenuItem'],
                     $validated['transcribedData'],
                     $validated['confidenceLevel']
                 );
+                
+                \Log::info('Add to gallery result: ' . ($addedToGallery ? 'Success' : 'Failed or already exists'));
             }
             
             return response()->json([
@@ -686,13 +445,12 @@ public function saveVoiceTranscript(Request $request)
                 'message' => 'Transcript saved successfully',
                 'voiceID' => $transcript->voiceID,
                 'confidenceLevel' => $transcript->confidence_level,
-                'addedToGallery' => isset($validated['matchedMenuItem']) && 
-                                    isset($validated['confidenceLevel']) &&
-                                    in_array($validated['confidenceLevel'], ['Confident', 'Partially Confident'])
+                'addedToGallery' => $addedToGallery
             ]);
             
         } catch (\Exception $e) {
             \Log::error('Error saving voice transcript: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
@@ -701,41 +459,68 @@ public function saveVoiceTranscript(Request $request)
         }
     }
 
+    /**
+     * Add utterance to gallery
+     */
     private function addToUtteranceGallery($menuItem, $utterance, $confidenceLevel)
     {
         try {
+            \Log::info('Adding to utterance gallery:', [
+                'menuItem' => $menuItem,
+                'utterance' => $utterance,
+                'confidence' => $confidenceLevel
+            ]);
+            
             // Normalize the utterance
             $normalizedUtterance = $this->normalizeUtteranceForGallery($utterance);
+            
+            \Log::info('Normalized utterance: ' . $normalizedUtterance);
             
             // Check if this exact utterance already exists for this menu item
             $existing = UtteranceGallery::where('menuItem', $menuItem)
                 ->where('acceptedUtterance', $normalizedUtterance)
                 ->first();
             
-            if (!$existing) {
-                // Add new utterance to gallery
-                $galleryEntry = new UtteranceGallery();
-                $galleryEntry->menuItem = $menuItem;
-                $galleryEntry->acceptedUtterance = $normalizedUtterance;
-                $galleryEntry->save();
-                
-                \Log::info('Added new utterance to gallery:', [
+            if ($existing) {
+                \Log::info('Utterance already exists in gallery:', [
                     'menuItem' => $menuItem,
                     'utterance' => $normalizedUtterance,
-                    'confidence' => $confidenceLevel
+                    'transcriptionID' => $existing->transcriptionID
                 ]);
-                
-                return true;
+                return false; // Already exists
             }
             
-            return false; // Already exists
+            // Add new utterance to gallery
+            $galleryEntry = new UtteranceGallery();
+            $galleryEntry->menuItem = $menuItem;
+            $galleryEntry->acceptedUtterance = $normalizedUtterance;
+            
+            \Log::info('Creating new gallery entry:', [
+                'menuItem' => $galleryEntry->menuItem,
+                'acceptedUtterance' => $galleryEntry->acceptedUtterance
+            ]);
+            
+            $galleryEntry->save();
+            
+            \Log::info('Successfully added new utterance to gallery:', [
+                'transcriptionID' => $galleryEntry->transcriptionID,
+                'menuItem' => $galleryEntry->menuItem,
+                'utterance' => $galleryEntry->acceptedUtterance,
+                'confidence' => $confidenceLevel
+            ]);
+            
+            return true;
             
         } catch (\Exception $e) {
             \Log::error('Error adding to utterance gallery: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
             return false;
         }
     }
 
+    /**
+     * Normalize utterance for gallery
+     */
     private function normalizeUtteranceForGallery($utterance)
     {
         // Convert to lowercase
@@ -753,6 +538,9 @@ public function saveVoiceTranscript(Request $request)
         // Remove any double spaces created by removing filler words
         $normalized = preg_replace('/\s+/', ' ', $normalized);
         
-        return trim($normalized);
+        // Remove any leading/trailing spaces that may have been created
+        $normalized = trim($normalized);
+        
+        return $normalized;
     }
 }

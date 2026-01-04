@@ -107,6 +107,42 @@
             100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
         }
         
+        /* Voice recording animation */
+        .voice-recording {
+            animation: recordingPulse 1.5s infinite;
+        }
+        
+        @keyframes recordingPulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .voice-level-indicator {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+            margin-left: 10px;
+        }
+        
+        .voice-level-bar {
+            width: 3px;
+            height: 20px;
+            background-color: #3B82F6;
+            border-radius: 2px;
+            animation: voiceLevel 1.5s infinite;
+        }
+        
+        .voice-level-bar:nth-child(2) { animation-delay: 0.2s; }
+        .voice-level-bar:nth-child(3) { animation-delay: 0.4s; }
+        .voice-level-bar:nth-child(4) { animation-delay: 0.6s; }
+        .voice-level-bar:nth-child(5) { animation-delay: 0.8s; }
+        
+        @keyframes voiceLevel {
+            0%, 100% { height: 5px; opacity: 0.5; }
+            50% { height: 20px; opacity: 1; }
+        }
+        
         /* Order type button styles */
         .order-type-btn {
             transition: all 0.2s ease;
@@ -493,12 +529,20 @@
                 <div class="max-w-6xl mx-auto">
                     <div class="flex flex-col md:flex-row items-center justify-between gap-2">
                         <div class="flex items-center">
-                            <div class="bg-blue-500 text-white p-2 rounded-full mr-3 voice-pulse">
+                            <div id="voice-icon" class="bg-blue-500 text-white p-2 rounded-full mr-3 voice-pulse">
                                 <i class="fas fa-microphone"></i>
                             </div>
                             <div>
                                 <h3 class="font-bold text-gray-800 text-sm">Voice Assistant</h3>
                                 <p class="text-gray-600 text-xs">Say "Hey Arabica" to start voice ordering</p>
+                            </div>
+                            <!-- Add voice level indicator -->
+                            <div id="voice-level-indicator" class="voice-level-indicator hidden">
+                                <div class="voice-level-bar"></div>
+                                <div class="voice-level-bar"></div>
+                                <div class="voice-level-bar"></div>
+                                <div class="voice-level-bar"></div>
+                                <div class="voice-level-bar"></div>
                             </div>
                         </div>
                         
@@ -525,7 +569,7 @@
                         <div class="bg-white rounded-lg p-3 border border-blue-200">
                             <div class="flex justify-between items-center mb-2">
                                 <h4 class="font-bold text-gray-800 text-sm">Voice Command</h4>
-                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Listening...</span>
+                                <span id="voice-status-badge" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Ready</span>
                             </div>
                             <div id="voice-transcript" class="text-gray-700 p-2 bg-gray-50 rounded border text-sm">
                                 Speak now...
