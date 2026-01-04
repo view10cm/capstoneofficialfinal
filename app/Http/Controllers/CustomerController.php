@@ -188,6 +188,46 @@ class CustomerController extends Controller
     }
 
     /**
+     * Get product details by name
+     */
+    public function getProductByName(Request $request)
+    {
+        try {
+            $productName = $request->input('productName');
+            
+            $product = MenuProduct::where('menuName', 'like', '%' . $productName . '%')
+                ->where('menuStatus', 'Available')
+                ->first();
+            
+            if ($product) {
+                return response()->json([
+                    'success' => true,
+                    'product' => [
+                        'name' => $product->menuName,
+                        'price' => $product->menuPrice,
+                        'category' => $product->menuCategory,
+                        'subcategory' => $product->menuSubcategory,
+                        'image' => $product->menuImage ? asset('storage/' . $product->menuImage) : null
+                    ]
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error getting product by name: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error finding product'
+            ], 500);
+        }
+    }
+
+    /**
      * Save order to staff transaction table
      */
     public function saveOrderToStaffTransaction(Request $request)
@@ -259,12 +299,29 @@ class CustomerController extends Controller
                 // Get the first match
                 $match = $exactMatches->first();
                 
-                return response()->json([
+                // Get product details from menu_products table
+                $product = MenuProduct::where('menuName', $match->menuItem)
+                    ->where('menuStatus', 'Available')
+                    ->first();
+                
+                $response = [
                     'success' => true,
                     'matchedMenuItem' => $match->menuItem,
                     'confidence' => 'Confident', // Exact matches are always Confident
                     'matchType' => 'exact'
-                ]);
+                ];
+                
+                // Add product details if found
+                if ($product) {
+                    $response['product'] = [
+                        'name' => $product->menuName,
+                        'price' => $product->menuPrice,
+                        'category' => $product->menuCategory,
+                        'image' => $product->menuImage ? asset('storage/' . $product->menuImage) : null
+                    ];
+                }
+                
+                return response()->json($response);
             }
             
             // If no direct match, try fuzzy matching
@@ -318,13 +375,30 @@ class CustomerController extends Controller
                     ]);
                 }
                 
-                return response()->json([
+                // Get product details from menu_products table
+                $product = MenuProduct::where('menuName', $bestMatch->menuItem)
+                    ->where('menuStatus', 'Available')
+                    ->first();
+                
+                $response = [
                     'success' => true,
                     'matchedMenuItem' => $bestMatch->menuItem,
                     'confidence' => $confidence,
                     'similarity' => $highestSimilarity,
                     'matchType' => 'fuzzy'
-                ]);
+                ];
+                
+                // Add product details if found
+                if ($product) {
+                    $response['product'] = [
+                        'name' => $product->menuName,
+                        'price' => $product->menuPrice,
+                        'category' => $product->menuCategory,
+                        'image' => $product->menuImage ? asset('storage/' . $product->menuImage) : null
+                    ];
+                }
+                
+                return response()->json($response);
             }
             
             return response()->json([

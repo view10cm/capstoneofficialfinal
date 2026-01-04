@@ -41,6 +41,7 @@ let paymentMethod = 'cash'; // Default payment method
 let speechRecognition = null;
 let isListening = false;
 let recognitionTimeout = null;
+let isProcessingVoiceCommand = false; // Prevent duplicate processing
 
 // Carousel state
 let currentSlide = 0;
@@ -987,13 +988,22 @@ function calculateTotals() {
 }
 
 // Add item to order
-function addToOrder(name, price, category, image = '') {
+function addToOrder(name, price, category, image = '', source = 'manual') {
+    console.log(`Adding item to order (source: ${source}):`, name);
+    
     // Check if item already exists in order
     const existingItemIndex = orderItems.findIndex(item => item.name === name);
 
     if (existingItemIndex !== -1) {
-        // Increment quantity if item already exists
-        orderItems[existingItemIndex].quantity++;
+        // For voice commands, check if we should increment
+        if (source === 'voice-auto') {
+            console.log('Voice auto-add: Item already exists, not incrementing:', name);
+            // Don't increment for voice auto-add to prevent duplicates
+        } else {
+            // Increment quantity for manual additions
+            orderItems[existingItemIndex].quantity++;
+            console.log('Increased quantity for existing item:', name);
+        }
     } else {
         // Add new item
         orderItems.push({
@@ -1003,26 +1013,102 @@ function addToOrder(name, price, category, image = '') {
             quantity: 1,
             image: image
         });
+        console.log('Added new item to order:', name);
     }
 
     // Update UI
     renderOrderItems();
     calculateTotals();
 
-    // Show confirmation animation
-    const addBtn = event.target.closest('.add-to-order-btn');
-    if (addBtn) {
-        const originalText = addBtn.innerHTML;
-        addBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Added!';
-        addBtn.classList.remove('bg-amber-600');
-        addBtn.classList.add('bg-green-600');
+    // Show confirmation animation (only for manual button clicks)
+    if (source === 'manual') {
+        const addBtn = event?.target?.closest('.add-to-order-btn');
+        if (addBtn) {
+            const originalText = addBtn.innerHTML;
+            addBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Added!';
+            addBtn.classList.remove('bg-amber-600');
+            addBtn.classList.add('bg-green-600');
 
-        setTimeout(() => {
-            addBtn.innerHTML = originalText;
-            addBtn.classList.remove('bg-green-600');
-            addBtn.classList.add('bg-amber-600');
-        }, 1000);
+            setTimeout(() => {
+                addBtn.innerHTML = originalText;
+                addBtn.classList.remove('bg-green-600');
+                addBtn.classList.add('bg-amber-600');
+            }, 1000);
+        }
     }
+}
+
+
+// Function to auto-add product to order
+function autoAddProductToOrder(product, source = 'unknown') {
+    console.log(`Auto-adding product to order (source: ${source}):`, product);
+    
+    // Check if item already exists in order
+    const existingItemIndex = orderItems.findIndex(item => item.name === product.name);
+
+    if (existingItemIndex !== -1) {
+        // Only increment quantity if this is NOT a voice auto-add (to prevent double addition)
+        if (source !== 'voice-auto') {
+            orderItems[existingItemIndex].quantity++;
+            console.log('Increased quantity for existing item:', product.name);
+        } else {
+            console.log('Item already in order from voice command, not incrementing:', product.name);
+        }
+    } else {
+        // Add new item
+        orderItems.push({
+            name: product.name,
+            price: parseFloat(product.price),
+            category: product.category,
+            quantity: 1,
+            image: product.image || ''
+        });
+        console.log('Added new item to order:', product.name);
+    }
+
+    // Update UI
+    renderOrderItems();
+    calculateTotals();
+    
+    // Show success notification
+    showAutoAddNotification(product.name);
+}
+
+
+// Function to show auto-add notification
+function showAutoAddNotification(productName) {
+    // Remove any existing notification
+    const existingNotification = document.getElementById('auto-add-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.id = 'auto-add-notification';
+    notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-3 rounded-lg shadow-lg z-50 animate__animated animate__fadeInDown';
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2 text-lg"></i>
+            <div>
+                <p class="font-bold">Auto-added to order!</p>
+                <p class="text-sm">"${productName}" has been added to your order summary.</p>
+            </div>
+        </div>
+    `;
+    
+    // Add to body
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.classList.add('animate__fadeOutUp');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
+    }, 3000);
 }
 
 // Remove item from order
@@ -1352,7 +1438,48 @@ function stopVoiceAssistant() {
     }
 }
 
-// Update the saveTranscript function in customer-order-area.js
+// Update the matchTranscriptWithMenuItem function
+async function matchTranscriptWithMenuItem(transcript) {
+    const normalizedTranscript = transcript.toLowerCase().trim();
+    
+    try {
+        // Fetch all utterance gallery data or search for match
+        const response = await fetch('/customer/match-utterance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: JSON.stringify({
+                transcript: normalizedTranscript
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.matchedMenuItem) {
+                console.log('Found matching menu item:', result.matchedMenuItem);
+                console.log('Confidence level:', result.confidence);
+                console.log('Product details:', result.product);
+                
+                const matchResult = {
+                    menuItem: result.matchedMenuItem,
+                    confidence: result.confidence || 'Not Confident',
+                    similarity: result.similarity || 0,
+                    product: result.product || null
+                };
+                
+                return matchResult;
+            }
+        }
+    } catch (error) {
+        console.error('Error matching utterance:', error);
+    }
+    
+    return null; // No match found
+}
+
+// Update the saveTranscript function to handle auto-add
 async function saveTranscript(transcript) {
     console.log('Voice transcript recorded:', transcript);
     
@@ -1364,13 +1491,28 @@ async function saveTranscript(transcript) {
     });
     localStorage.setItem('voiceTranscripts', JSON.stringify(transcripts));
     
-    // NEW: Try to match the transcript with utterance gallery
-    const matchResult = await matchTranscriptWithMenuItem(transcript);
-    const matchedMenuItem = matchResult ? matchResult.menuItem : null;
-    const confidenceLevel = matchResult ? matchResult.confidence : 'Not Confident';
+    // Check if we're already processing a command
+    if (isProcessingVoiceCommand) {
+        console.log('Already processing a voice command, skipping...');
+        return;
+    }
     
-    // Save to server
+    isProcessingVoiceCommand = true;
+    
     try {
+        // NEW: Try to match the transcript with utterance gallery
+        const matchResult = await matchTranscriptWithMenuItem(transcript);
+        const matchedMenuItem = matchResult ? matchResult.menuItem : null;
+        const confidenceLevel = matchResult ? matchResult.confidence : 'Not Confident';
+        const productDetails = matchResult ? matchResult.product : null;
+        
+        // If we have a "Confident" match with product details, auto-add it
+        if (confidenceLevel === 'Confident' && productDetails) {
+            console.log('Auto-adding product to order:', productDetails.name);
+            autoAddProductToOrder(productDetails, 'voice-auto');
+        }
+        
+        // Save to server
         const response = await fetch('/customer/save-transcript', {
             method: 'POST',
             headers: {
@@ -1387,10 +1529,6 @@ async function saveTranscript(transcript) {
         if (response.ok) {
             const result = await response.json();
             console.log('Transcript saved to server:', result);
-            
-            // IMPORTANT: Check the response structure
-            console.log('Added to gallery:', result.addedToGallery);
-            console.log('Confidence level:', result.confidenceLevel);
             
             // If we found a match, show it in the UI
             if (matchedMenuItem) {
@@ -1413,41 +1551,10 @@ async function saveTranscript(transcript) {
         if (matchedMenuItem) {
             showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, false);
         }
+    } finally {
+        // Reset the processing flag
+        isProcessingVoiceCommand = false;
     }
-}
-
-async function matchTranscriptWithMenuItem(transcript) {
-    const normalizedTranscript = transcript.toLowerCase().trim();
-    
-    try {
-        // Fetch all utterance gallery data or search for match
-        const response = await fetch('/customer/match-utterance', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                transcript: normalizedTranscript
-            })
-        });
-        
-        if (response.ok) {
-            const result = await response.json();
-            if (result.success && result.matchedMenuItem) {
-                console.log('Found matching menu item:', result.matchedMenuItem);
-                return {
-                    menuItem: result.matchedMenuItem,
-                    confidence: result.confidence || 'Not Confident',
-                    similarity: result.similarity || 0
-                };
-            }
-        }
-    } catch (error) {
-        console.error('Error matching utterance:', error);
-    }
-    
-    return null; // No match found
 }
 
 // Show matched menu item in UI
@@ -1550,7 +1657,40 @@ async function matchTranscriptWithMenuItem(transcript) {
 
 // Auto-add menu item to order
 async function autoAddMenuItemToOrder(menuItemName, confidenceLevel) {
-    console.log('Attempting to auto-add:', menuItemName, 'with confidence:', confidenceLevel);
+    console.log('Manual auto-add attempt:', menuItemName, 'with confidence:', confidenceLevel);
+    
+    // Check if we're already processing a voice command
+    if (isProcessingVoiceCommand && confidenceLevel === 'Confident') {
+        console.log('Voice command already processing this item, skipping manual add');
+        return;
+    }
+    
+    // If confidence is "Confident", try to get product details first
+    if (confidenceLevel === 'Confident') {
+        try {
+            const response = await fetch('/customer/get-product-by-name', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    productName: menuItemName
+                })
+            });
+            
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success && result.product) {
+                    console.log('Found product details:', result.product);
+                    autoAddProductToOrder(result.product, 'manual-confident');
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching product details:', error);
+        }
+    }
     
     // NEW LOGIC: Only add items with at least "Partially Confident" confidence (≥60%)
     if (confidenceLevel === 'Not Confident') {
@@ -1581,8 +1721,7 @@ async function autoAddMenuItemToOrder(menuItemName, confidenceLevel) {
         }
     }
     
-    // For Confident (≥80%), add automatically without confirmation
-    
+    // For Confident (≥80%) that didn't find product details, search in current view
     // Search for matching product in the current view
     const addButtons = document.querySelectorAll('.add-to-order-btn');
     let found = false;
@@ -1596,6 +1735,8 @@ async function autoAddMenuItemToOrder(menuItemName, confidenceLevel) {
             const price = btn.getAttribute('data-price');
             const category = btn.getAttribute('data-category');
             const image = btn.getAttribute('data-image');
+            
+            // Use the regular addToOrder function for manual additions
             addToOrder(name, price, category, image);
             
             // Show success feedback with confidence level
@@ -1605,7 +1746,6 @@ async function autoAddMenuItemToOrder(menuItemName, confidenceLevel) {
             } else if (confidenceLevel === 'Partially Confident') {
                 confidenceText = ' (Medium confidence - 60-79% match)';
             }
-            // Note: No success message for "Not Confident" since we don't add those
             
             voiceFeedback.textContent = `Added "${name}" to order${confidenceText}`;
             voiceFeedback.style.color = '#10B981';
@@ -1861,58 +2001,56 @@ function processVoiceCommand(transcript) {
     const command = transcript.toLowerCase();
     let feedback = '';
     
+    // Check if we're already processing a command
+    if (isProcessingVoiceCommand) {
+        console.log('Already processing a voice command, skipping...');
+        return;
+    }
+    
     // First check if it's a command
-    if (command.includes('add') || command.includes('order')) {
+    if (command.includes('add') || command.includes('order') || command.includes('want')) {
         // Extract product name from command
         const words = command.split(' ');
-        const addIndex = words.findIndex(w => w === 'add' || w === 'order');
+        
+        // Find keywords that indicate ordering
+        const orderKeywords = ['add', 'order', 'want', 'get', 'take', 'have'];
+        let addIndex = -1;
+        
+        for (let i = 0; i < words.length; i++) {
+            if (orderKeywords.includes(words[i])) {
+                addIndex = i;
+                break;
+            }
+        }
         
         if (addIndex !== -1 && words.length > addIndex + 1) {
-            // Extract the product name from command
-            const productNameWords = words.slice(addIndex + 1);
+            // Extract the product name from command (skip filler words)
+            const productNameWords = [];
+            for (let i = addIndex + 1; i < words.length; i++) {
+                // Skip common filler words
+                const fillerWords = ['a', 'an', 'the', 'some', 'please', 'i', 'would', 'like', 'to'];
+                if (!fillerWords.includes(words[i])) {
+                    productNameWords.push(words[i]);
+                }
+            }
             const productName = productNameWords.join(' ');
             
-            // Try to match with utterance gallery first
-            matchTranscriptWithMenuItem(productName).then(matchResult => {
-                if (matchResult && matchResult.menuItem) {
-                    // If we found a match, auto-add it
-                    autoAddMenuItemToOrder(matchResult.menuItem);
-                    feedback = `Found "${matchResult.menuItem}" in menu`;
-                } else {
-                    // Fall back to old search method
-                    const addButtons = document.querySelectorAll('.add-to-order-btn');
-                    let found = false;
-                    
-                    addButtons.forEach(btn => {
-                        const name = btn.getAttribute('data-name').toLowerCase();
-                        if (name.includes(productName.toLowerCase()) || 
-                            productName.toLowerCase().includes(name)) {
-                            
-                            const price = btn.getAttribute('data-price');
-                            const category = btn.getAttribute('data-category');
-                            const image = btn.getAttribute('data-image');
-                            addToOrder(btn.getAttribute('data-name'), price, category, image);
-                            
-                            feedback = `Added ${btn.getAttribute('data-name')} to your order`;
-                            found = true;
-                        }
-                    });
-                    
-                    if (!found) {
-                        feedback = `Product "${productName}" not found. Please try again.`;
-                    }
-                }
+            if (productName.trim() === '') {
+                feedback = 'Please specify what you want to add. Example: "Add pad Thai" or "I want to order pad Thai"';
                 voiceFeedback.textContent = feedback;
-                
-                // Auto-stop after processing command
-                setTimeout(() => {
-                    stopVoiceAssistant();
-                }, 2000);
-            });
+                return;
+            }
             
-            return; // Exit early since we're handling asynchronously
+            console.log('Extracted product name from command:', productName);
+            
+            // The actual addition will happen in saveTranscript via matchTranscriptWithMenuItem
+            // So we just need to show appropriate feedback
+            feedback = `Processing "${productName}"...`;
+            voiceFeedback.textContent = feedback;
+            
+            return; // Exit early since processing happens in saveTranscript
         } else {
-            feedback = 'Please specify what you want to add. Example: "Add pork barbecue"';
+            feedback = 'Please specify what you want to add. Example: "Add pad Thai" or "I want pad Thai"';
         }
     } 
     else if (command.includes('show') || command.includes('display')) {
@@ -1958,26 +2096,12 @@ function processVoiceCommand(transcript) {
         feedback = 'Showing voice help';
     }
     else {
-        // If it's not a recognized command, try to match it as a menu item
-        matchTranscriptWithMenuItem(transcript).then(matchResult => {
-            if (matchResult && matchResult.menuItem) {
-                autoAddMenuItemToOrder(matchResult.menuItem);
-                feedback = `Found "${matchResult.menuItem}" in menu`;
-            } else {
-                feedback = 'Command not recognized. Try: "Add [item]", "Show specials", "Clear order", or "Checkout"';
-            }
-            voiceFeedback.textContent = feedback;
-            
-            // Auto-stop after processing command
-            setTimeout(() => {
-                stopVoiceAssistant();
-            }, 2000);
-        });
-        
-        return; // Exit early since we're handling asynchronously
+        // If it's not a recognized command, it might just be a product name
+        // The processing will happen in saveTranscript
+        feedback = 'Processing your request...';
     }
     
-    // Update feedback for synchronous commands
+    // Update feedback
     voiceFeedback.textContent = feedback;
     
     // Auto-stop after processing command
@@ -2111,7 +2235,6 @@ async function loadProducts(category, subcategory) {
     }
 }
 
-// Re-attach event listeners to all product buttons in all slides
 function reattachEventListeners() {
     document.querySelectorAll('.add-to-order-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -2119,7 +2242,7 @@ function reattachEventListeners() {
             const price = this.getAttribute('data-price');
             const category = this.getAttribute('data-category');
             const image = this.getAttribute('data-image');
-            addToOrder(name, price, category, image);
+            addToOrder(name, price, category, image, 'manual');
         });
     });
 }
