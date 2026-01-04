@@ -250,6 +250,21 @@ class CustomerController extends Controller
         // Remove common filler words and normalize
         $transcript = $this->normalizeTranscript($transcript);
         
+        // FIRST: Check if this is an ordering phrase like "I want to order X" or "I'd like X"
+        $cleanedTranscript = $this->extractOrderItemFromPhrase($transcript);
+        
+        // Use the cleaned transcript for matching
+        $transcript = $cleanedTranscript ?: $transcript;
+        
+        // If the transcript is empty after cleaning, return no match
+        if (empty($transcript)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No clear menu item detected in your request',
+                'similarity' => 0
+            ]);
+        }
+        
         // First, try exact match or contains match
         $exactMatches = UtteranceGallery::where('acceptedUtterance', 'LIKE', "%{$transcript}%")
             ->orWhere('acceptedUtterance', $transcript)
@@ -259,15 +274,19 @@ class CustomerController extends Controller
             // Get the first match
             $match = $exactMatches->first();
             
+            // Check if this is a valid exact match (not just partial)
+            $similarity = $this->calculateSimilarity($transcript, strtolower($match->acceptedUtterance));
+            
             return response()->json([
                 'success' => true,
                 'matchedMenuItem' => $match->menuItem,
-                'confidence' => 'Confident', // Exact matches are always Confident
-                'matchType' => 'exact'
+                'confidence' => $similarity >= 0.8 ? 'Confident' : 'Partially Confident',
+                'matchType' => 'exact',
+                'similarity' => $similarity
             ]);
         }
         
-        // If no direct match, try fuzzy matching
+        // If no direct match, try fuzzy matching but with stricter rules
         $allUtterances = UtteranceGallery::all();
         $bestMatch = null;
         $highestSimilarity = 0;
@@ -279,18 +298,37 @@ class CustomerController extends Controller
             // Calculate similarity
             $similarity = $this->calculateSimilarity($transcript, $utteranceText);
             
-            // Also check if transcript contains key words from menu item
+            // NEW: Check for significant word overlap - more strict
             $menuItemWords = explode(' ', strtolower($utterance->menuItem));
+            $transcriptWords = explode(' ', $transcript);
+            
             $wordMatchCount = 0;
             foreach ($menuItemWords as $word) {
-                if (strlen($word) > 2 && strpos($transcript, $word) !== false) {
-                    $wordMatchCount++;
+                if (strlen($word) > 2) {
+                    foreach ($transcriptWords as $tWord) {
+                        // Use string comparison instead of just contains
+                        if (levenshtein($word, $tWord) <= 2) {
+                            $wordMatchCount++;
+                            break;
+                        }
+                    }
                 }
+            }
+            
+            // NEW REQUIREMENT: For a match to be considered at all, we need at least one keyword match
+            if ($wordMatchCount === 0 && $similarity < 0.7) {
+                continue; // Skip this match entirely
             }
             
             // Boost similarity if we have word matches
             if ($wordMatchCount > 0) {
-                $similarity += ($wordMatchCount * 0.1);
+                $similarity += ($wordMatchCount * 0.15); // Increased weight
+            }
+            
+            // Penalize matches that are too short compared to the transcript
+            $lengthRatio = strlen($utteranceText) / strlen($transcript);
+            if ($lengthRatio < 0.3 || $lengthRatio > 3.0) {
+                $similarity *= 0.5; // Reduce similarity for very different lengths
             }
             
             if ($similarity > $highestSimilarity) {
@@ -299,31 +337,38 @@ class CustomerController extends Controller
             }
         }
         
-        if ($bestMatch) {
-            // LOWERED CONFIDENCE THRESHOLDS:
-            // Confident ≥ 80%, Partially Confident ≥ 60%, Not Confident ≥ 40%
+        // NEW: Set a minimum similarity threshold for ANY match
+        $minimumSimilarity = 0.5; // 50% similarity required for any match
+        
+        if ($bestMatch && $highestSimilarity >= $minimumSimilarity) {
+            // ADJUSTED CONFIDENCE THRESHOLDS:
+            // Confident ≥ 80%, Partially Confident ≥ 60%, Not Confident < 60%
             $confidence = 'Not Confident';
-            if ($highestSimilarity >= 0.8) { // Lowered from 0.9 to 0.8
+            if ($highestSimilarity >= 0.8) {
                 $confidence = 'Confident';
-            } elseif ($highestSimilarity >= 0.6) { // Lowered from 0.7 to 0.6
+            } elseif ($highestSimilarity >= 0.6) {
                 $confidence = 'Partially Confident';
-            } elseif ($highestSimilarity >= 0.4) { // Lowered from 0.5 to 0.4
-                $confidence = 'Not Confident';
-            } else {
-                // Below 40% similarity, don't return a match
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No matching menu item found (similarity too low)',
-                    'similarity' => $highestSimilarity
-                ]);
             }
             
+            // Even if we have a "Not Confident" match, return it but with low confidence
             return response()->json([
                 'success' => true,
                 'matchedMenuItem' => $bestMatch->menuItem,
                 'confidence' => $confidence,
                 'similarity' => $highestSimilarity,
                 'matchType' => 'fuzzy'
+            ]);
+        }
+        
+        // NEW: If we have a match but below minimum similarity, return as not confident
+        if ($bestMatch && $highestSimilarity < $minimumSimilarity) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Poor match quality',
+                'matchedMenuItem' => $bestMatch->menuItem,
+                'confidence' => 'Not Confident',
+                'similarity' => $highestSimilarity,
+                'matchType' => 'poor_fuzzy'
             ]);
         }
         
@@ -341,48 +386,174 @@ class CustomerController extends Controller
         ], 500);
     }
 }
+
+/**
+ * Extract order item from common ordering phrases
+ */
+private function extractOrderItemFromPhrase($transcript)
+{
+    // Common ordering phrases to remove
+    $orderingPhrases = [
+        'i want to order',
+        'i would like to order',
+        'i\'d like to order',
+        'can i have',
+        'can i get',
+        'i want',
+        'i\'d like',
+        'give me',
+        'please give me',
+        'let me have',
+        'i need',
+        'i\'ll take',
+        'i\'ll have',
+        'order',
+        'add'
+    ];
     
-    /**
-     * Normalize transcript text
-     */
-    private function normalizeTranscript($text)
-    {
-        // Remove common filler words
-        $fillerWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
-        $words = explode(' ', $text);
-        $filteredWords = array_filter($words, function($word) use ($fillerWords) {
-            return !in_array($word, $fillerWords) && strlen($word) > 0;
-        });
-        
-        // Remove punctuation and extra spaces
-        $normalized = implode(' ', $filteredWords);
-        $normalized = preg_replace('/[^a-z0-9\s]/', '', $normalized);
-        $normalized = preg_replace('/\s+/', ' ', $normalized);
-        
-        return trim($normalized);
+    $cleaned = $transcript;
+    
+    // Remove ordering phrases
+    foreach ($orderingPhrases as $phrase) {
+        if (strpos($cleaned, $phrase) === 0) {
+            $cleaned = trim(str_replace($phrase, '', $cleaned));
+            break;
+        }
     }
     
-    /**
-     * Calculate similarity between two strings
-     */
-    private function calculateSimilarity($str1, $str2)
-    {
-        // Remove non-alphanumeric characters
-        $str1 = preg_replace('/[^a-z0-9]/', '', $str1);
-        $str2 = preg_replace('/[^a-z0-9]/', '', $str2);
+    // Remove quantity words
+    $quantityWords = ['a', 'an', 'one', 'two', 'three', 'four', 'five', 'some'];
+    $words = explode(' ', $cleaned);
+    $filteredWords = array_filter($words, function($word) use ($quantityWords) {
+        return !in_array($word, $quantityWords);
+    });
+    
+    $cleaned = implode(' ', $filteredWords);
+    
+    // Remove punctuation
+    $cleaned = preg_replace('/[^a-z0-9\s]/', '', $cleaned);
+    
+    // Remove filler words again
+    $cleaned = $this->normalizeTranscript($cleaned);
+    
+    return trim($cleaned);
+}
+
+/**
+ * Normalize transcript text
+ */
+private function normalizeTranscript($text)
+{
+    // Remove common filler words
+    $fillerWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'please', 'thank you', 'thanks'];
+    $words = explode(' ', $text);
+    $filteredWords = array_filter($words, function($word) use ($fillerWords) {
+        return !in_array($word, $fillerWords) && strlen($word) > 0;
+    });
+    
+    // Remove punctuation and extra spaces
+    $normalized = implode(' ', $filteredWords);
+    $normalized = preg_replace('/[^a-z0-9\s]/', '', $normalized);
+    $normalized = preg_replace('/\s+/', ' ', $normalized);
+    
+    return trim($normalized);
+}
+
+/**
+ * Calculate similarity between two strings
+ */
+private function calculateSimilarity($str1, $str2)
+{
+    // Remove non-alphanumeric characters
+    $str1 = preg_replace('/[^a-z0-9]/', '', $str1);
+    $str2 = preg_replace('/[^a-z0-9]/', '', $str2);
+    
+    // If both strings are empty, return 0
+    if (empty($str1) && empty($str2)) return 0;
+    
+    // If one is empty and the other isn't, return very low similarity
+    if (empty($str1) || empty($str2)) return 0.1;
+    
+    // Use levenshtein distance for short strings
+    $len1 = strlen($str1);
+    $len2 = strlen($str2);
+    $maxLen = max($len1, $len2);
+    
+    $distance = levenshtein($str1, $str2);
+    $similarity = 1 - ($distance / $maxLen);
+    
+    // NEW: Use Jaro-Winkler distance for better string matching
+    $jaroSimilarity = $this->jaroWinklerSimilarity($str1, $str2);
+    
+    // Take the better of the two similarity scores
+    $finalSimilarity = max($similarity, $jaroSimilarity);
+    
+    return max(0, min(1, $finalSimilarity));
+}
+
+private function jaroWinklerSimilarity($str1, $str2)
+{
+    $len1 = strlen($str1);
+    $len2 = strlen($str2);
+    
+    if ($len1 == 0 && $len2 == 0) return 0;
+    
+    // Calculate matching characters
+    $matchDistance = (int)floor(max($len1, $len2) / 2) - 1;
+    $matches = 0;
+    $transpositions = 0;
+    
+    $str1Matches = array_fill(0, $len1, false);
+    $str2Matches = array_fill(0, $len2, false);
+    
+    // Find matching characters
+    for ($i = 0; $i < $len1; $i++) {
+        $start = max(0, $i - $matchDistance);
+        $end = min($i + $matchDistance + 1, $len2);
         
-        // Use levenshtein distance for short strings
-        $len1 = strlen($str1);
-        $len2 = strlen($str2);
-        $maxLen = max($len1, $len2);
-        
-        if ($maxLen == 0) return 0;
-        
-        $distance = levenshtein($str1, $str2);
-        $similarity = 1 - ($distance / $maxLen);
-        
-        return max(0, min(1, $similarity));
+        for ($j = $start; $j < $end; $j++) {
+            if (!$str2Matches[$j] && $str1[$i] == $str2[$j]) {
+                $str1Matches[$i] = true;
+                $str2Matches[$j] = true;
+                $matches++;
+                break;
+            }
+        }
     }
+    
+    if ($matches == 0) return 0;
+    
+    // Count transpositions
+    $k = 0;
+    for ($i = 0; $i < $len1; $i++) {
+        if ($str1Matches[$i]) {
+            while (!$str2Matches[$k]) $k++;
+            if ($str1[$i] != $str2[$k]) $transpositions++;
+            $k++;
+        }
+    }
+    
+    $transpositions /= 2;
+    
+    // Calculate Jaro similarity
+    $jaro = (($matches / $len1) + ($matches / $len2) + (($matches - $transpositions) / $matches)) / 3;
+    
+    // Calculate Jaro-Winkler similarity (prefix bonus)
+    $prefix = 0;
+    $maxPrefix = min(4, $len1, $len2);
+    for ($i = 0; $i < $maxPrefix; $i++) {
+        if ($str1[$i] == $str2[$i]) {
+            $prefix++;
+        } else {
+            break;
+        }
+    }
+    
+    $winkler = $jaro + ($prefix * 0.1 * (1 - $jaro));
+    
+    return $winkler;
+}
+
 
     /**
      * Save voice transcript
@@ -501,7 +672,4 @@ public function saveVoiceTranscript(Request $request)
         
         return trim($normalized);
     }
-
-
-
 }

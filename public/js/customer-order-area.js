@@ -1338,7 +1338,6 @@ async function matchTranscriptWithMenuItem(transcript) {
     const normalizedTranscript = transcript.toLowerCase().trim();
     
     try {
-        // Fetch all utterance gallery data or search for match
         const response = await fetch('/customer/match-utterance', {
             method: 'POST',
             headers: {
@@ -1352,13 +1351,27 @@ async function matchTranscriptWithMenuItem(transcript) {
         
         if (response.ok) {
             const result = await response.json();
+            
+            // Handle different response structures
             if (result.success && result.matchedMenuItem) {
-                console.log('Found matching menu item:', result.matchedMenuItem);
+                console.log('Found matching menu item:', result.matchedMenuItem, 'Confidence:', result.confidence, 'Similarity:', result.similarity);
                 return {
                     menuItem: result.matchedMenuItem,
                     confidence: result.confidence || 'Not Confident',
                     similarity: result.similarity || 0
                 };
+            } else if (!result.success && result.matchedMenuItem) {
+                // This is for poor quality matches
+                console.log('Poor quality match:', result.matchedMenuItem, 'Similarity:', result.similarity);
+                return {
+                    menuItem: result.matchedMenuItem,
+                    confidence: 'Not Confident',
+                    similarity: result.similarity || 0
+                };
+            } else {
+                // No match found
+                console.log('No match found for:', normalizedTranscript);
+                return null;
             }
         }
     } catch (error) {
@@ -1368,8 +1381,9 @@ async function matchTranscriptWithMenuItem(transcript) {
     return null; // No match found
 }
 
-// NEW: Show matched menu item in UI
- function showMatchedMenuItem(transcript, menuItem, confidenceLevel, addedToGallery = false) {
+
+// Update the showMatchedMenuItem function to handle Not Confident matches better
+function showMatchedMenuItem(transcript, menuItem, confidenceLevel, addedToGallery = false, similarity = 0) {
     // Create or update a display element
     let matchDisplay = document.getElementById('voice-match-display');
     
@@ -1380,25 +1394,25 @@ async function matchTranscriptWithMenuItem(transcript) {
         voiceCommandDisplay.parentNode.insertBefore(matchDisplay, voiceCommandDisplay.nextSibling);
     }
     
-    // Determine styling based on confidence level with NEW thresholds
+    // Determine styling based on confidence level
     let containerClass = 'bg-red-50 border-red-200';
     let badgeColor = 'bg-red-100 text-red-600 border border-red-200';
-    let badgeText = 'Low Confidence (<80%)';
+    let badgeText = 'Not Confident (<60%)';
     let iconColor = 'text-red-500';
-    let thresholdInfo = 'Similarity: 40-79%';
+    let thresholdInfo = `Similarity: ${(similarity * 100).toFixed(1)}%`;
     
     if (confidenceLevel === 'Partially Confident') {
         containerClass = 'bg-yellow-50 border-yellow-200';
         badgeColor = 'bg-yellow-100 text-yellow-600 border border-yellow-200';
-        badgeText = 'Medium Confidence (≥60%)';
+        badgeText = 'Partially Confident (60-79%)';
         iconColor = 'text-yellow-500';
-        thresholdInfo = 'Similarity: 60-79%';
+        thresholdInfo = `Similarity: ${(similarity * 100).toFixed(1)}%`;
     } else if (confidenceLevel === 'Confident') {
         containerClass = 'bg-green-50 border-green-200';
         badgeColor = 'bg-green-100 text-green-600 border border-green-200';
-        badgeText = 'High Confidence (≥80%)';
+        badgeText = 'Confident (≥80%)';
         iconColor = 'text-green-500';
-        thresholdInfo = 'Similarity: 80-100%';
+        thresholdInfo = `Similarity: ${(similarity * 100).toFixed(1)}%`;
     }
     
     // Update container class
@@ -1431,13 +1445,21 @@ async function matchTranscriptWithMenuItem(transcript) {
                 <p class="text-gray-700 text-sm mb-1">Matched: <span class="font-bold ${confidenceLevel === 'Confident' ? 'text-green-600' : confidenceLevel === 'Partially Confident' ? 'text-yellow-600' : 'text-red-600'}">${menuItem}</span></p>
                 <p class="text-xs text-gray-500 mb-2">${thresholdInfo}</p>
                 
+                ${confidenceLevel === 'Not Confident' ? `
+                    <div class="mt-2 mb-2 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-700">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        This is a low-quality match. The item may not be what you intended.
+                    </div>
+                ` : ''}
+                
                 ${galleryBadge}
                 
                 <!-- Auto-add button -->
                 <div class="mt-2">
                     <button class="auto-add-menu-btn ${confidenceLevel === 'Confident' ? 'bg-green-600 hover:bg-green-700' : confidenceLevel === 'Partially Confident' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-xs"
-                            data-menu-item="${menuItem}">
-                        <i class="fas fa-plus mr-1"></i> Auto-Add "${menuItem}" to Order
+                            data-menu-item="${menuItem}"
+                            data-confidence="${confidenceLevel}">
+                        <i class="fas fa-plus mr-1"></i> Add "${menuItem}" to Order
                     </button>
                 </div>
             </div>
@@ -1449,7 +1471,8 @@ async function matchTranscriptWithMenuItem(transcript) {
     if (autoAddBtn) {
         autoAddBtn.addEventListener('click', function() {
             const menuItemName = this.getAttribute('data-menu-item');
-            autoAddMenuItemToOrder(menuItemName, confidenceLevel);
+            const confidence = this.getAttribute('data-confidence');
+            autoAddMenuItemToOrder(menuItemName, confidence, similarity);
         });
     }
     
