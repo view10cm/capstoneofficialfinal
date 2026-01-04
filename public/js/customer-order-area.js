@@ -1133,14 +1133,14 @@ function startSilenceTimeout() {
         clearTimeout(recognitionTimeout);
     }
     
-    // Set timeout for 3 seconds of silence
+    // Set timeout for 5 seconds of silence (increased from 3)
     recognitionTimeout = setTimeout(() => {
         if (isListening) {
-            console.log('No speech detected for 3 seconds, stopping...');
+            console.log('No speech detected for 5 seconds, stopping...');
             voiceFeedback.textContent = 'No speech detected. Stopping...';
             stopVoiceAssistant();
         }
-    }, 3000); // 3 seconds
+    }, 5000); // Increased to 5 seconds
 }
 
 // Reset silence timeout
@@ -1166,11 +1166,13 @@ function startVoiceAssistant() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     speechRecognition = new SpeechRecognition();
     
-    // Configure recognition
-    speechRecognition.continuous = false; // Stop automatically when user stops speaking
-    speechRecognition.interimResults = false; // Only final results
+    // Configure recognition - IMPORTANT CHANGES:
+    speechRecognition.continuous = true; // Changed from false to true - keeps listening
+    speechRecognition.interimResults = true; // Changed from false to true - shows interim results
     speechRecognition.lang = 'en-US'; // Set language to English
-
+    speechRecognition.maxAlternatives = 3; // Get multiple alternatives
+    speechRecognition.continuousSilenceTimeout = 5000; // Wait 5 seconds of silence before ending
+    
     // Start listening
     try {
         speechRecognition.start();
@@ -1188,32 +1190,71 @@ function startVoiceAssistant() {
     voiceCommandDisplay.classList.remove('hidden');
     voiceStartBtn.disabled = true;
     voiceStopBtn.disabled = false;
+    voiceTranscript.textContent = 'Listening...'; // Clear previous transcript
     
-    // Start timeout for 3 seconds of silence
+    // Start timeout for 5 seconds of silence
     startSilenceTimeout();
 
     // Event handlers for speech recognition
     speechRecognition.onstart = function() {
         console.log('Speech recognition started');
         voiceTranscript.textContent = 'Listening...';
+        voiceFeedback.textContent = 'Speak now. I\'m listening...';
+    };
+
+    speechRecognition.onspeechstart = function() {
+        console.log('Speech detected');
+        // Reset silence timeout when speech starts
+        resetSilenceTimeout();
+        voiceFeedback.textContent = 'I hear you speaking...';
+    };
+
+    speechRecognition.onspeechend = function() {
+        console.log('Speech ended');
+        voiceFeedback.textContent = 'Processing...';
     };
 
     speechRecognition.onresult = function(event) {
         // Reset silence timeout when speech is detected
         resetSilenceTimeout();
         
-        const transcript = event.results[0][0].transcript;
-        console.log('Transcript:', transcript);
+        let finalTranscript = '';
+        let interimTranscript = '';
         
-        // Update UI with transcript
-        voiceTranscript.textContent = `"${transcript}"`;
-        voiceFeedback.textContent = 'Processing your command...';
+        // Process all results
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
+            }
+        }
         
-        // Save transcript to database
-        saveTranscript(transcript);
+        // Update UI with interim results
+        if (interimTranscript) {
+            voiceTranscript.textContent = `"${interimTranscript}"`;
+            voiceFeedback.textContent = 'Listening...';
+        }
         
-        // Process voice command
-        processVoiceCommand(transcript);
+        // If we have final results, process them
+        if (finalTranscript) {
+            console.log('Final transcript:', finalTranscript);
+            
+            // Update UI with final transcript
+            voiceTranscript.textContent = `"${finalTranscript}"`;
+            voiceFeedback.textContent = 'Processing your command...';
+            
+            // Save transcript to database
+            saveTranscript(finalTranscript);
+            
+            // Process voice command
+            processVoiceCommand(finalTranscript);
+            
+            // Clear interim results
+            interimTranscript = '';
+            
+            // Don't stop listening - let it continue for continuous mode
+        }
     };
 
     speechRecognition.onerror = function(event) {
@@ -1224,6 +1265,10 @@ function startVoiceAssistant() {
             alert('Microphone access is required for voice commands. Please allow microphone access in your browser settings.');
         } else if (event.error === 'no-speech') {
             voiceFeedback.textContent = 'No speech detected. Try speaking louder.';
+        } else if (event.error === 'audio-capture') {
+            voiceFeedback.textContent = 'No microphone found. Please connect a microphone.';
+        } else if (event.error === 'network') {
+            voiceFeedback.textContent = 'Network error. Please check your connection.';
         } else {
             voiceFeedback.textContent = `Error: ${event.error}`;
         }
@@ -1234,24 +1279,38 @@ function startVoiceAssistant() {
     speechRecognition.onend = function() {
         console.log('Speech recognition ended');
         
+        // Only auto-restart if still in listening mode AND not manually stopped
         if (isListening) {
-            // Auto-restart if still in listening mode
-            setTimeout(() => {
-                if (isListening) {
-                    try {
-                        speechRecognition.start();
-                    } catch (e) {
-                        console.error('Failed to restart speech recognition:', e);
-                    }
-                }
-            }, 500);
+            voiceFeedback.textContent = 'Paused. Click Start to speak again.';
+            voiceStatus.textContent = 'Status: Ready to resume';
+            
+            // Don't auto-restart, let user click Start again
+            // This prevents infinite restart loops
         }
+    };
+    
+    // Add audio start/end detection for better UX
+    speechRecognition.onaudiostart = function() {
+        console.log('Audio capture started');
+        voiceFeedback.textContent = 'Microphone active...';
+    };
+    
+    speechRecognition.onaudioend = function() {
+        console.log('Audio capture ended');
+        if (isListening) {
+            voiceFeedback.textContent = 'Microphone disconnected. Click Start again.';
+        }
+    };
+    
+    speechRecognition.onnomatch = function() {
+        console.log('No speech recognized');
+        voiceFeedback.textContent = 'Could not understand. Please try again.';
     };
 }
 
 // Stop voice assistant
 function stopVoiceAssistant() {
-    console.log('Stop voice assistant clicked');
+    console.log('Stopping voice assistant...');
     isListening = false;
     
     // Stop speech recognition if active
@@ -1278,11 +1337,11 @@ function stopVoiceAssistant() {
     voiceStopBtn.disabled = true;
 }
 
-// Save transcript to database
+
 async function saveTranscript(transcript) {
     console.log('Voice transcript recorded:', transcript);
     
-    // Store transcript locally for now
+    // Store transcript locally
     const transcripts = JSON.parse(localStorage.getItem('voiceTranscripts') || '[]');
     transcripts.push({
         text: transcript,
@@ -1290,12 +1349,21 @@ async function saveTranscript(transcript) {
     });
     localStorage.setItem('voiceTranscripts', JSON.stringify(transcripts));
     
-    // NEW: Try to match the transcript with utterance gallery
+    // Try to match the transcript
     const matchResult = await matchTranscriptWithMenuItem(transcript);
+    
+    // Handle ambiguous matches
+    if (matchResult && matchResult.ambiguous) {
+        showAmbiguousMatchDialog(matchResult.term, matchResult.products, transcript);
+        return; // Don't save to server yet
+    }
+    
+    // Handle regular matches
     const matchedMenuItem = matchResult ? matchResult.menuItem : null;
     const confidenceLevel = matchResult ? matchResult.confidence : 'Not Confident';
+    const similarity = matchResult ? matchResult.similarity : 0;
     
-    // Save to server
+    // Save to server (but don't stop listening)
     try {
         const response = await fetch('/customer/save-transcript', {
             method: 'POST',
@@ -1314,22 +1382,14 @@ async function saveTranscript(transcript) {
             const result = await response.json();
             console.log('Transcript saved to server:', result);
             
-            // If we found a match, show it in the UI
             if (matchedMenuItem) {
-                showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, result.addedToGallery);
-            }
-        } else {
-            console.log('Server save failed, transcript stored locally');
-            // Still show match if found locally
-            if (matchedMenuItem) {
-                showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, false);
+                showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, result.addedToGallery, similarity);
             }
         }
     } catch (error) {
         console.log('Could not reach server, transcript stored locally');
-        // Still show match if found locally
         if (matchedMenuItem) {
-            showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, false);
+            showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, false, similarity);
         }
     }
 }
@@ -1338,6 +1398,7 @@ async function matchTranscriptWithMenuItem(transcript) {
     const normalizedTranscript = transcript.toLowerCase().trim();
     
     try {
+        // Fetch all utterance gallery data or search for match
         const response = await fetch('/customer/match-utterance', {
             method: 'POST',
             headers: {
@@ -1351,27 +1412,13 @@ async function matchTranscriptWithMenuItem(transcript) {
         
         if (response.ok) {
             const result = await response.json();
-            
-            // Handle different response structures
             if (result.success && result.matchedMenuItem) {
-                console.log('Found matching menu item:', result.matchedMenuItem, 'Confidence:', result.confidence, 'Similarity:', result.similarity);
+                console.log('Found matching menu item:', result.matchedMenuItem);
                 return {
                     menuItem: result.matchedMenuItem,
                     confidence: result.confidence || 'Not Confident',
                     similarity: result.similarity || 0
                 };
-            } else if (!result.success && result.matchedMenuItem) {
-                // This is for poor quality matches
-                console.log('Poor quality match:', result.matchedMenuItem, 'Similarity:', result.similarity);
-                return {
-                    menuItem: result.matchedMenuItem,
-                    confidence: 'Not Confident',
-                    similarity: result.similarity || 0
-                };
-            } else {
-                // No match found
-                console.log('No match found for:', normalizedTranscript);
-                return null;
             }
         }
     } catch (error) {
@@ -1381,9 +1428,8 @@ async function matchTranscriptWithMenuItem(transcript) {
     return null; // No match found
 }
 
-
-// Update the showMatchedMenuItem function to handle Not Confident matches better
-function showMatchedMenuItem(transcript, menuItem, confidenceLevel, addedToGallery = false, similarity = 0) {
+// NEW: Show matched menu item in UI
+ function showMatchedMenuItem(transcript, menuItem, confidenceLevel, addedToGallery = false) {
     // Create or update a display element
     let matchDisplay = document.getElementById('voice-match-display');
     
@@ -1394,25 +1440,25 @@ function showMatchedMenuItem(transcript, menuItem, confidenceLevel, addedToGalle
         voiceCommandDisplay.parentNode.insertBefore(matchDisplay, voiceCommandDisplay.nextSibling);
     }
     
-    // Determine styling based on confidence level
+    // Determine styling based on confidence level with NEW thresholds
     let containerClass = 'bg-red-50 border-red-200';
     let badgeColor = 'bg-red-100 text-red-600 border border-red-200';
-    let badgeText = 'Not Confident (<60%)';
+    let badgeText = 'Low Confidence (<80%)';
     let iconColor = 'text-red-500';
-    let thresholdInfo = `Similarity: ${(similarity * 100).toFixed(1)}%`;
+    let thresholdInfo = 'Similarity: 40-79%';
     
     if (confidenceLevel === 'Partially Confident') {
         containerClass = 'bg-yellow-50 border-yellow-200';
         badgeColor = 'bg-yellow-100 text-yellow-600 border border-yellow-200';
-        badgeText = 'Partially Confident (60-79%)';
+        badgeText = 'Medium Confidence (≥60%)';
         iconColor = 'text-yellow-500';
-        thresholdInfo = `Similarity: ${(similarity * 100).toFixed(1)}%`;
+        thresholdInfo = 'Similarity: 60-79%';
     } else if (confidenceLevel === 'Confident') {
         containerClass = 'bg-green-50 border-green-200';
         badgeColor = 'bg-green-100 text-green-600 border border-green-200';
-        badgeText = 'Confident (≥80%)';
+        badgeText = 'High Confidence (≥80%)';
         iconColor = 'text-green-500';
-        thresholdInfo = `Similarity: ${(similarity * 100).toFixed(1)}%`;
+        thresholdInfo = 'Similarity: 80-100%';
     }
     
     // Update container class
@@ -1445,21 +1491,13 @@ function showMatchedMenuItem(transcript, menuItem, confidenceLevel, addedToGalle
                 <p class="text-gray-700 text-sm mb-1">Matched: <span class="font-bold ${confidenceLevel === 'Confident' ? 'text-green-600' : confidenceLevel === 'Partially Confident' ? 'text-yellow-600' : 'text-red-600'}">${menuItem}</span></p>
                 <p class="text-xs text-gray-500 mb-2">${thresholdInfo}</p>
                 
-                ${confidenceLevel === 'Not Confident' ? `
-                    <div class="mt-2 mb-2 p-2 bg-red-100 border border-red-300 rounded text-xs text-red-700">
-                        <i class="fas fa-exclamation-triangle mr-1"></i>
-                        This is a low-quality match. The item may not be what you intended.
-                    </div>
-                ` : ''}
-                
                 ${galleryBadge}
                 
                 <!-- Auto-add button -->
                 <div class="mt-2">
                     <button class="auto-add-menu-btn ${confidenceLevel === 'Confident' ? 'bg-green-600 hover:bg-green-700' : confidenceLevel === 'Partially Confident' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-xs"
-                            data-menu-item="${menuItem}"
-                            data-confidence="${confidenceLevel}">
-                        <i class="fas fa-plus mr-1"></i> Add "${menuItem}" to Order
+                            data-menu-item="${menuItem}">
+                        <i class="fas fa-plus mr-1"></i> Auto-Add "${menuItem}" to Order
                     </button>
                 </div>
             </div>
@@ -1471,8 +1509,7 @@ function showMatchedMenuItem(transcript, menuItem, confidenceLevel, addedToGalle
     if (autoAddBtn) {
         autoAddBtn.addEventListener('click', function() {
             const menuItemName = this.getAttribute('data-menu-item');
-            const confidence = this.getAttribute('data-confidence');
-            autoAddMenuItemToOrder(menuItemName, confidence, similarity);
+            autoAddMenuItemToOrder(menuItemName, confidenceLevel);
         });
     }
     
@@ -1815,10 +1852,25 @@ function processVoiceCommand(transcript) {
             
             // Try to match with utterance gallery first
             matchTranscriptWithMenuItem(productName).then(matchResult => {
-                if (matchResult && matchResult.menuItem) {
-                    // If we found a match, auto-add it
-                    autoAddMenuItemToOrder(matchResult.menuItem);
-                    feedback = `Found "${matchResult.menuItem}" in menu`;
+                if (matchResult) {
+                    if (matchResult.ambiguous) {
+                        // Show ambiguous match dialog
+                        showAmbiguousMatchDialog(matchResult.term, matchResult.products, transcript);
+                        feedback = `Found multiple ${matchResult.term} options`;
+                    } else if (matchResult.menuItem) {
+                        // If we found a match, auto-add it based on confidence
+                        const confidence = matchResult.confidence || 'Not Confident';
+                        const similarity = matchResult.similarity || 0;
+                        
+                        if (confidence === 'Confident' || confidence === 'Partially Confident') {
+                            autoAddMenuItemToOrder(matchResult.menuItem, confidence, similarity);
+                            feedback = `Added "${matchResult.menuItem}" to order`;
+                        } else {
+                            // Show match but don't auto-add
+                            showMatchedMenuItem(transcript, matchResult.menuItem, confidence, false, similarity);
+                            feedback = `Found "${matchResult.menuItem}" but confidence is low`;
+                        }
+                    }
                 } else {
                     // Fall back to old search method
                     const addButtons = document.querySelectorAll('.add-to-order-btn');
@@ -1845,9 +1897,12 @@ function processVoiceCommand(transcript) {
                 }
                 voiceFeedback.textContent = feedback;
                 
-                // Auto-stop after processing command
+                // Don't auto-stop - let user continue speaking
+                // Instead, just update feedback
                 setTimeout(() => {
-                    stopVoiceAssistant();
+                    if (isListening) {
+                        voiceFeedback.textContent = 'Listening for more commands...';
+                    }
                 }, 2000);
             });
             
@@ -1856,21 +1911,53 @@ function processVoiceCommand(transcript) {
             feedback = 'Please specify what you want to add. Example: "Add pork barbecue"';
         }
     } 
-    // ... rest of the processVoiceCommand function remains the same ...
+    // Check for other commands
+    else if (command.includes('checkout') || command.includes('pay')) {
+        showCheckoutModal();
+        feedback = 'Opening checkout...';
+    }
+    else if (command.includes('clear') || command.includes('remove') || command.includes('delete')) {
+        clearOrder();
+        feedback = 'Order cleared';
+    }
+    else if (command.includes('help')) {
+        showVoiceHelp();
+        feedback = 'Showing help';
+    }
+    else if (command.includes('stop') || command.includes('end')) {
+        stopVoiceAssistant();
+        feedback = 'Voice assistant stopped';
+        return; // Don't continue listening
+    }
     else {
         // If it's not a recognized command, try to match it as a menu item
         matchTranscriptWithMenuItem(transcript).then(matchResult => {
-            if (matchResult && matchResult.menuItem) {
-                autoAddMenuItemToOrder(matchResult.menuItem);
-                feedback = `Found "${matchResult.menuItem}" in menu`;
+            if (matchResult) {
+                if (matchResult.ambiguous) {
+                    showAmbiguousMatchDialog(matchResult.term, matchResult.products, transcript);
+                    feedback = `Found multiple ${matchResult.term} options`;
+                } else if (matchResult.menuItem) {
+                    const confidence = matchResult.confidence || 'Not Confident';
+                    const similarity = matchResult.similarity || 0;
+                    
+                    if (confidence === 'Confident' || confidence === 'Partially Confident') {
+                        autoAddMenuItemToOrder(matchResult.menuItem, confidence, similarity);
+                        feedback = `Added "${matchResult.menuItem}" to order`;
+                    } else {
+                        showMatchedMenuItem(transcript, matchResult.menuItem, confidence, false, similarity);
+                        feedback = `Found "${matchResult.menuItem}" but confidence is low`;
+                    }
+                }
             } else {
                 feedback = 'Command not recognized. Try: "Add [item]", "Show specials", "Clear order", or "Checkout"';
             }
             voiceFeedback.textContent = feedback;
             
-            // Auto-stop after processing command
+            // Don't auto-stop - let user continue speaking
             setTimeout(() => {
-                stopVoiceAssistant();
+                if (isListening) {
+                    voiceFeedback.textContent = 'Listening for more commands...';
+                }
             }, 2000);
         });
         
@@ -1880,9 +1967,11 @@ function processVoiceCommand(transcript) {
     // Update feedback for synchronous commands
     voiceFeedback.textContent = feedback;
     
-    // Auto-stop after processing command
+    // Don't auto-stop - just reset feedback after a delay
     setTimeout(() => {
-        stopVoiceAssistant();
+        if (isListening) {
+            voiceFeedback.textContent = 'Listening for more commands...';
+        }
     }, 2000);
 }
 
@@ -1890,15 +1979,25 @@ function processVoiceCommand(transcript) {
 function showVoiceHelp() {
     alert('Voice Commands:\n\n' +
           '• "Add [item name]" - Add item to cart\n' +
+          '• "Order [item name]" - Add item to cart\n' +
           '• "Show specials" - Show specials\n' +
           '• "Clear order" - Clear all items\n' +
           '• "Checkout" - Proceed to checkout\n' +
+          '• "Stop" - Stop voice assistant\n' +
           '• "Help" - Show this help\n\n' +
-          'Confidence Levels:\n' +
-          '• High (≥80% match) - Auto-adds to order\n' +
-          '• Medium (60-79% match) - Quick confirmation required\n' +
-          '• Low (40-59% match) - NOT added to order automatically\n' +
-          '• <40% match - Not recognized');
+          'Voice Assistant Tips:\n' +
+          '• Speak naturally and clearly\n' +
+          '• System listens continuously - say "Stop" when done\n' +
+          '• No need to pause between commands\n' +
+          '• Confidence Levels:\n' +
+          '  - High (≥70% match) - Auto-adds to order\n' +
+          '  - Medium (50-69% match) - Quick confirmation\n' +
+          '  - Low (<50% match) - Shows match for manual selection\n' +
+          '  - Ambiguous - Shows all options for general terms\n\n' +
+          'Examples:\n' +
+          '• "Add Beef Tapa"\n' +
+          '• "I want Chicken Wings"\n' +
+          '• "Order a latte and checkout"');
 }
 
 // ==================== CAROUSEL FUNCTIONS ====================
