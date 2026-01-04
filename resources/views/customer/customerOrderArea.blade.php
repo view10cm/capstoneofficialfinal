@@ -83,6 +83,13 @@
         .fade-in {
             animation: fadeIn 0.3s ease-in;
         }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
         
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
