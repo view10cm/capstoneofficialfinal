@@ -1306,7 +1306,7 @@ async function saveTranscript(transcript) {
             body: JSON.stringify({
                 transcribedData: transcript,
                 matchedMenuItem: matchedMenuItem,
-                confidenceLevel: confidenceLevel // Add confidence level
+                confidenceLevel: confidenceLevel
             })
         });
         
@@ -1316,20 +1316,20 @@ async function saveTranscript(transcript) {
             
             // If we found a match, show it in the UI
             if (matchedMenuItem) {
-                showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel);
+                showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, result.addedToGallery);
             }
         } else {
             console.log('Server save failed, transcript stored locally');
             // Still show match if found locally
             if (matchedMenuItem) {
-                showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel);
+                showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, false);
             }
         }
     } catch (error) {
         console.log('Could not reach server, transcript stored locally');
         // Still show match if found locally
         if (matchedMenuItem) {
-            showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel);
+            showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, false);
         }
     }
 }
@@ -1369,32 +1369,55 @@ async function matchTranscriptWithMenuItem(transcript) {
 }
 
 // NEW: Show matched menu item in UI
-function showMatchedMenuItem(transcript, menuItem, confidenceLevel) {
+ function showMatchedMenuItem(transcript, menuItem, confidenceLevel, addedToGallery = false) {
     // Create or update a display element
     let matchDisplay = document.getElementById('voice-match-display');
     
     if (!matchDisplay) {
         matchDisplay = document.createElement('div');
         matchDisplay.id = 'voice-match-display';
-        matchDisplay.className = 'mt-3 bg-green-50 border border-green-200 rounded-lg p-3 fade-in';
+        matchDisplay.className = 'mt-3 border rounded-lg p-3 fade-in';
         voiceCommandDisplay.parentNode.insertBefore(matchDisplay, voiceCommandDisplay.nextSibling);
     }
     
-    // Determine badge color based on confidence level
-    let badgeColor = 'bg-red-100 text-red-600';
-    let badgeText = 'Low Confidence';
+    // Determine styling based on confidence level with NEW thresholds
+    let containerClass = 'bg-red-50 border-red-200';
+    let badgeColor = 'bg-red-100 text-red-600 border border-red-200';
+    let badgeText = 'Low Confidence (<80%)';
+    let iconColor = 'text-red-500';
+    let thresholdInfo = 'Similarity: 40-79%';
     
     if (confidenceLevel === 'Partially Confident') {
-        badgeColor = 'bg-yellow-100 text-yellow-600';
-        badgeText = 'Medium Confidence';
+        containerClass = 'bg-yellow-50 border-yellow-200';
+        badgeColor = 'bg-yellow-100 text-yellow-600 border border-yellow-200';
+        badgeText = 'Medium Confidence (≥60%)';
+        iconColor = 'text-yellow-500';
+        thresholdInfo = 'Similarity: 60-79%';
     } else if (confidenceLevel === 'Confident') {
-        badgeColor = 'bg-green-100 text-green-600';
-        badgeText = 'High Confidence';
+        containerClass = 'bg-green-50 border-green-200';
+        badgeColor = 'bg-green-100 text-green-600 border border-green-200';
+        badgeText = 'High Confidence (≥80%)';
+        iconColor = 'text-green-500';
+        thresholdInfo = 'Similarity: 80-100%';
+    }
+    
+    // Update container class
+    matchDisplay.className = `mt-3 ${containerClass} border rounded-lg p-3 fade-in`;
+    
+    // Gallery addition badge
+    let galleryBadge = '';
+    if (addedToGallery && confidenceLevel !== 'Not Confident') {
+        galleryBadge = `
+            <div class="mt-2 flex items-center text-xs text-green-600">
+                <i class="fas fa-save mr-1"></i>
+                <span>This utterance was added to the learning database for future matches</span>
+            </div>
+        `;
     }
     
     matchDisplay.innerHTML = `
         <div class="flex items-start">
-            <div class="bg-green-100 text-green-600 p-1.5 rounded-full mr-2">
+            <div class="${iconColor} p-1.5 rounded-full mr-2">
                 <i class="fas fa-check-circle text-sm"></i>
             </div>
             <div class="flex-1">
@@ -1405,11 +1428,14 @@ function showMatchedMenuItem(transcript, menuItem, confidenceLevel) {
                     </span>
                 </div>
                 <p class="text-gray-700 text-sm mb-1">You said: "<span class="font-medium">${transcript}</span>"</p>
-                <p class="text-gray-700 text-sm">Matched: <span class="font-bold text-green-600">${menuItem}</span></p>
+                <p class="text-gray-700 text-sm mb-1">Matched: <span class="font-bold ${confidenceLevel === 'Confident' ? 'text-green-600' : confidenceLevel === 'Partially Confident' ? 'text-yellow-600' : 'text-red-600'}">${menuItem}</span></p>
+                <p class="text-xs text-gray-500 mb-2">${thresholdInfo}</p>
+                
+                ${galleryBadge}
                 
                 <!-- Auto-add button -->
                 <div class="mt-2">
-                    <button class="auto-add-menu-btn bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-xs"
+                    <button class="auto-add-menu-btn ${confidenceLevel === 'Confident' ? 'bg-green-600 hover:bg-green-700' : confidenceLevel === 'Partially Confident' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-xs"
                             data-menu-item="${menuItem}">
                         <i class="fas fa-plus mr-1"></i> Auto-Add "${menuItem}" to Order
                     </button>
@@ -1423,11 +1449,11 @@ function showMatchedMenuItem(transcript, menuItem, confidenceLevel) {
     if (autoAddBtn) {
         autoAddBtn.addEventListener('click', function() {
             const menuItemName = this.getAttribute('data-menu-item');
-            autoAddMenuItemToOrder(menuItemName);
+            autoAddMenuItemToOrder(menuItemName, confidenceLevel);
         });
     }
     
-    // Auto-hide after 5 seconds
+    // Auto-hide after 7 seconds (longer to show gallery addition message)
     setTimeout(() => {
         if (matchDisplay && matchDisplay.parentNode) {
             matchDisplay.classList.add('hidden');
@@ -1437,12 +1463,38 @@ function showMatchedMenuItem(transcript, menuItem, confidenceLevel) {
                 }
             }, 500);
         }
-    }, 5000);
+    }, 7000);
 }
 
 // NEW: Auto-add menu item to order
-function autoAddMenuItemToOrder(menuItemName) {
-    console.log('Attempting to auto-add:', menuItemName);
+    async function autoAddMenuItemToOrder(menuItemName, confidenceLevel) {
+    console.log('Attempting to auto-add:', menuItemName, 'with confidence:', confidenceLevel);
+    
+    // NEW LOWERED THRESHOLDS:
+    // - Confident (≥80%): Add automatically
+    // - Partially Confident (60-79%): Quick confirmation
+    // - Not Confident (40-59%): Full confirmation
+    
+    if (confidenceLevel === 'Not Confident') {
+        // For 40-59% similarity, ask for confirmation
+        if (!confirm(`Low confidence match: "${menuItemName}".\n\nThis match has 40-59% similarity.\nAdd to order anyway?`)) {
+            voiceFeedback.textContent = 'Cancelled adding item to order';
+            voiceFeedback.style.color = '#EF4444';
+            return;
+        }
+    }
+    
+    if (confidenceLevel === 'Partially Confident') {
+        // For 60-79% similarity, show a less intrusive confirmation
+        const confirmed = await showPartialConfirmation(menuItemName, '60-79%');
+        if (!confirmed) {
+            voiceFeedback.textContent = 'Cancelled adding item to order';
+            voiceFeedback.style.color = '#EF4444';
+            return;
+        }
+    }
+    
+    // For Confident (≥80%), add automatically without confirmation
     
     // Search for matching product in the current view
     const addButtons = document.querySelectorAll('.add-to-order-btn');
@@ -1459,8 +1511,17 @@ function autoAddMenuItemToOrder(menuItemName) {
             const image = btn.getAttribute('data-image');
             addToOrder(name, price, category, image);
             
-            // Show success feedback
-            voiceFeedback.textContent = `Successfully added "${name}" to order!`;
+            // Show success feedback with confidence level
+            let confidenceText = '';
+            if (confidenceLevel === 'Confident') {
+                confidenceText = ' (High confidence - ≥80% match)';
+            } else if (confidenceLevel === 'Partially Confident') {
+                confidenceText = ' (Medium confidence - 60-79% match)';
+            } else {
+                confidenceText = ' (Low confidence - 40-59% match)';
+            }
+            
+            voiceFeedback.textContent = `Added "${name}" to order${confidenceText}`;
             voiceFeedback.style.color = '#10B981';
             
             found = true;
@@ -1483,7 +1544,11 @@ function autoAddMenuItemToOrder(menuItemName) {
             menuItemName.toLowerCase().includes('latte') ||
             menuItemName.toLowerCase().includes('espresso') ||
             menuItemName.toLowerCase().includes('mocha') ||
-            menuItemName.toLowerCase().includes('americano')) {
+            menuItemName.toLowerCase().includes('americano') ||
+            menuItemName.toLowerCase().includes('choco') ||
+            menuItemName.toLowerCase().includes('caramel') ||
+            menuItemName.toLowerCase().includes('vanilla') ||
+            menuItemName.toLowerCase().includes('matcha')) {
             categoryToLoad = 'drinks';
         } else if (menuItemName.toLowerCase().includes('salad') ||
                   menuItemName.toLowerCase().includes('nachos') ||
@@ -1495,7 +1560,15 @@ function autoAddMenuItemToOrder(menuItemName) {
         } else if (menuItemName.toLowerCase().includes('pasta') ||
                   menuItemName.toLowerCase().includes('noodles') ||
                   menuItemName.toLowerCase().includes('lasagna') ||
-                  menuItemName.toLowerCase().includes('paella')) {
+                  menuItemName.toLowerCase().includes('paella') ||
+                  menuItemName.toLowerCase().includes('crispy') ||
+                  menuItemName.toLowerCase().includes('grilled') ||
+                  menuItemName.toLowerCase().includes('roasted') ||
+                  menuItemName.toLowerCase().includes('pork') ||
+                  menuItemName.toLowerCase().includes('chicken') ||
+                  menuItemName.toLowerCase().includes('beef') ||
+                  menuItemName.toLowerCase().includes('seafood') ||
+                  menuItemName.toLowerCase().includes('fish')) {
             categoryToLoad = 'main-course';
         }
         
@@ -1532,6 +1605,61 @@ function autoAddMenuItemToOrder(menuItemName) {
             }, 1000); // Wait for category to load
         }
     }
+}
+
+
+function showPartialConfirmation(menuItemName, similarityRange) {
+    return new Promise((resolve) => {
+        // Create confirmation modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg p-6 max-w-sm mx-4 animate__animated animate__fadeIn">
+                <div class="flex items-center mb-4">
+                    <div class="bg-yellow-100 text-yellow-600 p-2 rounded-full mr-3">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800">Medium Confidence Match</h3>
+                </div>
+                <p class="text-gray-600 mb-4">
+                    This match has <span class="font-bold">${similarityRange} similarity</span>.
+                    <br><br>
+                    Match: <span class="font-bold text-yellow-600">"${menuItemName}"</span>
+                    <br><br>
+                    Do you want to add this to your order?
+                </p>
+                <div class="flex space-x-3">
+                    <button id="cancel-partial" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg font-medium transition-colors">
+                        No, Cancel
+                    </button>
+                    <button id="confirm-partial" class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white py-2 rounded-lg font-medium transition-colors">
+                        Yes, Add to Order
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Add event listeners
+        modal.querySelector('#cancel-partial').addEventListener('click', () => {
+            modal.remove();
+            resolve(false);
+        });
+        
+        modal.querySelector('#confirm-partial').addEventListener('click', () => {
+            modal.remove();
+            resolve(true);
+        });
+        
+        // Close on outside click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+                resolve(false);
+            }
+        });
+    });
 }
 
 // Process voice commands
@@ -1630,9 +1758,13 @@ function showVoiceHelp() {
           '• "Show specials" - Show specials\n' +
           '• "Clear order" - Clear all items\n' +
           '• "Checkout" - Proceed to checkout\n' +
-          '• "Help" - Show this help');
+          '• "Help" - Show this help\n\n' +
+          'Confidence Levels:\n' +
+          '• High (≥80% match) - Auto-adds\n' +
+          '• Medium (60-79% match) - Quick confirm\n' +
+          '• Low (40-59% match) - Full confirm\n' +
+          '• <40% match - Not added');
 }
-
 // ==================== CAROUSEL FUNCTIONS ====================
 
 // Update carousel indicators
