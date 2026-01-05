@@ -667,18 +667,7 @@
                             <span class="text-[10px] opacity-90 leading-tight mt-0.5">QR Code</span>
                         </button>
                     </div>
-                    {{-- <!-- Payment Method Info -->
-                    <div id="payment-info" class="mt-2 text-xs text-gray-600 p-2 bg-green-50 rounded border border-green-100">
-                        <i class="fas fa-money-bill-wave text-green-500 mr-1"></i>
-                        <span>Cash payment selected. Pay at the counter.</span>
-                    </div> --}}
                 </div>
-                
-                {{-- <!-- Order Type Info -->
-                <div id="order-type-info" class="mb-4 text-xs text-gray-600 p-2 bg-blue-50 rounded border border-blue-100">
-                    <i class="fas fa-info-circle text-blue-500 mr-1"></i>
-                    <span>Dine-in selected. Your order will be served at your table.</span>
-                </div> --}}
                 
                 <div id="order-items-container" class="order-items-container mb-4">
                     <!-- Empty State -->
@@ -708,34 +697,17 @@
                     <textarea id="order-notes" rows="2" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm" placeholder="Special instructions..."></textarea>
                 </div>
 
-                <!-- Order Totals -->
+                <!-- Order Totals (Tax removed) -->
                 <div class="space-y-2 mb-4">
                     <div class="flex justify-between text-gray-600 text-sm">
                         <span>Subtotal:</span>
                         <span id="subtotal">₱0.00</span>
-                    </div>
-                    <div class="flex justify-between text-gray-600 text-sm">
-                        <span>Tax (12%):</span>
-                        <span id="tax">₱0.00</span>
                     </div>
                     <div class="flex justify-between font-bold text-gray-800 pt-2 border-t border-gray-300">
                         <span>Total:</span>
                         <span id="total">₱0.00</span>
                     </div>
                 </div>
-                
-                {{-- <!-- Order Status -->
-                <div class="mb-4">
-                    <div class="flex items-center justify-between mb-1">
-                        <h4 class="font-bold text-gray-800 text-sm">
-                            <i class="fas fa-clock text-red-500 mr-1"></i> Wait Time
-                        </h4>
-                        <span id="estimated-time" class="font-bold text-red-600 text-sm">15-20 mins</span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-1.5">
-                        <div id="time-progress" class="bg-red-500 h-1.5 rounded-full" style="width: 30%"></div>
-                    </div>
-                </div> --}}
                 
                 <!-- Action Buttons -->
                 <div class="space-y-2">
@@ -746,13 +718,6 @@
                         <i class="fas fa-check-circle mr-2"></i> Checkout
                     </button>
                 </div>
-                
-                {{-- <!-- Footer Note -->
-                <div class="mt-4 pt-3 border-t border-gray-300">
-                    <p class="text-xs text-gray-500 text-center">
-                        <i class="fas fa-shield-alt mr-1"></i> Secure checkout
-                    </p>
-                </div> --}}
             </div>
         </div>
     </div>

@@ -33,7 +33,6 @@ const subcategoryMap = {
 
 // Order data
 let orderItems = [];
-const TAX_RATE = 0.12;
 let orderType = 'dine-in'; // Default order type
 let paymentMethod = 'cash'; // Default payment method
 
@@ -51,7 +50,7 @@ let totalSlides = 1;
 let allSlides = []; // Store all slide HTML
 
 // Get DOM elements
-let upperNavBtns, lowerNav, orderItemsList, emptyOrder, subtotalElement, taxElement, totalElement;
+let upperNavBtns, lowerNav, orderItemsList, emptyOrder, subtotalElement, totalElement;
 let estimatedTime, timeProgress, clearOrderBtn, checkoutBtn, voiceStartBtn, voiceStopBtn;
 let voiceHelpBtn, voiceStatus, voiceFeedback, voiceCommandDisplay, voiceTranscript;
 let orderTypeDropdown, cashBtn, electronicBtn, orderTypeInfo, paymentInfo;
@@ -69,7 +68,6 @@ function initializeDOMElements() {
     orderItemsList = document.getElementById('order-items-list');
     emptyOrder = document.getElementById('empty-order');
     subtotalElement = document.getElementById('subtotal');
-    taxElement = document.getElementById('tax');
     totalElement = document.getElementById('total');
     estimatedTime = document.getElementById('estimated-time');
     timeProgress = document.getElementById('time-progress');
@@ -166,10 +164,6 @@ function createCheckoutModal() {
                             <div class="flex justify-between text-gray-600 text-sm">
                                 <span>Subtotal:</span>
                                 <span id="modal-subtotal">₱0.00</span>
-                            </div>
-                            <div class="flex justify-between text-gray-600 text-sm">
-                                <span>Tax (12%):</span>
-                                <span id="modal-tax">₱0.00</span>
                             </div>
                             <div class="flex justify-between font-bold text-gray-800 pt-2 border-t border-gray-300 text-lg">
                                 <span>Total:</span>
@@ -755,16 +749,15 @@ async function confirmPaymentQueue() {
         items: []
     };
     
-    // Calculate totals for each item
+    // Calculate totals for each item (no tax calculation)
     orderItems.forEach(item => {
         const itemTotalPrice = item.price * item.quantity;
-        const itemTax = itemTotalPrice * TAX_RATE;
         
         orderData.items.push({
             productName: item.name,
             quantity: item.quantity,
             totalProductPrice: itemTotalPrice,
-            totalProductTax: itemTax
+            totalProductTax: 0.00 // Set tax to zero
         });
     });
     
@@ -836,8 +829,7 @@ function calculateOrderTotal() {
     orderItems.forEach(item => {
         subtotal += item.price * item.quantity;
     });
-    const tax = subtotal * TAX_RATE;
-    return subtotal + tax;
+    return subtotal; // Return just subtotal (no tax)
 }
 
 // Update modal content
@@ -870,16 +862,14 @@ function updateModalContent() {
     const notes = document.getElementById('order-notes').value;
     document.getElementById('modal-order-notes').textContent = notes || 'No special instructions';
     
-    // Update totals
+    // Update totals (no tax calculation)
     let subtotal = 0;
     orderItems.forEach(item => {
         subtotal += item.price * item.quantity;
     });
-    const tax = subtotal * TAX_RATE;
-    const total = subtotal + tax;
+    const total = subtotal; // Total is just subtotal
     
     document.getElementById('modal-subtotal').textContent = formatPrice(subtotal);
-    document.getElementById('modal-tax').textContent = formatPrice(tax);
     document.getElementById('modal-total').textContent = formatPrice(total);
 }
 
@@ -951,11 +941,9 @@ function calculateTotals() {
         subtotal += item.price * item.quantity;
     });
 
-    const tax = subtotal * TAX_RATE;
-    const total = subtotal + tax;
+    const total = subtotal; // Total is now just subtotal without tax
 
     subtotalElement.textContent = formatPrice(subtotal);
-    taxElement.textContent = formatPrice(tax);
     totalElement.textContent = formatPrice(total);
 
     // Update item count
@@ -2385,7 +2373,7 @@ function initializeApp() {
     console.log('Initializing app...');
     
     try {
-        // Initialize DOM elements
+        // Initialize DOM elements (removed taxElement from here)
         initializeDOMElements();
         
         // Create checkout modal
