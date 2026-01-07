@@ -109,40 +109,75 @@ class StaffOrderController extends Controller
     }
 
     // Cancel order
-    public function cancelOrder(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'orderID' => 'required|string',
-            'paymentNumber' => 'required|string'
-        ]);
+public function cancelOrder(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'orderID' => 'required|string',
+        'paymentNumber' => 'required|string',
+        'adminPassword' => 'required|string'
+    ]);
 
-        if ($validator->fails()) {
+    if ($validator->fails()) {
+        return response()->json([
+            'error' => 'Validation failed',
+            'messages' => $validator->errors()
+        ], 422);
+    }
+
+    try {
+        $data = $validator->validated();
+        
+        // Verify admin password
+        $adminUser = DB::table('users')
+            ->where('role', 'Admin')
+            ->first();
+        
+        if (!$adminUser) {
             return response()->json([
-                'error' => 'Validation failed',
-                'messages' => $validator->errors()
-            ], 422);
+                'error' => 'No admin user found',
+                'message' => 'Cannot verify admin password'
+            ], 403);
         }
+        
+        // Verify password (using Laravel's Hash::check)
+        if (!Hash::check($data['adminPassword'], $adminUser->password)) {
+            return response()->json([
+                'error' => 'Invalid admin password',
+                'message' => 'The provided admin password is incorrect'
+            ], 401);
+        }
+        
+        // Update order status to "Cancelled" 
+        // Note: Make sure "Cancelled" is in your order_to_staff_transaction table's orderProductStatus enum
+        $updated = DB::table('order_to_staff_transaction')
+            ->where('orderID', $data['orderID'])
+            ->where('paymentNumber', $data['paymentNumber'])
+            ->update(['orderProductStatus' => 'Cancelled']);
 
-        try {
-            $data = $validator->validated();
-            
-            // Update order status to cancelled
-            DB::table('order_to_staff_transaction')
-                ->where('orderID', $data['orderID'])
-                ->where('paymentNumber', $data['paymentNumber'])
-                ->update(['orderProductStatus' => 'To Follow-up']);
-
+        if ($updated) {
             return response()->json([
                 'success' => true,
-                'message' => 'Order cancelled successfully'
+                'message' => 'Order cancelled successfully',
+                'updated_count' => $updated
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Failed to cancel order',
-                'message' => $e->getMessage()
-            ], 500);
         }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Order not found'
+        ], 404);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error cancelling order: ' . $e->getMessage());
+        \Log::error('Stack trace: ' . $e->getTraceAsString());
+        
+        return response()->json([
+            'error' => 'Failed to cancel order',
+            'message' => $e->getMessage(),
+            'details' => 'Check if "Cancelled" is in the orderProductStatus enum values'
+        ], 500);
     }
+}
 
     // Void products
     public function voidProducts(Request $request)

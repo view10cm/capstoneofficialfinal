@@ -1403,7 +1403,53 @@
             currentVoidOrderData = {
                 orderId: orderId,
                 paymentNumber: paymentNumber,
-                selectedProducts: selectedProducts
+                selectedProducts: selectedProducts,
+                actionType: 'void'
+            };
+            
+            // Open modal
+            adminPasswordModal.classList.remove('hidden');
+            adminPasswordModal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            
+            // Focus on password input
+            setTimeout(() => {
+                adminPasswordInput.focus();
+            }, 100);
+        }
+        
+        // Function to open admin password modal for cancel order
+        function openAdminPasswordModalForCancel(orderId, paymentNumber) {
+            // Set modal values
+            adminModalOrderId.textContent = orderId;
+            adminModalPaymentNumber.textContent = paymentNumber;
+            adminModalProductCount.textContent = 'All Products'; // Since we're cancelling the entire order
+            
+            // Reset form
+            adminPasswordInput.value = '';
+            adminPasswordError.classList.add('hidden');
+            adminErrorElement.textContent = '';
+            
+            // Update modal title and text for cancel order
+            const modalTitle = document.querySelector('#admin-password-modal h2');
+            const warningText = document.querySelector('#admin-password-modal .text-red-300');
+            
+            if (modalTitle) modalTitle.textContent = 'Confirm Order Cancellation';
+            if (warningText) warningText.textContent = 'Confirm Order Cancellation';
+            
+            // Update confirm button text
+            const confirmButton = document.querySelector('#confirm-admin-auth');
+            if (confirmButton) {
+                confirmButton.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Confirm Cancel';
+                confirmButton.classList.remove('bg-red-700', 'hover:bg-red-600');
+                confirmButton.classList.add('bg-amber-700', 'hover:bg-amber-600');
+            }
+            
+            // Store current order data with action type
+            currentVoidOrderData = {
+                orderId: orderId,
+                paymentNumber: paymentNumber,
+                actionType: 'cancel' // Differentiate from void action
             };
             
             // Open modal
@@ -1422,6 +1468,20 @@
             adminPasswordModal.classList.remove('flex');
             adminPasswordModal.classList.add('hidden');
             document.body.style.overflow = 'auto';
+            
+            // Reset modal content
+            const modalTitle = document.querySelector('#admin-password-modal h2');
+            const warningText = document.querySelector('#admin-password-modal .text-red-300');
+            const confirmButton = document.querySelector('#confirm-admin-auth');
+            
+            if (modalTitle) modalTitle.textContent = 'Admin Authorization Required';
+            if (warningText) warningText.textContent = 'Confirm Product Voiding';
+            if (confirmButton) {
+                confirmButton.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Confirm Void';
+                confirmButton.classList.remove('bg-amber-700', 'hover:bg-amber-600');
+                confirmButton.classList.add('bg-red-700', 'hover:bg-red-600');
+            }
+            
             currentVoidOrderData = null;
         }
         
@@ -1977,21 +2037,8 @@
                         return;
                     }
                     
-                    try {
-                        await apiCall('/api/staff/orders/cancel', 'POST', {
-                            orderID: orderId,
-                            paymentNumber: paymentNumber
-                        });
-                    } catch (error) {
-                        console.error('Error cancelling order:', error);
-                        showStatusMessage('Error cancelling order', 'bg-red-600');
-                        return;
-                    }
-                    
-                    showStatusMessage(`Order ${orderId} (Payment #${paymentNumber}) cancelled!`, 'bg-amber-600');
-                    
-                    // Reload orders
-                    loadOrders();
+                    // Open admin password modal for cancel order
+                    openAdminPasswordModalForCancel(orderId, paymentNumber);
                 });
             });
             
@@ -2118,67 +2165,88 @@
                 return;
             }
             
-            const { orderId, paymentNumber, selectedProducts } = currentVoidOrderData;
+            const { orderId, paymentNumber, selectedProducts, actionType } = currentVoidOrderData;
             
             // Disable button and show loading state
             this.disabled = true;
             this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
             
             try {
-                // Call API to verify password and void products
-                await apiCall('/api/staff/orders/void-products', 'POST', {
-                    orderID: orderId,
-                    paymentNumber: paymentNumber,
-                    items: selectedProducts,
-                    status: 'Product Voided',
-                    adminPassword: password
-                });
-                
-                // Success - close modal and proceed with voiding
-                closeAdminPasswordModal();
-                
-                // Animate removal of selected items
-                const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
-                Array.from(itemCheckboxes)
-                    .filter(checkbox => checkbox.checked)
-                    .forEach(checkbox => {
-                        const itemIndex = checkbox.getAttribute('data-item-index');
-                        const itemElement = document.getElementById(`item-${orderId}-${paymentNumber}-${itemIndex}`);
-                        if (itemElement) {
-                            itemElement.classList.add('item-removing');
-                        }
+                if (actionType === 'cancel') {
+                    // Handle cancel order
+                    await apiCall('/api/staff/orders/cancel', 'POST', {
+                        orderID: orderId,
+                        paymentNumber: paymentNumber,
+                        adminPassword: password
                     });
-                
-                // Wait for animation to complete
-                setTimeout(async () => {
-                    // Get the indices of selected items for local removal
-                    const selectedIndices = Array.from(itemCheckboxes)
+                    
+                    // Success - close modal
+                    closeAdminPasswordModal();
+                    
+                    // Show success message
+                    showStatusMessage(`Order ${orderId} (Payment #${paymentNumber}) cancelled successfully!`, 'bg-green-600');
+                    
+                    // Reload orders
+                    setTimeout(() => {
+                        loadOrders();
+                    }, 1000);
+                    
+                } else {
+                    // Handle void products (original logic)
+                    await apiCall('/api/staff/orders/void-products', 'POST', {
+                        orderID: orderId,
+                        paymentNumber: paymentNumber,
+                        items: selectedProducts,
+                        status: 'Product Voided',
+                        adminPassword: password
+                    });
+                    
+                    // Success - close modal and proceed with voiding
+                    closeAdminPasswordModal();
+                    
+                    // Animate removal of selected items
+                    const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    Array.from(itemCheckboxes)
                         .filter(checkbox => checkbox.checked)
-                        .map(checkbox => parseInt(checkbox.getAttribute('data-item-index')));
+                        .forEach(checkbox => {
+                            const itemIndex = checkbox.getAttribute('data-item-index');
+                            const itemElement = document.getElementById(`item-${orderId}-${paymentNumber}-${itemIndex}`);
+                            if (itemElement) {
+                                itemElement.classList.add('item-removing');
+                            }
+                        });
                     
-                    // Remove items from local data
-                    const orderRemoved = removeItemsFromOrder(orderId, paymentNumber, selectedIndices.map(i => i.toString()));
-                    
-                    // Reset void state
-                    setOrderVoidState(orderId, paymentNumber, false);
-                    
-                    // Clear checkboxes for this order
-                    const allItemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
-                    
-                    allItemCheckboxes.forEach(itemCheckbox => {
-                        const itemIndex = itemCheckbox.getAttribute('data-item-index');
-                        const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
-                        checkedItemsState.set(itemKey, false);
-                    });
-                    
-                    // Update pagination and re-render
-                    totalPages = Math.ceil(allOrders.length / ordersPerPage);
-                    updatePagination();
-                    renderOrders();
-                    
-                    showStatusMessage(`${selectedProducts.length} product(s) voided successfully`, 'bg-green-600');
-                    
-                }, 300);
+                    // Wait for animation to complete
+                    setTimeout(async () => {
+                        // Get the indices of selected items for local removal
+                        const selectedIndices = Array.from(itemCheckboxes)
+                            .filter(checkbox => checkbox.checked)
+                            .map(checkbox => parseInt(checkbox.getAttribute('data-item-index')));
+                        
+                        // Remove items from local data
+                        const orderRemoved = removeItemsFromOrder(orderId, paymentNumber, selectedIndices.map(i => i.toString()));
+                        
+                        // Reset void state
+                        setOrderVoidState(orderId, paymentNumber, false);
+                        
+                        // Clear checkboxes for this order
+                        const allItemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                        
+                        allItemCheckboxes.forEach(itemCheckbox => {
+                            const itemIndex = itemCheckbox.getAttribute('data-item-index');
+                            const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                            checkedItemsState.set(itemKey, false);
+                        });
+                        
+                        // Update pagination and re-render
+                        totalPages = Math.ceil(allOrders.length / ordersPerPage);
+                        updatePagination();
+                        renderOrders();
+                        
+                        showStatusMessage(`${selectedProducts.length} product(s) voided successfully`, 'bg-green-600');
+                        
+                    }, 300);
+                }
                 
             } catch (error) {
                 console.warn('API call failed:', error);
@@ -2192,7 +2260,9 @@
                 
                 // Reset button state
                 this.disabled = false;
-                this.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Confirm Void';
+                this.innerHTML = actionType === 'cancel' 
+                    ? '<i class="fas fa-check-circle mr-2"></i> Confirm Cancel'
+                    : '<i class="fas fa-check-circle mr-2"></i> Confirm Void';
                 
                 // Clear password field
                 adminPasswordInput.value = '';
