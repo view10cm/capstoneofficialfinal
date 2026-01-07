@@ -711,7 +711,20 @@
                 
                 <!-- Amount Details -->
                 <div class="bg-gray-900 p-4 rounded-lg">
-                    <div class="flex justify-between items-center pt-2">
+                    <!-- Vatable Sales (89.3% of Total) -->
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-300">Vatable Sales:</span>
+                        <span class="text-amber-300 font-medium" id="modal-vatable-sales">₱0.00</span>
+                    </div>
+                    
+                    <!-- Tax (10.7% of Total) -->
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-gray-300">Tax (10.7%):</span>
+                        <span class="text-amber-300 font-medium" id="modal-tax">₱0.00</span>
+                    </div>
+                    
+                    <!-- Total Amount -->
+                    <div class="flex justify-between items-center mt-4 pt-3 border-t border-gray-700">
                         <span class="text-white font-semibold">Total Amount:</span>
                         <span class="text-green-400 font-bold text-lg" id="modal-total">₱0.00</span>
                     </div>
@@ -797,10 +810,16 @@
             const tax = subtotal * order.taxRate;
             const total = subtotal; // REMOVED TAX: total is now just subtotal without tax
             
+            // Calculate vatable sales (89.3% of total) and tax (10.7% of total)
+            const vatableSales = total * 0.893; // 100% - 10.7% = 89.3%
+            const tax10_7 = total * 0.107; // 10.7% of total
+            
             return {
                 subtotal: subtotal,
                 tax: tax,
-                total: total // This is now the subtotal (no tax included)
+                total: total, // This is now the subtotal (no tax included)
+                vatableSales: vatableSales,
+                tax10_7: tax10_7
             };
         }
         
@@ -831,10 +850,16 @@
             const tax = subtotal * order.taxRate;
             const total = subtotal; // REMOVED TAX: total is now just subtotal without tax
             
+            // Calculate vatable sales (89.3% of total) and tax (10.7% of total)
+            const vatableSales = total * 0.893; // 100% - 10.7% = 89.3%
+            const tax10_7 = total * 0.107; // 10.7% of total
+            
             return {
                 subtotal: subtotal,
                 tax: tax,
                 total: total, // This is now the subtotal (no tax included)
+                vatableSales: vatableSales,
+                tax10_7: tax10_7,
                 remainingItems: remainingItems
             };
         }
@@ -1190,6 +1215,13 @@
             // Display total WITHOUT tax
             document.getElementById('modal-total').textContent = formatCurrency(subtotal); // Use subtotal instead of total (which includes tax)
             
+            // Calculate and display vatable sales and tax
+            const vatableSales = subtotal * 0.893; // 89.3% of total
+            const tax10_7 = subtotal * 0.107; // 10.7% of total
+            
+            document.getElementById('modal-vatable-sales').textContent = formatCurrency(vatableSales);
+            document.getElementById('modal-tax').textContent = formatCurrency(tax10_7);
+            
             // Render products in modal (only selected ones)
             renderProductsInModal(orderId, paymentNumber, items, selectedItems);
             
@@ -1476,10 +1508,22 @@
                             <!-- Total to Pay Section (WITHOUT TAX) -->
                             ${hasItems ? `
                             <div class="price-section">
+                                <!-- Vatable Sales (89.3% of Total) -->
+                                <div class="price-item">
+                                    <span class="text-gray-300">Vatable Sales: </span>
+                                    <span class="text-amber-300 font-medium">${formatCurrency(totals.vatableSales)}</span>
+                                </div>
+                                
+                                <!-- Tax (10.7% of Total) -->
+                                <div class="price-item">
+                                    <span class="text-gray-300">Tax: </span>
+                                    <span class="text-amber-300 font-medium">${formatCurrency(totals.tax10_7)}</span>
+                                </div>
+                                
                                 <!-- Total to Pay (WITHOUT TAX) -->
                                 <div class="price-item total-row">
                                     <span class="text-white">Total to Pay:</span>
-                                    <span class="text-green-400 font-bold">${formatCurrency(totals.subtotal)}</span>
+                                    <span class="text-green-400 font-bold">${formatCurrency(totals.total)}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -1942,6 +1986,10 @@
             const amountPaid = parseFloat(amountPaidInput.value);
             const referenceNumber = referenceInput.value.trim();
             
+            // Calculate vatable sales and tax for this payment
+            const vatableSales = totalAmount * 0.893;
+            const tax10_7 = totalAmount * 0.107;
+            
             // Validate amount paid
             if (!amountPaid || amountPaid < totalAmount) {
                 showStatusMessage('Amount paid must be equal to or greater than total amount', 'bg-red-600');
@@ -2047,6 +2095,8 @@
                     products: productsData,
                     amountPaid: amountPaid,
                     changeAmount: change,
+                    vatableSales: vatableSales, // Add vatable sales
+                    tax10_7: tax10_7, // Add tax
                     referenceNumber: referenceNumber || null,
                     staffName: '{{ auth()->user()->name ?? "Staff Member" }}'
                 };
