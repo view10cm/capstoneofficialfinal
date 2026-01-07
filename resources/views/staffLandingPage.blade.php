@@ -483,6 +483,69 @@
         .password-show {
             display: block;
         }
+        /* Add Products Button Styles */
+        .add-products-btn {
+            background-color: #4C1D95;
+            transition: all 0.2s ease;
+        }
+        .add-products-btn:hover {
+            background-color: #5B21B6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .add-products-btn:active {
+            transform: translateY(0);
+        }
+        /* Add Products Modal Styles */
+        #add-products-modal .modal-content {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        .product-card {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        .selected-product-item {
+            transition: all 0.2s ease;
+        }
+        .selected-product-item:hover {
+            background-color: rgba(55, 65, 81, 0.8);
+        }
+        .category-btn.active {
+            background-color: #2563EB !important;
+            color: white !important;
+        }
+        .category-btn:not(.active):hover {
+            background-color: #4B5563 !important;
+        }
+        /* Scrollbar styling for product lists */
+        #products-grid::-webkit-scrollbar,
+        #selected-products-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        #products-grid::-webkit-scrollbar-track,
+        #selected-products-list::-webkit-scrollbar-track {
+            background: #1F2937;
+            border-radius: 3px;
+        }
+        #products-grid::-webkit-scrollbar-thumb,
+        #selected-products-list::-webkit-scrollbar-thumb {
+            background-color: #4B5563;
+            border-radius: 3px;
+        }
+        /* Quantity controls */
+        #quantity-controls button {
+            transition: all 0.2s ease;
+        }
+        #quantity-controls button:hover:not(:disabled) {
+            transform: scale(1.1);
+        }
+        #quantity-controls button:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col min-h-screen">
@@ -899,6 +962,161 @@
         </div>
     </div>
 
+    <!-- Modal for Add Products -->
+    <div id="add-products-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white">Add Products to Order</h2>
+                <button id="close-add-products" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left Column: Product Selection -->
+                <div class="lg:col-span-2 space-y-4">
+                    <!-- Search Bar -->
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="product-search"
+                            placeholder="Search products by name, category, or ID..."
+                            class="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                        >
+                        <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <i class="fas fa-search"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Product Categories -->
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button class="category-btn active bg-blue-600 text-white px-4 py-2 rounded-lg text-sm" data-category="all">
+                            All Products
+                        </button>
+                        <button class="category-btn bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-600" data-category="main-course">
+                            Main Course
+                        </button>
+                        <button class="category-btn bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-600" data-category="appetizers">
+                            Appetizers
+                        </button>
+                        <button class="category-btn bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm hover:bg-gray-600" data-category="drinks">
+                            Drinks
+                        </button>
+                    </div>
+                    
+                    <!-- Products Grid -->
+                    <div class="bg-gray-900 rounded-lg p-4">
+                        <h3 class="text-white font-medium mb-3">Available Products</h3>
+                        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-96 overflow-y-auto p-2">
+                            <!-- Products will be loaded here -->
+                            <div class="text-center text-gray-500 py-8">
+                                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                                <p>Loading products...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column: Selected Products & Order Details -->
+                <div class="space-y-4">
+                    <!-- Order Information -->
+                    <div class="bg-gray-900 rounded-lg p-4">
+                        <h3 class="text-white font-medium mb-2">Order Details</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Order ID:</span>
+                                <span class="text-white font-medium" id="modal-order-id-display">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Payment #:</span>
+                                <span class="text-white font-medium" id="modal-payment-number-display">-</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Current Items:</span>
+                                <span class="text-blue-400 font-medium" id="modal-current-items">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Selected Products -->
+                    <div class="bg-gray-900 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-white font-medium">Selected Products</h3>
+                            <button id="clear-selection" class="text-red-400 hover:text-red-300 text-sm">
+                                <i class="fas fa-trash-alt mr-1"></i> Clear All
+                            </button>
+                        </div>
+                        <div id="selected-products-list" class="space-y-2 max-h-48 overflow-y-auto mb-4">
+                            <div class="text-center text-gray-500 py-4">
+                                <i class="fas fa-shopping-cart text-lg mb-2"></i>
+                                <p class="text-sm">No products selected</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Quantity Controls -->
+                        <div id="quantity-controls" class="space-y-3 hidden">
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-300 text-sm">Selected Product:</span>
+                                <span class="text-white font-medium" id="selected-product-name">-</span>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <button id="decrease-qty" class="bg-gray-700 hover:bg-gray-600 w-8 h-8 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-minus text-white"></i>
+                                </button>
+                                <span id="quantity-display" class="text-white font-bold text-lg">1</span>
+                                <button id="increase-qty" class="bg-gray-700 hover:bg-gray-600 w-8 h-8 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-plus text-white"></i>
+                                </button>
+                                <button id="update-qty" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
+                                    Update
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes Section -->
+                    <div class="space-y-2">
+                        <label class="block text-gray-300 text-sm font-medium">Product Notes (Optional)</label>
+                        <textarea 
+                            id="product-notes"
+                            placeholder="Add special instructions for this product..."
+                            rows="3"
+                            class="w-full bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition resize-none"
+                        ></textarea>
+                    </div>
+                    
+                    <!-- Total Amount -->
+                    <div class="bg-gray-900 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-300">Subtotal:</span>
+                            <span class="text-amber-300 font-medium" id="subtotal-display">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-gray-300">VAT (10.7%):</span>
+                            <span class="text-amber-300 font-medium" id="vat-display">₱0.00</span>
+                        </div>
+                        <div class="flex justify-between items-center pt-3 border-t border-gray-700">
+                            <span class="text-white font-semibold">Total:</span>
+                            <span class="text-green-400 font-bold text-lg" id="total-display">₱0.00</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-3 pt-4 border-t border-gray-700">
+                        <button id="cancel-add-products" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white px-4 py-3 rounded-lg transition font-medium">
+                            Cancel
+                        </button>
+                        <button id="confirm-add-products" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition font-medium">
+                            <i class="fas fa-plus-circle mr-2"></i>
+                            Add to Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="{{ asset('js/staff/staff-landing-page.js') }}"></script>
+    <script src="{{ asset('js/staff/add-products.js') }}"></script>
 </body>
 </html>
