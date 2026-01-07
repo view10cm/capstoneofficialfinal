@@ -1,4 +1,4 @@
-        // Order data will be loaded from the server
+// Order data will be loaded from the server
         let allOrders = [];
         
         // Store checked items state
@@ -887,6 +887,14 @@
                                 Order Empty
                             </button>
                             `}
+                            
+                            <!-- Add Products Button -->
+                            <button class="add-products-btn w-full bg-indigo-700 hover:bg-indigo-800 text-white font-medium py-3 rounded-lg transition" 
+                                    data-order-id="${order.id}" 
+                                    data-payment-number="${order.paymentNumber}">
+                                <i class="fas fa-plus mr-2"></i>Add Products
+                            </button>
+                            
                             <button class="cancel-order-btn w-full bg-amber-700 hover:bg-amber-800 text-white font-medium py-3 rounded-lg transition" data-order-id="${order.id}" data-payment-number="${order.paymentNumber}">
                                 Cancel Order
                             </button>
@@ -1120,6 +1128,28 @@
                         order.items,
                         selectedItems
                     );
+                });
+            });
+            
+            // Add Products buttons
+            document.querySelectorAll('.add-products-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const orderId = this.getAttribute('data-order-id');
+                    const paymentNumber = this.getAttribute('data-payment-number');
+                    
+                    // Check if order is in void state
+                    if (isOrderInVoidState(orderId, paymentNumber)) {
+                        showStatusMessage('Cannot add products while in void state. Cancel void first.', 'bg-red-600');
+                        return;
+                    }
+                    
+                    // Open add products modal
+                    if (typeof openAddProductsModal === 'function') {
+                        openAddProductsModal(orderId, paymentNumber);
+                    } else {
+                        console.error('Add products modal function not available');
+                        showStatusMessage('Add products feature not loaded', 'bg-red-600');
+                    }
                 });
             });
             
