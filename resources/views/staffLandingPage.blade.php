@@ -1,5 +1,3 @@
-[file name]: staffLandingPage.blade.php
-[file content begin]
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -137,12 +135,6 @@
             color: #FBBF24;
             font-weight: 500;
             font-size: 0.95rem;
-        }
-        .tax-row {
-            color: #60A5FA;
-            border-top: 1px dashed #4B5563;
-            padding-top: 8px;
-            margin-top: 8px;
         }
         .total-row {
             color: #10B981;
@@ -719,15 +711,7 @@
                 
                 <!-- Amount Details -->
                 <div class="bg-gray-900 p-4 rounded-lg">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-gray-300">Subtotal:</span>
-                        <span class="text-gray-300" id="modal-subtotal">₱0.00</span>
-                    </div>
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-gray-300">Tax:</span>
-                        <span class="text-blue-400" id="modal-tax">₱0.00</span>
-                    </div>
-                    <div class="flex justify-between items-center pt-2 border-t border-gray-700">
+                    <div class="flex justify-between items-center pt-2">
                         <span class="text-white font-semibold">Total Amount:</span>
                         <span class="text-green-400 font-bold text-lg" id="modal-total">₱0.00</span>
                     </div>
@@ -807,16 +791,16 @@
             return `₱${parseFloat(amount).toFixed(2)}`;
         }
         
-        // Helper function to calculate order totals
+        // Helper function to calculate order totals WITHOUT TAX
         function calculateOrderTotals(order) {
             const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const tax = subtotal * order.taxRate;
-            const total = subtotal + tax;
+            const total = subtotal; // REMOVED TAX: total is now just subtotal without tax
             
             return {
                 subtotal: subtotal,
                 tax: tax,
-                total: total
+                total: total // This is now the subtotal (no tax included)
             };
         }
         
@@ -827,7 +811,7 @@
             
             allOrders.forEach(order => {
                 const totals = calculateOrderTotals(order);
-                totalRevenue += totals.total;
+                totalRevenue += totals.total; // This is now subtotal without tax
                 totalTax += totals.tax;
             });
             
@@ -845,12 +829,12 @@
             const remainingItems = order.items.filter((item, index) => !itemsToRemoveIndices.includes(index.toString()));
             const subtotal = remainingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const tax = subtotal * order.taxRate;
-            const total = subtotal + tax;
+            const total = subtotal; // REMOVED TAX: total is now just subtotal without tax
             
             return {
                 subtotal: subtotal,
                 tax: tax,
-                total: total,
+                total: total, // This is now the subtotal (no tax included)
                 remainingItems: remainingItems
             };
         }
@@ -1070,7 +1054,7 @@
                         typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
                         payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
                         items: [],
-                        taxRate: 0.12,
+                        taxRate: 0.12, // Still store tax rate but won't use it for display
                         status: order.orderProductStatus || 'For Payment',
                         notes: 'None' // Initialize as 'None' - will be updated if any items have notes
                     };
@@ -1202,9 +1186,9 @@
             document.getElementById('modal-payment-number').textContent = paymentNumber;
             document.getElementById('modal-order-type').textContent = orderType;
             document.getElementById('modal-payment-method').textContent = paymentMethod;
-            document.getElementById('modal-subtotal').textContent = formatCurrency(subtotal);
-            document.getElementById('modal-tax').textContent = formatCurrency(tax);
-            document.getElementById('modal-total').textContent = formatCurrency(total);
+            
+            // Display total WITHOUT tax
+            document.getElementById('modal-total').textContent = formatCurrency(subtotal); // Use subtotal instead of total (which includes tax)
             
             // Render products in modal (only selected ones)
             renderProductsInModal(orderId, paymentNumber, items, selectedItems);
@@ -1220,7 +1204,7 @@
             // Store order data for later use
             confirmPaymentBtn.dataset.orderId = orderId;
             confirmPaymentBtn.dataset.paymentNumber = paymentNumber;
-            confirmPaymentBtn.dataset.totalAmount = total;
+            confirmPaymentBtn.dataset.totalAmount = subtotal; // Store subtotal (without tax) for payment calculation
             
             // Open modal
             confirmPaymentModal.classList.remove('hidden');
@@ -1339,7 +1323,7 @@
             
             // Render each order
             currentOrders.forEach((order, orderIndex) => {
-                // Calculate totals for this order
+                // Calculate totals for this order WITHOUT TAX
                 const totals = calculateOrderTotals(order);
                 
                 // Determine timer badge color based on time
@@ -1489,25 +1473,13 @@
                             </div>
                             `}
                             
-                            <!-- Price Summary Section -->
+                            <!-- Total to Pay Section (WITHOUT TAX) -->
                             ${hasItems ? `
                             <div class="price-section">
-                                <!-- Subtotal -->
-                                <div class="price-item">
-                                    <span class="text-gray-300">Subtotal:</span>
-                                    <span class="text-gray-300">${formatCurrency(totals.subtotal)}</span>
-                                </div>
-                                
-                                <!-- Tax -->
-                                <div class="price-item tax-row">
-                                    <span class="text-gray-300">Tax (${(order.taxRate * 100).toFixed(0)}%):</span>
-                                    <span class="text-blue-400 font-medium">${formatCurrency(totals.tax)}</span>
-                                </div>
-                                
-                                <!-- Total -->
+                                <!-- Total to Pay (WITHOUT TAX) -->
                                 <div class="price-item total-row">
                                     <span class="text-white">Total to Pay:</span>
-                                    <span class="text-green-400 font-bold">${formatCurrency(totals.total)}</span>
+                                    <span class="text-green-400 font-bold">${formatCurrency(totals.subtotal)}</span>
                                 </div>
                             </div>
                             ` : ''}
@@ -1756,7 +1728,7 @@
                         return;
                     }
                     
-                    // Calculate totals
+                    // Calculate totals WITHOUT TAX
                     const totals = calculateOrderTotals(order);
                     
                     // Open confirm payment modal with products
@@ -1765,9 +1737,9 @@
                         order.paymentNumber,
                         order.type,
                         order.payment,
-                        totals.subtotal,
+                        totals.subtotal, // Pass subtotal (without tax)
                         totals.tax,
-                        totals.total,
+                        totals.subtotal, // Use subtotal as total (without tax)
                         order.items,
                         selectedItems
                     );
@@ -2038,23 +2010,20 @@
                     throw new Error('Order not found in local data');
                 }
                 
-                // Prepare products data with pricing information
+                // Prepare products data WITHOUT TAX for API call
                 const productsData = selectedProducts.map((selectedProduct) => {
-                    // Calculate tax amount
-                    const taxRate = order.taxRate || 0.12;
-                    const taxAmount = selectedProduct.totalPrice * taxRate;
-                    
+                    // REMOVE TAX CALCULATION - No tax included
                     return {
                         name: selectedProduct.name,
                         quantity: selectedProduct.quantity,
                         unitPrice: selectedProduct.unitPrice,
                         totalPrice: selectedProduct.totalPrice,
-                        taxAmount: parseFloat(taxAmount.toFixed(2)),
+                        taxAmount: 0, // Set tax amount to 0 since we're removing tax
                         notes: selectedProduct.notes
                     };
                 });
                 
-                console.log('Products data to send:', productsData);
+                console.log('Products data to send (without tax):', productsData);
                 
                 // First: Update order status to "In Progress"
                 console.log('Updating order status...');
@@ -2066,10 +2035,10 @@
                     referenceNumber: referenceNumber || null
                 });
                 
-                // Second: Save payment transaction to staff_to_kitchen_transaction table
+                // Second: Save payment transaction to staff_to_kitchen_transaction table WITHOUT TAX
                 console.log('Saving payment transaction...');
                 
-                // Prepare the request data
+                // Prepare the request data WITHOUT TAX
                 const paymentData = {
                     orderID: orderId,
                     paymentNumber: paymentNumber,
@@ -2082,7 +2051,7 @@
                     staffName: '{{ auth()->user()->name ?? "Staff Member" }}'
                 };
                 
-                console.log('Payment data to save:', paymentData);
+                console.log('Payment data to save (without tax):', paymentData);
                 
                 const saveResult = await apiCall('/api/staff/orders/save-payment-transaction', 'POST', paymentData);
                 console.log('Save result:', saveResult);
@@ -2298,4 +2267,3 @@
     </script>
 </body>
 </html>
-[file content end]
