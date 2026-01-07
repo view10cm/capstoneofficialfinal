@@ -5,40 +5,41 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
 use App\Models\StaffToKitchenTransaction;
 
 class StaffOrderController extends Controller
 {
     // Get all orders for staff display
     public function getOrders()
-{
-    try {
-        // Changed from 'orders' to 'order_to_staff_transaction'
-        $orders = DB::table('order_to_staff_transaction')
-            ->select([
-                'orderID',
-                'paymentNumber',
-                'orderCreateDateAndTime',
-                'orderType',
-                'orderPaymentMethod',
-                'orderProductName',
-                'orderQuantity',
-                'orderTotalProductPrice',
-                'orderNotes',
-                'orderProductStatus'
-            ])
-            ->where('orderProductStatus', 'For Payment')  // Only show "For Payment" orders
-            ->orderBy('orderCreateDateAndTime', 'desc')
-            ->get();
+    {
+        try {
+            // Changed from 'orders' to 'order_to_staff_transaction'
+            $orders = DB::table('order_to_staff_transaction')
+                ->select([
+                    'orderID',
+                    'paymentNumber',
+                    'orderCreateDateAndTime',
+                    'orderType',
+                    'orderPaymentMethod',
+                    'orderProductName',
+                    'orderQuantity',
+                    'orderTotalProductPrice',
+                    'orderNotes',
+                    'orderProductStatus'
+                ])
+                ->where('orderProductStatus', 'For Payment')  // Only show "For Payment" orders
+                ->orderBy('orderCreateDateAndTime', 'desc')
+                ->get();
 
-        return response()->json($orders);
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => 'Failed to fetch orders',
-            'message' => $e->getMessage()
-        ], 500);
+            return response()->json($orders);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch orders',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
     // Update order status
     public function updateAllStatus(Request $request)
@@ -151,7 +152,8 @@ class StaffOrderController extends Controller
             'paymentNumber' => 'required|string',
             'items' => 'required|array',
             'items.*' => 'string',
-            'status' => 'required|string'
+            'status' => 'required|string',
+            'adminPassword' => 'required|string' // Add password validation
         ]);
 
         if ($validator->fails()) {
@@ -163,6 +165,26 @@ class StaffOrderController extends Controller
 
         try {
             $data = $validator->validated();
+            
+            // Verify admin password
+            $adminUser = DB::table('users')
+                ->where('role', 'Admin')
+                ->first();
+            
+            if (!$adminUser) {
+                return response()->json([
+                    'error' => 'No admin user found',
+                    'message' => 'Cannot verify admin password'
+                ], 403);
+            }
+            
+            // Verify password (using Laravel's Hash::check)
+            if (!Hash::check($data['adminPassword'], $adminUser->password)) {
+                return response()->json([
+                    'error' => 'Invalid admin password',
+                    'message' => 'The provided admin password is incorrect'
+                ], 401);
+            }
             
             // Update orderProductStatus to "Product Voided" for each product
             $updatedCount = 0;
@@ -262,58 +284,57 @@ class StaffOrderController extends Controller
         }
     }
 
-        public function getOrderTrackerData()
-{
-    // Fetch all transactions from staff_to_kitchen_transaction table
-    $transactions = StaffToKitchenTransaction::all();
-    
-    // Group by orderID and paymentNumber
-    $groupedOrders = [];
-    
-    foreach ($transactions as $transaction) {
-        $key = $transaction->orderID . '-' . $transaction->paymentNumber;
+    public function getOrderTrackerData()
+    {
+        // Fetch all transactions from staff_to_kitchen_transaction table
+        $transactions = StaffToKitchenTransaction::all();
         
-        if (!isset($groupedOrders[$key])) {
-            $groupedOrders[$key] = [
-                'orderID' => $transaction->orderID,
-                'paymentNumber' => $transaction->paymentNumber,
-                'orderType' => $transaction->orderType,
-                'paymentMethod' => $transaction->paymentMethod,
-                'cookingStatus' => $transaction->cookingStatus ?? 'In Progress',
-                'staffName' => $transaction->staffName,
-                'paymentProcessedAt' => $transaction->paymentProcessedAt,
-                'items' => []
+        // Group by orderID and paymentNumber
+        $groupedOrders = [];
+        
+        foreach ($transactions as $transaction) {
+            $key = $transaction->orderID . '-' . $transaction->paymentNumber;
+            
+            if (!isset($groupedOrders[$key])) {
+                $groupedOrders[$key] = [
+                    'orderID' => $transaction->orderID,
+                    'paymentNumber' => $transaction->paymentNumber,
+                    'orderType' => $transaction->orderType,
+                    'paymentMethod' => $transaction->paymentMethod,
+                    'cookingStatus' => $transaction->cookingStatus ?? 'In Progress',
+                    'staffName' => $transaction->staffName,
+                    'paymentProcessedAt' => $transaction->paymentProcessedAt,
+                    'items' => []
+                ];
+            }
+            
+            // Add item to the order
+            $groupedOrders[$key]['items'][] = [
+                'productName' => $transaction->productName,
+                'quantity' => $transaction->quantity,
+                'unitPrice' => $transaction->unitPrice,
+                'totalPrice' => $transaction->totalPrice,
+                'productNotes' => $transaction->productNotes
             ];
         }
         
-        // Add item to the order
-        $groupedOrders[$key]['items'][] = [
-            'productName' => $transaction->productName,
-            'quantity' => $transaction->quantity,
-            'unitPrice' => $transaction->unitPrice,
-            'totalPrice' => $transaction->totalPrice,
-            'productNotes' => $transaction->productNotes
-        ];
+        // Calculate total items for each order
+        foreach ($groupedOrders as &$order) {
+            $order['totalItems'] = count($order['items']);
+        }
+        
+        // Convert to array
+        $orders = array_values($groupedOrders);
+        
+        // Sort by paymentProcessedAt (newest first)
+        usort($orders, function($a, $b) {
+            return strtotime($b['paymentProcessedAt']) - strtotime($a['paymentProcessedAt']);
+        });
+        
+        return response()->json([
+            'success' => true,
+            'orders' => $orders,
+            'total' => count($orders)
+        ]);
     }
-    
-    // Calculate total items for each order
-    foreach ($groupedOrders as &$order) {
-        $order['totalItems'] = count($order['items']);
-    }
-    
-    // Convert to array
-    $orders = array_values($groupedOrders);
-    
-    // Sort by paymentProcessedAt (newest first)
-    usort($orders, function($a, $b) {
-        return strtotime($b['paymentProcessedAt']) - strtotime($a['paymentProcessedAt']);
-    });
-    
-    return response()->json([
-        'success' => true,
-        'orders' => $orders,
-        'total' => count($orders)
-    ]);
-}
-
 }

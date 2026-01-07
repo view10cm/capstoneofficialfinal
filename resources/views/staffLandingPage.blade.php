@@ -463,6 +463,26 @@
             word-wrap: break-word;
             white-space: pre-wrap; /* Preserve line breaks */
         }
+        /* Admin Password Modal Styles */
+        #admin-password-modal .modal-content {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .password-hide {
+            display: none;
+        }
+        .password-show {
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col min-h-screen">
@@ -789,6 +809,96 @@
         </div>
     </div>
 
+    <!-- Modal for Admin Password Confirmation -->
+    <div id="admin-password-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white">Admin Authorization Required</h2>
+                <button id="close-admin-password" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Warning Icon and Message -->
+                <div class="bg-red-900/20 border border-red-800 rounded-lg p-4 flex items-start">
+                    <div class="mr-3 mt-1">
+                        <i class="fas fa-shield-alt text-red-500 text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-red-300 font-semibold">Confirm Product Voiding</h3>
+                        <p class="text-gray-300 text-sm mt-1">This action requires Admin authorization. Please enter your Admin password to confirm.</p>
+                    </div>
+                </div>
+                
+                <!-- Order Details -->
+                <div class="bg-gray-900 rounded-lg p-4">
+                    <h4 class="text-gray-300 font-medium mb-2">Order Details</h4>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Order ID:</span>
+                            <span class="text-white font-medium" id="admin-modal-order-id">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Payment #:</span>
+                            <span class="text-white font-medium" id="admin-modal-payment-number">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Selected Products:</span>
+                            <span class="text-red-300 font-medium" id="admin-modal-product-count">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Password Input -->
+                <div class="space-y-3">
+                    <label for="admin-password-input" class="block text-gray-300 text-sm font-medium">
+                        Admin Password <span class="text-red-400">*</span>
+                    </label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                            <i class="fas fa-lock"></i>
+                        </span>
+                        <input 
+                            type="password" 
+                            id="admin-password-input" 
+                            placeholder="Enter Admin password"
+                            class="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg border border-gray-600 focus:border-red-500 focus:ring-2 focus:ring-red-500 focus:outline-none transition"
+                            autocomplete="current-password"
+                        >
+                        <button 
+                            type="button" 
+                            id="toggle-password-visibility"
+                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-400">Only users with Admin role can authorize voiding</p>
+                    
+                    <!-- Error Message -->
+                    <div id="admin-password-error" class="hidden bg-red-900/30 border border-red-700 rounded-lg p-3 mt-2">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-circle text-red-400 mr-2"></i>
+                            <span class="text-red-300 text-sm" id="admin-error-message"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-700">
+                    <button id="cancel-admin-auth" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                        Cancel
+                    </button>
+                    <button id="confirm-admin-auth" class="bg-red-700 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition flex items-center">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Confirm Void
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Order data will be loaded from the server
         let allOrders = [];
@@ -798,6 +908,9 @@
         
         // Store void state for orders
         let voidStateOrders = new Map();
+        
+        // Store current void order data
+        let currentVoidOrderData = null;
         
         // Helper function to format currency
         function formatCurrency(amount) {
@@ -1031,6 +1144,19 @@
         const amountPaidInput = document.getElementById('amount-paid');
         const referenceInput = document.getElementById('modal-reference-input');
         
+        // Admin Password Modal Elements
+        const adminPasswordModal = document.getElementById('admin-password-modal');
+        const closeAdminPassword = document.getElementById('close-admin-password');
+        const cancelAdminAuth = document.getElementById('cancel-admin-auth');
+        const confirmAdminAuth = document.getElementById('confirm-admin-auth');
+        const adminPasswordInput = document.getElementById('admin-password-input');
+        const togglePasswordVisibility = document.getElementById('toggle-password-visibility');
+        const adminPasswordError = document.getElementById('admin-password-error');
+        const adminErrorElement = document.getElementById('admin-error-message');
+        const adminModalOrderId = document.getElementById('admin-modal-order-id');
+        const adminModalPaymentNumber = document.getElementById('admin-modal-payment-number');
+        const adminModalProductCount = document.getElementById('admin-modal-product-count');
+        
         // Initialize
         loadOrders();
         
@@ -1261,6 +1387,44 @@
             document.body.style.overflow = 'auto';
         }
         
+        // Function to open admin password modal
+        function openAdminPasswordModal(orderId, paymentNumber, selectedProducts) {
+            // Set modal values
+            adminModalOrderId.textContent = orderId;
+            adminModalPaymentNumber.textContent = paymentNumber;
+            adminModalProductCount.textContent = selectedProducts.length;
+            
+            // Reset form
+            adminPasswordInput.value = '';
+            adminPasswordError.classList.add('hidden');
+            adminErrorElement.textContent = '';
+            
+            // Store current order data
+            currentVoidOrderData = {
+                orderId: orderId,
+                paymentNumber: paymentNumber,
+                selectedProducts: selectedProducts
+            };
+            
+            // Open modal
+            adminPasswordModal.classList.remove('hidden');
+            adminPasswordModal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            
+            // Focus on password input
+            setTimeout(() => {
+                adminPasswordInput.focus();
+            }, 100);
+        }
+        
+        // Function to close admin password modal
+        function closeAdminPasswordModal() {
+            adminPasswordModal.classList.remove('flex');
+            adminPasswordModal.classList.add('hidden');
+            document.body.style.overflow = 'auto';
+            currentVoidOrderData = null;
+        }
+        
         // Function to download 5-inch thermal receipt
         function downloadReceipt(orderId, paymentNumber, referenceNumber) {
             // Create a temporary form to submit
@@ -1307,6 +1471,17 @@
             setTimeout(() => {
                 showStatusMessage('5-inch thermal receipt downloaded!', 'bg-green-600');
             }, 1000);
+        }
+        
+        // Helper function to show error in modal
+        function showError(message) {
+            adminErrorElement.textContent = message;
+            adminPasswordError.classList.remove('hidden');
+            
+            // Auto-hide error after 5 seconds
+            setTimeout(() => {
+                adminPasswordError.classList.add('hidden');
+            }, 5000);
         }
         
         // Pagination Functions
@@ -1866,73 +2041,8 @@
                         return;
                     }
                     
-                    // Animate removal of selected items
-                    Array.from(itemCheckboxes)
-                        .filter(checkbox => checkbox.checked)
-                        .forEach(checkbox => {
-                            const itemIndex = checkbox.getAttribute('data-item-index');
-                            const itemElement = document.getElementById(`item-${orderId}-${paymentNumber}-${itemIndex}`);
-                            if (itemElement) {
-                                itemElement.classList.add('item-removing');
-                            }
-                        });
-                    
-                    // Wait for animation to complete
-                    setTimeout(async () => {
-                        try {
-                            // Try to call API to update product status to "Product Voided"
-                            try {
-                                // Send product names to update status in database
-                                await apiCall('/api/staff/orders/void-products', 'POST', {
-                                    orderID: orderId,
-                                    paymentNumber: paymentNumber,
-                                    items: selectedProducts, // Send product names
-                                    status: 'Product Voided'
-                                });
-                                
-                                showStatusMessage(`${selectedProducts.length} product(s) marked as Product Voided`, 'bg-green-600');
-                            } catch (apiError) {
-                                console.warn('API call failed, but continuing with local removal:', apiError);
-                                // Continue with local removal even if API fails
-                                showStatusMessage(`${selectedProducts.length} product(s) voided locally (server update failed)`, 'bg-yellow-600');
-                            }
-                            
-                            // Get the indices of selected items for local removal
-                            const selectedIndices = Array.from(itemCheckboxes)
-                                .filter(checkbox => checkbox.checked)
-                                .map(checkbox => parseInt(checkbox.getAttribute('data-item-index')));
-                            
-                            // Remove items from local data
-                            const orderRemoved = removeItemsFromOrder(orderId, paymentNumber, selectedIndices.map(i => i.toString()));
-                            
-                            // Reset void state
-                            setOrderVoidState(orderId, paymentNumber, false);
-                            
-                            // Clear checkboxes for this order
-                            const allItemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
-                            
-                            allItemCheckboxes.forEach(itemCheckbox => {
-                                const itemIndex = itemCheckbox.getAttribute('data-item-index');
-                                const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
-                                checkedItemsState.set(itemKey, false);
-                            });
-                            
-                            // Update pagination and re-render
-                            totalPages = Math.ceil(allOrders.length / ordersPerPage);
-                            updatePagination();
-                            renderOrders();
-                            
-                            if (!orderRemoved) {
-                                showStatusMessage(`${selectedProducts.length} product(s) removed from order ${orderId}`, 'bg-red-600');
-                            }
-                            
-                        } catch (error) {
-                            console.error('Error in void process:', error);
-                            showStatusMessage('Error voiding products: ' + error.message, 'bg-red-600');
-                            // Re-render to restore original state
-                            renderOrders();
-                        }
-                    }, 300); // Match animation duration
+                    // Open admin password modal instead of prompt
+                    openAdminPasswordModal(orderId, paymentNumber, selectedProducts);
                 });
             });
             
@@ -1975,6 +2085,118 @@
             } else {
                 document.getElementById('change-calculation').classList.add('hidden');
                 confirmPaymentBtn.disabled = true;
+            }
+        });
+        
+        // Password visibility toggle
+        togglePasswordVisibility.addEventListener('click', function() {
+            const type = adminPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            adminPasswordInput.setAttribute('type', type);
+            
+            // Toggle icon
+            const icon = this.querySelector('i');
+            if (type === 'text') {
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+        
+        // Confirm admin authentication
+        confirmAdminAuth.addEventListener('click', async function() {
+            const password = adminPasswordInput.value.trim();
+            
+            if (!password) {
+                showError('Please enter the Admin password');
+                return;
+            }
+            
+            if (!currentVoidOrderData) {
+                showError('No order data found. Please try again.');
+                return;
+            }
+            
+            const { orderId, paymentNumber, selectedProducts } = currentVoidOrderData;
+            
+            // Disable button and show loading state
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Processing...';
+            
+            try {
+                // Call API to verify password and void products
+                await apiCall('/api/staff/orders/void-products', 'POST', {
+                    orderID: orderId,
+                    paymentNumber: paymentNumber,
+                    items: selectedProducts,
+                    status: 'Product Voided',
+                    adminPassword: password
+                });
+                
+                // Success - close modal and proceed with voiding
+                closeAdminPasswordModal();
+                
+                // Animate removal of selected items
+                const itemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                Array.from(itemCheckboxes)
+                    .filter(checkbox => checkbox.checked)
+                    .forEach(checkbox => {
+                        const itemIndex = checkbox.getAttribute('data-item-index');
+                        const itemElement = document.getElementById(`item-${orderId}-${paymentNumber}-${itemIndex}`);
+                        if (itemElement) {
+                            itemElement.classList.add('item-removing');
+                        }
+                    });
+                
+                // Wait for animation to complete
+                setTimeout(async () => {
+                    // Get the indices of selected items for local removal
+                    const selectedIndices = Array.from(itemCheckboxes)
+                        .filter(checkbox => checkbox.checked)
+                        .map(checkbox => parseInt(checkbox.getAttribute('data-item-index')));
+                    
+                    // Remove items from local data
+                    const orderRemoved = removeItemsFromOrder(orderId, paymentNumber, selectedIndices.map(i => i.toString()));
+                    
+                    // Reset void state
+                    setOrderVoidState(orderId, paymentNumber, false);
+                    
+                    // Clear checkboxes for this order
+                    const allItemCheckboxes = getCheckboxesForOrder(orderId, paymentNumber);
+                    
+                    allItemCheckboxes.forEach(itemCheckbox => {
+                        const itemIndex = itemCheckbox.getAttribute('data-item-index');
+                        const itemKey = getItemKey(orderId, paymentNumber, itemIndex);
+                        checkedItemsState.set(itemKey, false);
+                    });
+                    
+                    // Update pagination and re-render
+                    totalPages = Math.ceil(allOrders.length / ordersPerPage);
+                    updatePagination();
+                    renderOrders();
+                    
+                    showStatusMessage(`${selectedProducts.length} product(s) voided successfully`, 'bg-green-600');
+                    
+                }, 300);
+                
+            } catch (error) {
+                console.warn('API call failed:', error);
+                const errorMessage = error.message.includes('Invalid admin password') 
+                    ? 'Invalid Admin password. Please try again.'
+                    : error.message.includes('No admin user found')
+                    ? 'No Admin user found in system.'
+                    : 'Server error. Please try again.';
+                
+                showError(errorMessage);
+                
+                // Reset button state
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Confirm Void';
+                
+                // Clear password field
+                adminPasswordInput.value = '';
+                adminPasswordInput.focus();
             }
         });
         
@@ -2189,6 +2411,22 @@
             if (e.target === confirmPaymentModal) closePaymentModal();
         });
         
+        // Event listeners for admin password modal
+        closeAdminPassword.addEventListener('click', closeAdminPasswordModal);
+        cancelAdminAuth.addEventListener('click', closeAdminPasswordModal);
+        
+        adminPasswordModal.addEventListener('click', (e) => {
+            if (e.target === adminPasswordModal) closeAdminPasswordModal();
+        });
+        
+        // Submit form on Enter key
+        adminPasswordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmAdminAuth.click();
+            }
+        });
+        
         function showStatusMessage(message, bgColor) {
             statusMessage.textContent = message;
             statusMessage.className = `fixed bottom-4 right-4 ${bgColor} text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transform translate-y-4 transition-all duration-300 z-50`;
@@ -2249,6 +2487,7 @@
                 if (!termsModal.classList.contains('hidden')) closeModal(termsModal);
                 if (!privacyModal.classList.contains('hidden')) closeModal(privacyModal);
                 if (!confirmPaymentModal.classList.contains('hidden')) closePaymentModal();
+                if (!adminPasswordModal.classList.contains('hidden')) closeAdminPasswordModal();
             }
         });
         
