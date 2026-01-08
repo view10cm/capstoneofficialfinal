@@ -229,7 +229,7 @@
             <div class="mb-8">
                 <h2 class="text-2xl font-bold text-white mb-6">Completed Orders Overview</h2>
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <!-- Total Orders Card -->
                     <div class="stats-card">
                         <div class="flex items-center">
@@ -265,32 +265,6 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Today's Revenue Card -->
-                    <div class="stats-card">
-                        <div class="flex items-center">
-                            <div class="stats-icon stats-icon-revenue">
-                                <i class="fas fa-money-bill-wave text-2xl"></i>
-                            </div>
-                            <div>
-                                @php
-                                    $todayRevenue = 0;
-                                    if (isset($groupedOrders)) {
-                                        $today = date('Y-m-d');
-                                        foreach ($groupedOrders as $orderGroup) {
-                                            foreach ($orderGroup as $item) {
-                                                if (date('Y-m-d', strtotime($item->paymentProcessedAt)) === $today) {
-                                                    $todayRevenue += $item->totalPrice;
-                                                }
-                                            }
-                                        }
-                                    }
-                                @endphp
-                                <div class="stats-value text-white">${{ number_format($todayRevenue, 2) }}</div>
-                                <div class="stats-label">Today's Revenue</div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 
                 <!-- Time Filter -->
@@ -322,11 +296,6 @@
                     
                     @foreach($ordersByDate as $date => $orders)
                         <div class="mb-8">
-                            <div class="completed-date mb-4">
-                                <h3 class="text-xl font-bold text-white">{{ date('F j, Y', strtotime($date)) }}</h3>
-                                <p class="text-gray-400">{{ count($orders) }} orders completed</p>
-                            </div>
-                            
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 @foreach($orders as $orderID => $orderGroup)
                                     <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700">
@@ -377,10 +346,6 @@
                                         <!-- Order Summary -->
                                         <div class="pt-4 border-t border-gray-700">
                                             <div class="flex justify-between items-center mb-2">
-                                                <span class="text-gray-400">Staff:</span>
-                                                <span class="text-white font-medium">{{ $orderGroup[0]->staffName }}</span>
-                                            </div>
-                                            <div class="flex justify-between items-center">
                                                 <span class="text-gray-400">Total Items:</span>
                                                 <span class="text-white font-bold">{{ count($orderGroup) }}</span>
                                             </div>
