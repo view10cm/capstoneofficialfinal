@@ -114,6 +114,17 @@
         .order-card-completed {
             border-left-color: #6B7280;
         }
+        .pagination-btn {
+            transition: all 0.2s ease;
+        }
+        .pagination-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="bg-gray-900 min-h-screen">
@@ -223,6 +234,22 @@
                 </div>
             </div>
             
+            <!-- Pagination Info -->
+            <div id="pagination-info" class="flex justify-between items-center mb-4 hidden">
+                <div class="text-gray-300">
+                    Showing <span id="current-start">1</span> - <span id="current-end">3</span> of <span id="total-filtered">0</span> orders
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="previousPage()" id="prev-btn" class="pagination-btn bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition" disabled>
+                        <i class="fas fa-chevron-left mr-1"></i> Previous
+                    </button>
+                    <span class="text-gray-300 mx-2" id="page-indicator">Page 1</span>
+                    <button onclick="nextPage()" id="next-btn" class="pagination-btn bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition" disabled>
+                        Next <i class="fas fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+            
             <!-- Loading State -->
             <div id="loading-container" class="text-center py-12">
                 <div class="loading-spinner mx-auto mb-4"></div>
@@ -255,6 +282,8 @@
         // Global variables
         let allOrders = [];
         let currentFilter = 'all';
+        let currentPage = 1;
+        const ordersPerPage = 3;
         
         // DOM Elements
         const ordersContainer = document.getElementById('orders-container');
@@ -266,6 +295,9 @@
         const readyCountElement = document.getElementById('ready-count');
         const completedCountElement = document.getElementById('completed-count');
         const statusMessage = document.getElementById('status-message');
+        const paginationInfo = document.getElementById('pagination-info');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -287,6 +319,7 @@
                 loadingContainer.classList.remove('hidden');
                 ordersContainer.classList.add('hidden');
                 noOrdersMessage.classList.add('hidden');
+                paginationInfo.classList.add('hidden');
                 
                 // Fetch orders from API
                 const response = await fetch('/api/staff/order-tracker', {
@@ -309,6 +342,9 @@
                 
                 // Update stats
                 updateStats();
+                
+                // Reset to first page when loading new data
+                currentPage = 1;
                 
                 // Render orders based on current filter
                 renderOrders();
@@ -353,6 +389,8 @@
         // Function to filter orders
         function filterOrders(status) {
             currentFilter = status;
+            currentPage = 1; // Reset to first page when filtering
+            renderOrders();
             
             // Update active tab
             document.querySelectorAll('.filter-tab').forEach(tab => {
@@ -364,17 +402,21 @@
                     tab.classList.add('bg-gray-700', 'text-gray-300');
                 }
             });
-            
-            renderOrders();
         }
         
-        // Function to render orders
+        // Function to render orders with pagination
         function renderOrders() {
             // Filter orders based on current filter
             let filteredOrders = allOrders;
             if (currentFilter !== 'all') {
                 filteredOrders = allOrders.filter(order => order.cookingStatus === currentFilter);
             }
+            
+            // Calculate pagination
+            const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+            const startIndex = (currentPage - 1) * ordersPerPage;
+            const endIndex = Math.min(startIndex + ordersPerPage, filteredOrders.length);
+            const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
             
             // Clear container
             ordersContainer.innerHTML = '';
@@ -386,6 +428,7 @@
                 // Show no orders message
                 noOrdersMessage.classList.remove('hidden');
                 ordersContainer.classList.add('hidden');
+                paginationInfo.classList.add('hidden');
                 return;
             }
             
@@ -393,8 +436,25 @@
             noOrdersMessage.classList.add('hidden');
             ordersContainer.classList.remove('hidden');
             
+            // Update pagination info
+            document.getElementById('current-start').textContent = filteredOrders.length > 0 ? startIndex + 1 : 0;
+            document.getElementById('current-end').textContent = endIndex;
+            document.getElementById('total-filtered').textContent = filteredOrders.length;
+            document.getElementById('page-indicator').textContent = `Page ${currentPage} of ${totalPages}`;
+            
+            // Update pagination button states
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+            
+            // Show/hide pagination based on need
+            if (filteredOrders.length > ordersPerPage) {
+                paginationInfo.classList.remove('hidden');
+            } else {
+                paginationInfo.classList.add('hidden');
+            }
+            
             // Render each order
-            filteredOrders.forEach(order => {
+            paginatedOrders.forEach(order => {
                 const orderCard = document.createElement('div');
                 
                 // Determine card border color based on status
@@ -513,17 +573,9 @@
                         </div>
                     </div>
                     
-                    <!-- Order Summary -->
+                    <!-- Order Summary - Only Total -->
                     <div class="mt-4 pt-4 border-t border-gray-700">
-                        <div class="flex justify-between items-center text-sm">
-                            <span class="text-gray-400">Subtotal:</span>
-                            <span class="text-white">₱${order.items.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0).toFixed(2)}</span>
-                        </div>
-                        <div class="flex justify-between items-center text-sm mt-1">
-                            <span class="text-gray-400">Tax:</span>
-                            <span class="text-blue-400">₱${order.items.reduce((sum, item) => sum + parseFloat(item.taxAmount || 0), 0).toFixed(2)}</span>
-                        </div>
-                        <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-600">
+                        <div class="flex justify-between items-center">
                             <span class="text-white font-semibold">Total:</span>
                             <span class="text-green-400 font-bold">
                                 ₱${(order.items.reduce((sum, item) => sum + parseFloat(item.totalPrice), 0) + 
@@ -535,6 +587,38 @@
                 
                 ordersContainer.appendChild(orderCard);
             });
+        }
+        
+        // Function to go to next page
+        function nextPage() {
+            // Filter orders based on current filter
+            let filteredOrders = allOrders;
+            if (currentFilter !== 'all') {
+                filteredOrders = allOrders.filter(order => order.cookingStatus === currentFilter);
+            }
+            
+            const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+            
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderOrders();
+                scrollToTop();
+            }
+        }
+        
+        // Function to go to previous page
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderOrders();
+                scrollToTop();
+            }
+        }
+        
+        // Function to scroll to top of orders section
+        function scrollToTop() {
+            const ordersSection = document.getElementById('orders-container');
+            ordersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         
         // Function to show status message
