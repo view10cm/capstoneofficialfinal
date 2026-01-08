@@ -49,8 +49,9 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-500 text-sm font-medium">Meals Served</p>
-                                <h3 class="text-3xl font-bold text-gray-900 mt-2">0</h3>
-                                <p class="text-gray-500 text-sm mt-1">Today</p>
+                                <h3 class="text-3xl font-bold text-gray-900 mt-2" id="meals-served-today">
+                                    {{ $mealsData['overall_meals'] ?? 0 }}
+                                </h3>
                             </div>
                             <div class="bg-orange-100 p-4 rounded-full">
                                 <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -63,7 +64,7 @@
                                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                 </svg>
-                                Meal Count
+                                Total Meals
                             </span>
                         </div>
                     </div>
@@ -183,3 +184,40 @@
 
         </div>
     </div>
+
+    @section('scripts')
+    <script>
+        // Function to refresh meals data
+        function refreshMealsData() {
+            fetch('{{ route("admin.meals.data") }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the meals served today
+                        document.getElementById('meals-served-today').textContent = data.data.today_meals;
+                        
+                        // Update the total meals badge
+                        const badgeElement = document.querySelector('.bg-orange-100.text-orange-800');
+                        if (badgeElement) {
+                            badgeElement.innerHTML = `
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                Total Meals: ${data.data.overall_meals}
+                            `;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error refreshing meals data:', error);
+                });
+        }
+
+        // Refresh meals data every 30 seconds
+        setInterval(refreshMealsData, 30000);
+
+        // Initial refresh
+        document.addEventListener('DOMContentLoaded', refreshMealsData);
+    </script>
+    @endsection
+@endsection

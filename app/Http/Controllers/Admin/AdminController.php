@@ -9,6 +9,7 @@ use App\Models\Admin\Ingredient;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use App\Models\OverallSales;
+use App\Models\OverallMealsServed;
 
 class AdminController extends Controller
 {
@@ -28,7 +29,34 @@ class AdminController extends Controller
             $overallSales->updated_at = now();
         }
         
-        return view('admin.dashboard', compact('overallSales'));
+        // Fetch meals served data
+        $mealsData = $this->getMealsServedData();
+        
+        return view('admin.dashboard', compact('overallSales', 'mealsData'));
+    }
+
+    /**
+     * Get meals served data
+     */
+    private function getMealsServedData()
+    {
+        try {
+            $overallMeals = OverallMealsServed::getOverallMeals();
+            $todayMeals = OverallMealsServed::getTodayMeals();
+            
+            return [
+                'overall_meals' => $overallMeals ? $overallMeals->meals_overall : 0,
+                'today_meals' => $todayMeals
+            ];
+            
+        } catch (\Exception $e) {
+            \Log::error('Error getting meals served data: ' . $e->getMessage());
+            
+            return [
+                'overall_meals' => 0,
+                'today_meals' => 0
+            ];
+        }
     }
 
     /**
