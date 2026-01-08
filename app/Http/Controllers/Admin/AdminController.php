@@ -8,6 +8,7 @@ use App\Models\IngredientsCategory;
 use App\Models\Admin\Ingredient;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
+use App\Models\OverallSales;
 
 class AdminController extends Controller
 {
@@ -16,7 +17,18 @@ class AdminController extends Controller
      */
     public function dashboard()
     {
-        return view('admin.dashboard');
+        // Fetch overall sales data
+        $overallSales = OverallSales::first();
+        
+        // If no overall sales record exists, create a default one
+        if (!$overallSales) {
+            $overallSales = new OverallSales();
+            $overallSales->overall_sales = 0.00;
+            $overallSales->created_at = now();
+            $overallSales->updated_at = now();
+        }
+        
+        return view('admin.dashboard', compact('overallSales'));
     }
 
     /**
