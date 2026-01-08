@@ -28,6 +28,10 @@ Route::middleware(['auth', 'staff'])->group(function () {
         Route::post('/orders/cancel', [StaffOrderController::class, 'cancelOrder'])->name('staff.orders.cancel');
         Route::post('/orders/void-products', [StaffOrderController::class, 'voidProducts'])->name('staff.orders.void-products');
         Route::post('/orders/save-payment-transaction', [StaffOrderController::class, 'savePaymentTransaction'])->name('staff.orders.save-payment-transaction');
+        Route::post('/orders/add-products', [StaffOrderController::class, 'addProductsToOrder'])->name('staff.orders.add-products');
+        
+        // Get available products
+        Route::get('/products', [StaffOrderController::class, 'getAvailableProducts'])->name('staff.products.api');
         
         // Keep original StaffController routes if needed elsewhere
         Route::post('/orders/update-status', [StaffController::class, 'updateStatus'])->name('staff.orders.update-status');
