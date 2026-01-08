@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ForgotPasswordController;
+use App\Http\Controllers\Admin\AdminController; // Add this line
 
 Route::get('/', function () {
     return view('welcome');
@@ -28,10 +29,8 @@ Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLink
 Route::get('/reset-password', [ForgotPasswordController::class, 'showResetForm'])->name('password.reset');
 Route::post('/reset-password', [ForgotPasswordController::class, 'resetPassword'])->name('password.reset.submit');
 
-// Admin dashboard route (protected)
-Route::get('/admin/dashboard', function () {
-    return view('adminDashboard');
-})->name('admin.dashboard')->middleware('auth');
+// Admin dashboard route - FIX THIS LINE
+Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard')->middleware('auth');
 
 // Logout route
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -39,4 +38,5 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // Add this line to include customer routes
 require __DIR__.'/customer.php';
 
-// Remove the customer/home route from here since it's in routes/customer.php
+// Add this line to include admin routes
+require __DIR__.'/admin.php'; // Add this line if you have an admin.php routes file
