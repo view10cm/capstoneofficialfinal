@@ -488,11 +488,6 @@
                         </div>
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-gray-400">Processed By:</span>
-                            <span class="text-white font-medium">${order.staffName}</span>
-                        </div>
-                        
-                        <div class="flex items-center justify-between">
                             <span class="text-gray-400">Total Items:</span>
                             <span class="text-white font-bold">${order.totalItems}</span>
                         </div>
