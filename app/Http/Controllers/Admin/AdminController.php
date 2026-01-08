@@ -10,6 +10,8 @@ use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use App\Models\OverallSales;
 use App\Models\OverallMealsServed;
+use App\Models\OverallMenuProducts;
+use App\Models\Admin\MenuProduct;
 
 class AdminController extends Controller
 {
@@ -32,7 +34,10 @@ class AdminController extends Controller
         // Fetch meals served data
         $mealsData = $this->getMealsServedData();
         
-        return view('admin.dashboard', compact('overallSales', 'mealsData'));
+        // Fetch menu products data
+        $menuProductsData = $this->getMenuProductsData();
+        
+        return view('admin.dashboard', compact('overallSales', 'mealsData', 'menuProductsData'));
     }
 
     /**
@@ -55,6 +60,38 @@ class AdminController extends Controller
             return [
                 'overall_meals' => 0,
                 'today_meals' => 0
+            ];
+        }
+    }
+
+    /**
+     * Get menu products data
+     */
+    private function getMenuProductsData()
+    {
+        try {
+            // Get overall menu products count
+            $overallMenu = OverallMenuProducts::getOverallMenuProducts();
+            
+            // Get active menu products count
+            $activeMenuCount = MenuProduct::where('menuStatus', 'Available')->count();
+            
+            // Update the overall count if needed
+            if (!$overallMenu || $overallMenu->overallMenu != $activeMenuCount) {
+                $overallMenu = OverallMenuProducts::updateOverallMenuCount();
+            }
+            
+            return [
+                'overall_menu' => $overallMenu ? $overallMenu->overallMenu : 0,
+                'active_menu' => $activeMenuCount
+            ];
+            
+        } catch (\Exception $e) {
+            \Log::error('Error getting menu products data: ' . $e->getMessage());
+            
+            return [
+                'overall_menu' => 0,
+                'active_menu' => 0
             ];
         }
     }

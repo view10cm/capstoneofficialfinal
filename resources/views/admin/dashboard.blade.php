@@ -74,8 +74,9 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-500 text-sm font-medium">Menu Products</p>
-                                <h3 class="text-3xl font-bold text-gray-900 mt-2">0</h3>
-                                <p class="text-gray-500 text-sm mt-1">Active items</p>
+                                <h3 class="text-3xl font-bold text-gray-900 mt-2" id="menu-products-count">
+                                    {{ $menuProductsData['active_menu'] ?? 0 }}
+                                </h3>
                             </div>
                             <div class="bg-blue-100 p-4 rounded-full">
                                 <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -88,7 +89,7 @@
                                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                     <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                                 </svg>
-                                Products
+                                <span id="menu-products-badge">Current Products</span>
                             </span>
                         </div>
                     </div>
@@ -98,7 +99,7 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-500 text-sm font-medium">Low Stock Items</p>
-                                <h3 class="text-3xl font-bold text-gray-900 mt-2">0</h3>
+                                <h3 class="text-3xl font-bold text-gray-900 mt-2" id="low-stock-count">0</h3>
                                 <p class="text-gray-500 text-sm mt-1">Needs attention</p>
                             </div>
                             <div class="bg-red-100 p-4 rounded-full">
@@ -213,11 +214,57 @@
                 });
         }
 
+        // Function to refresh menu products data
+        function refreshMenuProductsData() {
+            fetch('{{ route("admin.menu-products.data") }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the menu products count
+                        document.getElementById('menu-products-count').textContent = data.data.active_menu;
+                        
+                        // Update the menu products badge
+                        const badgeElement = document.getElementById('menu-products-badge');
+                        if (badgeElement) {
+                            badgeElement.textContent = `Products: ${data.data.active_menu}`;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error refreshing menu products data:', error);
+                });
+        }
+
+        // Function to refresh low stock items data
+        function refreshLowStockData() {
+            fetch('{{ route("admin.menu-products.low-stock") }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the low stock count
+                        document.getElementById('low-stock-count').textContent = data.data.low_stock_count;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error refreshing low stock data:', error);
+                });
+        }
+
         // Refresh meals data every 30 seconds
         setInterval(refreshMealsData, 30000);
+        
+        // Refresh menu products data every 30 seconds
+        setInterval(refreshMenuProductsData, 30000);
+        
+        // Refresh low stock data every 30 seconds
+        setInterval(refreshLowStockData, 30000);
 
         // Initial refresh
-        document.addEventListener('DOMContentLoaded', refreshMealsData);
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshMealsData();
+            refreshMenuProductsData();
+            refreshLowStockData();
+        });
     </script>
     @endsection
 @endsection
