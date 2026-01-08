@@ -11,11 +11,17 @@ class AddProductsFeature {
         this.selectedProductsList = null;
         this.totalAmountElement = null;
         this.notesInput = null;
+        this.adminPasswordModal = null;
+        this.adminPasswordInput = null;
+        this.adminPasswordError = null;
+        this.adminErrorElement = null;
+        this.confirmAddProductsWithAuthBtn = null;
         this.initialize();
     }
 
     initialize() {
         this.createModal();
+        this.createAdminPasswordModal();
         this.setupEventListeners();
     }
 
@@ -27,6 +33,124 @@ class AddProductsFeature {
         this.selectedProductsList = document.getElementById('selected-products-list');
         this.totalAmountElement = document.getElementById('total-display');
         this.notesInput = document.getElementById('product-notes');
+    }
+
+    createAdminPasswordModal() {
+        // Create admin password modal for Add Products
+        const modalHTML = `
+            <div id="add-products-admin-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+                <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-white">Admin Authorization Required</h2>
+                        <button id="close-add-products-admin" class="text-gray-400 hover:text-white">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-6">
+                        <!-- Warning Icon and Message -->
+                        <div class="bg-blue-900/20 border border-blue-800 rounded-lg p-4 flex items-start">
+                            <div class="mr-3 mt-1">
+                                <i class="fas fa-shield-alt text-blue-500 text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-blue-300 font-semibold">Confirm Adding Products</h3>
+                                <p class="text-gray-300 text-sm mt-1">This action requires Admin authorization. Please enter your Admin password to confirm.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Order Details -->
+                        <div class="bg-gray-900 rounded-lg p-4">
+                            <h4 class="text-gray-300 font-medium mb-2">Order Details</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Order ID:</span>
+                                    <span class="text-white font-medium" id="add-products-admin-order-id">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Payment #:</span>
+                                    <span class="text-white font-medium" id="add-products-admin-payment-number">-</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Products to Add:</span>
+                                    <span class="text-green-300 font-medium" id="add-products-admin-product-count">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Products Summary -->
+                        <div class="bg-gray-900 rounded-lg p-4">
+                            <h4 class="text-gray-300 font-medium mb-2">Selected Products Summary</h4>
+                            <div id="add-products-admin-products-list" class="space-y-1 max-h-32 overflow-y-auto text-sm">
+                                <!-- Products will be listed here -->
+                            </div>
+                            <div class="mt-3 pt-3 border-t border-gray-700">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-400">Total Amount:</span>
+                                    <span class="text-green-400 font-medium" id="add-products-admin-total">₱0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Password Input -->
+                        <div class="space-y-3">
+                            <label for="add-products-admin-password-input" class="block text-gray-300 text-sm font-medium">
+                                Admin Password <span class="text-red-400">*</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                    <i class="fas fa-lock"></i>
+                                </span>
+                                <input 
+                                    type="password" 
+                                    id="add-products-admin-password-input" 
+                                    placeholder="Enter Admin password"
+                                    class="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg border border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition"
+                                    autocomplete="current-password"
+                                >
+                                <button 
+                                    type="button" 
+                                    id="add-products-toggle-password"
+                                    class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                                >
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-400">Only users with Admin role can authorize adding products to existing orders</p>
+                            
+                            <!-- Error Message -->
+                            <div id="add-products-admin-password-error" class="hidden bg-red-900/30 border border-red-700 rounded-lg p-3 mt-2">
+                                <div class="flex items-center">
+                                    <i class="fas fa-exclamation-circle text-red-400 mr-2"></i>
+                                    <span class="text-red-300 text-sm" id="add-products-admin-error-message"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-700">
+                            <button id="cancel-add-products-admin" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                                Cancel
+                            </button>
+                            <button id="confirm-add-products-admin" class="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition flex items-center">
+                                <i class="fas fa-check-circle mr-2"></i>
+                                Confirm Add Products
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Store references
+        this.adminPasswordModal = document.getElementById('add-products-admin-modal');
+        this.adminPasswordInput = document.getElementById('add-products-admin-password-input');
+        this.adminPasswordError = document.getElementById('add-products-admin-password-error');
+        this.adminErrorElement = document.getElementById('add-products-admin-error-message');
+        this.confirmAddProductsWithAuthBtn = document.getElementById('confirm-add-products-admin');
     }
 
     setupEventListeners() {
@@ -54,20 +178,56 @@ class AddProductsFeature {
         document.getElementById('increase-qty').addEventListener('click', () => this.adjustQuantity(1));
         document.getElementById('update-qty').addEventListener('click', () => this.updateQuantity());
         
-        // Confirm add products
-        document.getElementById('confirm-add-products').addEventListener('click', () => this.confirmAddProducts());
+        // Confirm add products button in main modal - now opens admin modal
+        document.getElementById('confirm-add-products').addEventListener('click', () => this.openAdminPasswordModal());
+        
+        // Admin modal buttons
+        document.getElementById('close-add-products-admin').addEventListener('click', () => this.closeAdminPasswordModal());
+        document.getElementById('cancel-add-products-admin').addEventListener('click', () => this.closeAdminPasswordModal());
+        this.confirmAddProductsWithAuthBtn.addEventListener('click', () => this.confirmAddProductsWithAuth());
+        
+        // Password visibility toggle
+        document.getElementById('add-products-toggle-password').addEventListener('click', () => this.togglePasswordVisibility());
         
         // Close modal when clicking outside
         this.modal.addEventListener('click', (e) => {
             if (e.target === this.modal) this.closeModal();
         });
         
-        // Escape key to close modal
+        this.adminPasswordModal.addEventListener('click', (e) => {
+            if (e.target === this.adminPasswordModal) this.closeAdminPasswordModal();
+        });
+        
+        // Escape key to close modals
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !this.modal.classList.contains('hidden')) {
-                this.closeModal();
+            if (e.key === 'Escape') {
+                if (!this.modal.classList.contains('hidden')) this.closeModal();
+                if (!this.adminPasswordModal.classList.contains('hidden')) this.closeAdminPasswordModal();
             }
         });
+        
+        // Submit form on Enter key in admin modal
+        this.adminPasswordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.confirmAddProductsWithAuthBtn.click();
+            }
+        });
+    }
+
+    togglePasswordVisibility() {
+        const type = this.adminPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        this.adminPasswordInput.setAttribute('type', type);
+        
+        // Toggle icon
+        const icon = document.querySelector('#add-products-toggle-password i');
+        if (type === 'text') {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
     }
 
     async openModal(orderId, paymentNumber) {
@@ -106,6 +266,51 @@ class AddProductsFeature {
         this.selectedProducts = [];
         this.currentOrderId = null;
         this.currentPaymentNumber = null;
+    }
+
+    openAdminPasswordModal() {
+        if (this.selectedProducts.length === 0) {
+            this.showStatusMessage('Please select at least one product to add', 'bg-yellow-600');
+            return;
+        }
+        
+        // Set modal values
+        document.getElementById('add-products-admin-order-id').textContent = this.currentOrderId;
+        document.getElementById('add-products-admin-payment-number').textContent = this.currentPaymentNumber;
+        document.getElementById('add-products-admin-product-count').textContent = this.selectedProducts.length;
+        
+        // Calculate and display total
+        const subtotal = this.selectedProducts.reduce((sum, product) => sum + product.totalPrice, 0);
+        document.getElementById('add-products-admin-total').textContent = `₱${subtotal.toFixed(2)}`;
+        
+        // Display products list
+        const productsList = document.getElementById('add-products-admin-products-list');
+        productsList.innerHTML = this.selectedProducts.map(product => `
+            <div class="flex justify-between items-center">
+                <span class="text-gray-300 truncate">${product.menuName}</span>
+                <div class="flex items-center space-x-2">
+                    <span class="text-blue-400 text-xs">×${product.quantity}</span>
+                    <span class="text-amber-400 text-xs">₱${product.totalPrice.toFixed(2)}</span>
+                </div>
+            </div>
+        `).join('');
+        
+        // Reset form
+        this.adminPasswordInput.value = '';
+        this.adminPasswordError.classList.add('hidden');
+        this.adminErrorElement.textContent = '';
+        
+        // Open admin modal
+        this.adminPasswordModal.classList.remove('hidden');
+        this.adminPasswordModal.classList.add('flex');
+        
+        // Focus on password input
+        setTimeout(() => this.adminPasswordInput.focus(), 100);
+    }
+
+    closeAdminPasswordModal() {
+        this.adminPasswordModal.classList.remove('flex');
+        this.adminPasswordModal.classList.add('hidden');
     }
 
     async loadCurrentOrderItems(orderId, paymentNumber) {
@@ -149,11 +354,25 @@ class AddProductsFeature {
                 }
             });
             
+            console.log('Response status:', response.status);
+            console.log('Response URL:', response.url);
+            
             if (!response.ok) {
-                throw new Error('Failed to load products');
+                // Try to get error details
+                let errorText = '';
+                try {
+                    const errorData = await response.json();
+                    errorText = JSON.stringify(errorData);
+                } catch (e) {
+                    errorText = await response.text();
+                }
+                
+                console.error('Error details:', errorText);
+                throw new Error(`HTTP ${response.status}: ${response.statusText}. Details: ${errorText}`);
             }
             
             const products = await response.json();
+            console.log('Products loaded:', products.length);
             this.displayProducts(products);
             
         } catch (error) {
@@ -162,7 +381,8 @@ class AddProductsFeature {
                 <div class="text-center text-gray-500 py-8">
                     <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
                     <p>Failed to load products</p>
-                    <p class="text-sm">${error.message}</p>
+                    <p class="text-sm">Error: ${error.message}</p>
+                    <p class="text-xs mt-2">Check console for details</p>
                 </div>
             `;
         }
@@ -408,14 +628,21 @@ class AddProductsFeature {
         });
     }
 
-    async confirmAddProducts() {
+    async confirmAddProductsWithAuth() {
+        const password = this.adminPasswordInput.value.trim();
+        
+        if (!password) {
+            this.showAdminError('Please enter the Admin password');
+            return;
+        }
+        
         if (this.selectedProducts.length === 0) {
-            this.showStatusMessage('Please select at least one product to add', 'bg-yellow-600');
+            this.showAdminError('No products selected to add');
             return;
         }
         
         if (!this.currentOrderId || !this.currentPaymentNumber) {
-            this.showStatusMessage('Order information missing', 'bg-red-600');
+            this.showAdminError('Order information missing');
             return;
         }
         
@@ -434,16 +661,17 @@ class AddProductsFeature {
                 orderID: this.currentOrderId,
                 paymentNumber: this.currentPaymentNumber,
                 products: productsData,
-                staffName: document.querySelector('.font-semibold.text-white').textContent || 'Staff Member'
+                staffName: document.querySelector('.font-semibold.text-white').textContent || 'Staff Member',
+                adminPassword: password // Include admin password
             };
             
             // Show loading state
-            const confirmBtn = document.getElementById('confirm-add-products');
+            const confirmBtn = this.confirmAddProductsWithAuthBtn;
             const originalText = confirmBtn.innerHTML;
             confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Adding...';
             confirmBtn.disabled = true;
             
-            // Call API to add products to order
+            // Call API to add products to order with admin authentication
             const response = await fetch('/api/staff/orders/add-products', {
                 method: 'POST',
                 headers: {
@@ -455,14 +683,19 @@ class AddProductsFeature {
             });
             
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const errorData = await response.json();
+                throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
             }
             
             const result = await response.json();
             
             if (result.success) {
-                this.showStatusMessage(`${result.added_count} product(s) added to order successfully`, 'bg-green-600');
+                // Close both modals
+                this.closeAdminPasswordModal();
                 this.closeModal();
+                
+                // Show success message
+                this.showStatusMessage(`${result.added_count} product(s) added to order successfully`, 'bg-green-600');
                 
                 // Reload orders to reflect changes
                 if (typeof loadOrders === 'function') {
@@ -474,13 +707,35 @@ class AddProductsFeature {
             
         } catch (error) {
             console.error('Error adding products:', error);
-            this.showStatusMessage(`Error: ${error.message}`, 'bg-red-600');
+            
+            // Check if it's an admin password error
+            const errorMessage = error.message.includes('Invalid admin password') 
+                ? 'Invalid Admin password. Please try again.'
+                : error.message.includes('No admin user found')
+                ? 'No Admin user found in system.'
+                : `Error: ${error.message}`;
+            
+            this.showAdminError(errorMessage);
             
             // Reset button state
-            const confirmBtn = document.getElementById('confirm-add-products');
-            confirmBtn.innerHTML = originalText || '<i class="fas fa-plus-circle mr-2"></i> Add to Order';
+            const confirmBtn = this.confirmAddProductsWithAuthBtn;
+            confirmBtn.innerHTML = '<i class="fas fa-check-circle mr-2"></i> Confirm Add Products';
             confirmBtn.disabled = false;
+            
+            // Clear password field
+            this.adminPasswordInput.value = '';
+            this.adminPasswordInput.focus();
         }
+    }
+
+    showAdminError(message) {
+        this.adminErrorElement.textContent = message;
+        this.adminPasswordError.classList.remove('hidden');
+        
+        // Auto-hide error after 5 seconds
+        setTimeout(() => {
+            this.adminPasswordError.classList.add('hidden');
+        }, 5000);
     }
 
     showStatusMessage(message, bgColor = 'bg-blue-600') {
