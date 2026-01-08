@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\MealController;
+use App\Http\Controllers\Admin\MenuProductController;
 
 // Admin routes group
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -62,5 +63,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::prefix('meals')->group(function () {
         Route::get('/data', [MealController::class, 'getMealsData'])->name('meals.data');
         Route::post('/update', [MealController::class, 'updateMealsCount'])->name('meals.update');
+    });
+    
+    // Menu Products routes for dashboard
+    Route::prefix('menu-products')->group(function () {
+        Route::get('/data', [MenuProductController::class, 'getMenuProductsData'])->name('menu-products.data');
+        Route::get('/low-stock', [MenuProductController::class, 'getLowStockItemsCount'])->name('menu-products.low-stock');
     });
 });
