@@ -483,6 +483,94 @@
         .password-show {
             display: block;
         }
+        /* Product Card Styles */
+        .product-card {
+            background-color: #1F2937;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .product-card:hover {
+            transform: translateY(-2px);
+            border-color: #4B5563;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        .product-card.selected {
+            border-color: #10B981;
+            background-color: rgba(16, 185, 129, 0.1);
+        }
+        .modal-product-name {
+            color: #FFFFFF;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 4px;
+        }
+        .modal-product-category {
+            color: #9CA3AF;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+        .modal-product-price {
+            color: #FBBF24;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .modal-product-status-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            display: inline-block;
+        }
+        .status-available {
+            background-color: #059669;
+            color: #D1FAE5;
+        }
+        .status-out-of-stock {
+            background-color: #DC2626;
+            color: #FEE2E2;
+        }
+        .status-discontinued {
+            background-color: #6B7280;
+            color: #F3F4F6;
+        }
+        /* Selected Product Item */
+        .selected-product-item {
+            background-color: rgba(16, 185, 129, 0.1);
+            border: 1px solid #10B981;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        .selected-product-name {
+            color: #FFFFFF;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        .selected-product-quantity {
+            background-color: #1E40AF;
+            color: white;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            font-weight: 600;
+        }
+        .remove-product-btn {
+            color: #EF4444;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+        .remove-product-btn:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+        }
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col min-h-screen">
@@ -895,6 +983,93 @@
                         Confirm Void
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Add Product -->
+    <div id="add-product-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white">Add Product to Order</h2>
+                <button id="close-add-product" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Order Information -->
+            <div class="bg-gray-900 rounded-lg p-4 mb-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <span class="text-gray-400 text-sm">Order ID:</span>
+                        <span class="text-white font-medium ml-2" id="add-modal-order-id">-</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-400 text-sm">Payment #:</span>
+                        <span class="text-white font-medium ml-2" id="add-modal-payment-number">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Search and Filter -->
+            <div class="mb-6">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <!-- Search Input -->
+                    <div class="flex-1">
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input 
+                                type="text" 
+                                id="product-search-input" 
+                                placeholder="Search products by name..."
+                                class="w-full bg-gray-700 text-white pl-10 pr-4 py-3 rounded-lg border border-gray-600 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 focus:outline-none transition"
+                            >
+                        </div>
+                    </div>
+                    
+                    <!-- Category Filter -->
+                    <div class="w-full sm:w-64">
+                        <select id="category-filter" class="w-full bg-gray-700 text-white px-4 py-3 rounded-lg border border-gray-600 focus:border-amber-500 focus:ring-2 focus:ring-amber-500 focus:outline-none transition">
+                            <option value="">All Categories</option>
+                            <!-- Categories will be populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Products Grid -->
+            <div class="mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="products-container">
+                    <!-- Products will be loaded here -->
+                    <div class="col-span-full text-center py-8">
+                        <i class="fas fa-spinner fa-spin text-2xl text-gray-400 mb-3"></i>
+                        <p class="text-gray-400">Loading products...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Selected Products Preview -->
+            <div class="bg-gray-900 rounded-lg p-4 mb-6">
+                <h3 class="text-white font-medium mb-3">Selected Products</h3>
+                <div id="selected-products-list" class="space-y-2 max-h-40 overflow-y-auto">
+                    <p class="text-gray-500 text-center py-2">No products selected yet</p>
+                </div>
+                <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-700">
+                    <span class="text-gray-300">Total Selected:</span>
+                    <span class="text-white font-medium" id="selected-count">0</span>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-700">
+                <button id="cancel-add-product" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition">
+                    Cancel
+                </button>
+                <button id="confirm-add-product" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition">
+                    Add to Order
+                </button>
             </div>
         </div>
     </div>

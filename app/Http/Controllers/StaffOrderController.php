@@ -372,4 +372,123 @@ public function cancelOrder(Request $request)
             'total' => count($orders)
         ]);
     }
+
+    // Get available products from menu_products table
+public function getAvailableProducts()
+{
+    try {
+        $products = DB::table('menu_products')
+            ->select([
+                'menuID',
+                'menuName',
+                'menuCategory',
+                'menuSubcategory',
+                'menuPrice',
+                'menuStatus'
+            ])
+            ->where('menuStatus', 'Available')
+            ->orderBy('menuCategory')
+            ->orderBy('menuSubcategory')
+            ->orderBy('menuName')
+            ->get();
+
+        return response()->json($products);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Failed to fetch products',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
+// Add products to existing order
+public function addProductsToOrder(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'orderID' => 'required|string',
+        'paymentNumber' => 'required|string',
+        'products' => 'required|array|min:1',
+        'products.*.productId' => 'required|string',
+        'products.*.name' => 'required|string',
+        'products.*.price' => 'required|numeric|min:0',
+        'products.*.quantity' => 'required|integer|min:1'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'error' => 'Validation failed',
+            'messages' => $validator->errors()
+        ], 422);
+    }
+
+    try {
+        $data = $validator->validated();
+        
+        // Verify the order exists
+        $existingOrder = DB::table('order_to_staff_transaction')
+            ->where('orderID', $data['orderID'])
+            ->where('paymentNumber', $data['paymentNumber'])
+            ->first();
+
+        if (!$existingOrder) {
+            return response()->json([
+                'error' => 'Order not found',
+                'message' => 'Cannot add products to non-existent order'
+            ], 404);
+        }
+
+        // Check if order is cancelled
+        $cancelledCheck = DB::table('order_to_staff_transaction')
+            ->where('orderID', $data['orderID'])
+            ->where('paymentNumber', $data['paymentNumber'])
+            ->where('orderProductStatus', 'Cancelled')
+            ->exists();
+
+        if ($cancelledCheck) {
+            return response()->json([
+                'error' => 'Order is cancelled',
+                'message' => 'Cannot add products to a cancelled order'
+            ], 400);
+        }
+
+        $addedCount = 0;
+        $now = now();
+
+        foreach ($data['products'] as $product) {
+            // Calculate total price
+            $totalPrice = $product['price'] * $product['quantity'];
+            $tax = $totalPrice * 0.12; // 12% tax rate
+
+            // Insert new product into the order
+            DB::table('order_to_staff_transaction')->insert([
+                'orderID' => $data['orderID'],
+                'paymentNumber' => $data['paymentNumber'],
+                'orderType' => $existingOrder->orderType,
+                'orderPaymentMethod' => $existingOrder->orderPaymentMethod,
+                'orderProductName' => $product['name'],
+                'orderQuantity' => $product['quantity'],
+                'orderTotalProductPrice' => $totalPrice,
+                'orderTotalProductTax' => $tax,
+                'orderProductStatus' => 'For Payment',
+                'orderNotes' => null,
+                'orderCreateDateAndTime' => $now
+            ]);
+
+            $addedCount++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Products added to order successfully',
+            'added_count' => $addedCount
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Failed to add products to order',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
 }
