@@ -99,8 +99,9 @@
                         <div class="flex items-center justify-between">
                             <div>
                                 <p class="text-gray-500 text-sm font-medium">Low Stock Items</p>
-                                <h3 class="text-3xl font-bold text-gray-900 mt-2" id="low-stock-count">0</h3>
-                                <p class="text-gray-500 text-sm mt-1">Needs attention</p>
+                                <h3 class="text-3xl font-bold text-gray-900 mt-2" id="low-stock-count">
+                                    {{ $lowStockData['low_stock_count'] ?? 0 }}
+                                </h3>
                             </div>
                             <div class="bg-red-100 p-4 rounded-full">
                                 <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -109,12 +110,12 @@
                             </div>
                         </div>
                         <div class="mt-4">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            <a href="{{ route('admin.inventory') }}" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 hover:bg-red-200 transition-colors duration-200">
                                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                                     <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                                 </svg>
-                                Warning
-                            </span>
+                                View Details
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -170,14 +171,37 @@
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                         <h3 class="text-lg font-bold text-gray-900 mb-4">Inventory Alerts</h3>
                         <div class="space-y-4">
-                            <!-- Placeholder for low inventory items -->
-                            <div class="text-center py-8">
-                                <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                </svg>
-                                <p class="text-gray-500">No inventory alerts</p>
-                                <p class="text-gray-400 text-sm">All items are sufficiently stocked</p>
-                            </div>
+                            @if($lowStockData['low_stock_count'] > 0)
+                                <!-- Low stock items list -->
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm font-medium text-gray-900">Low Stock Items</span>
+                                        <span class="text-xs font-semibold px-2 py-1 rounded-full bg-red-100 text-red-800">
+                                            {{ $lowStockData['low_stock_count'] }} items
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">
+                                        There are {{ $lowStockData['low_stock_count'] }} ingredients that are low in stock.
+                                    </p>
+                                    <div class="pt-2">
+                                        <a href="{{ route('admin.inventory') }}" class="inline-flex items-center text-sm font-medium text-red-600 hover:text-red-800">
+                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            Go to Inventory to restock
+                                        </a>
+                                    </div>
+                                </div>
+                            @else
+                                <!-- No inventory alerts -->
+                                <div class="text-center py-8">
+                                    <svg class="w-12 h-12 text-green-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <p class="text-gray-700 font-medium">All items are sufficiently stocked</p>
+                                    <p class="text-gray-500 text-sm mt-1">No inventory alerts at this time</p>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -237,12 +261,40 @@
 
         // Function to refresh low stock items data
         function refreshLowStockData() {
-            fetch('{{ route("admin.menu-products.low-stock") }}')
+            fetch('{{ route("admin.low-stock.count") }}')
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
                         // Update the low stock count
                         document.getElementById('low-stock-count').textContent = data.data.low_stock_count;
+                        
+                        // Update the inventory alerts section if it exists
+                        const alertCountElement = document.querySelector('.bg-red-100.text-red-800');
+                        if (alertCountElement && data.data.low_stock_count > 0) {
+                            alertCountElement.textContent = `${data.data.low_stock_count} items`;
+                            
+                            // Update the description in inventory alerts
+                            const alertDescription = document.querySelector('.text-gray-600');
+                            if (alertDescription) {
+                                alertDescription.textContent = `There are ${data.data.low_stock_count} ingredients that are low in stock.`;
+                            }
+                        }
+                        
+                        // If there are no low stock items, update the inventory alerts section
+                        if (data.data.low_stock_count === 0) {
+                            const inventoryAlertsSection = document.querySelector('.space-y-4');
+                            if (inventoryAlertsSection && !inventoryAlertsSection.querySelector('.text-center')) {
+                                inventoryAlertsSection.innerHTML = `
+                                    <div class="text-center py-8">
+                                        <svg class="w-12 h-12 text-green-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <p class="text-gray-700 font-medium">All items are sufficiently stocked</p>
+                                        <p class="text-gray-500 text-sm mt-1">No inventory alerts at this time</p>
+                                    </div>
+                                `;
+                            }
+                        }
                     }
                 })
                 .catch(error => {

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\OverallSales;
 use App\Models\OverallMealsServed;
 use App\Models\OverallMenuProducts;
+use App\Models\OverallLowStockItems; // Add this line
 use App\Models\Admin\MenuProduct;
 
 class AdminController extends Controller
@@ -37,7 +38,10 @@ class AdminController extends Controller
         // Fetch menu products data
         $menuProductsData = $this->getMenuProductsData();
         
-        return view('admin.dashboard', compact('overallSales', 'mealsData', 'menuProductsData'));
+        // Fetch low stock data
+        $lowStockData = OverallLowStockItems::getLowStockData();
+        
+        return view('admin.dashboard', compact('overallSales', 'mealsData', 'menuProductsData', 'lowStockData'));
     }
 
     /**

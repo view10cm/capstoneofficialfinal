@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\MenuController;
 use App\Http\Controllers\Admin\MealController;
 use App\Http\Controllers\Admin\MenuProductController;
+use App\Http\Controllers\Admin\LowStockController; // Add this line
 
 // Admin routes group
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -69,5 +70,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::prefix('menu-products')->group(function () {
         Route::get('/data', [MenuProductController::class, 'getMenuProductsData'])->name('menu-products.data');
         Route::get('/low-stock', [MenuProductController::class, 'getLowStockItemsCount'])->name('menu-products.low-stock');
+    });
+    
+    // Low Stock routes - Add these new routes
+    Route::prefix('low-stock')->group(function () {
+        Route::get('/count', [LowStockController::class, 'getLowStockCount'])->name('low-stock.count');
+        Route::get('/items', [LowStockController::class, 'getLowStockItems'])->name('low-stock.items');
+        Route::post('/refresh', [LowStockController::class, 'refreshLowStockCount'])->name('low-stock.refresh');
     });
 });
