@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\MealController;
 
 // Admin routes group
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -56,4 +57,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Categories routes
     Route::get('/categories/list', [AdminController::class, 'getCategories'])->name('categories.list');
     Route::post('/categories/create', [AdminController::class, 'createCategory'])->name('categories.create');
+    
+    // Meals routes
+    Route::prefix('meals')->group(function () {
+        Route::get('/data', [MealController::class, 'getMealsData'])->name('meals.data');
+        Route::post('/update', [MealController::class, 'updateMealsCount'])->name('meals.update');
+    });
 });
