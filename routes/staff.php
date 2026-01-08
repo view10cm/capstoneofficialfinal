@@ -29,5 +29,8 @@ Route::middleware(['auth', 'staff'])->group(function () {
         
         // Order tracker data
         Route::get('/order-tracker', [StaffOrderController::class, 'getOrderTrackerData']);
+
+        Route::post('/orders/add-products', [StaffOrderController::class, 'addProducts'])->name('staff.orders.add-products');
+
     });
 });

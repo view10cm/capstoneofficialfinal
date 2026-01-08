@@ -385,7 +385,8 @@ public function addProducts(Request $request)
         'products.*.totalPrice' => 'required|numeric|min:0',
         'products.*.notes' => 'nullable|string',
         'products.*.menuID' => 'nullable|string',
-        'staffName' => 'required|string'
+        'staffName' => 'required|string',
+        'adminPassword' => 'required|string' // Add admin password validation
     ]);
 
     if ($validator->fails()) {
@@ -398,6 +399,29 @@ public function addProducts(Request $request)
 
     try {
         $data = $validator->validated();
+        
+        // Verify admin password
+        $adminUser = DB::table('users')
+            ->where('role', 'Admin')
+            ->first();
+        
+        if (!$adminUser) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No admin user found',
+                'error' => 'Cannot verify admin password'
+            ], 403);
+        }
+        
+        // Verify password (using Laravel's Hash::check)
+        if (!Hash::check($data['adminPassword'], $adminUser->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid admin password',
+                'error' => 'The provided admin password is incorrect'
+            ], 401);
+        }
+        
         $addedCount = 0;
         
         // Get the order to copy basic information

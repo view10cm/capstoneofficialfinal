@@ -546,6 +546,25 @@
         #quantity-controls button:active {
             transform: scale(0.95);
         }
+
+        #add-products-admin-modal .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+#add-products-admin-products-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+#add-products-admin-products-list::-webkit-scrollbar-track {
+    background: #1F2937;
+    border-radius: 2px;
+}
+
+#add-products-admin-products-list::-webkit-scrollbar-thumb {
+    background-color: #4B5563;
+    border-radius: 2px;
+}
+
     </style>
 </head>
 <body class="bg-gray-900 flex flex-col min-h-screen">
