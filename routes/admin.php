@@ -14,6 +14,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
 
+    Route::get('/sales/monthly', [AdminController::class, 'getMonthlySalesData'])->name('sales.monthly');
+
     // Inventory
     Route::get('/inventory', [AdminController::class, 'inventory'])->name('inventory');
     
