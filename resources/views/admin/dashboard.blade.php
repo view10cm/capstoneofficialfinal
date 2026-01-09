@@ -177,60 +177,6 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- Recent Activity Section -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">Recent Orders</h3>
-                        <div class="space-y-4">
-                            <!-- Placeholder for recent orders -->
-                            <div class="text-center py-8">
-                                <svg class="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-                                </svg>
-                                <p class="text-gray-500">No recent orders</p>
-                                <p class="text-gray-400 text-sm">Connect to order system to display data</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h3 class="text-lg font-bold text-gray-900 mb-4">Inventory Alerts</h3>
-                        <div class="space-y-4">
-                            @if($lowStockData['low_stock_count'] > 0)
-                                <!-- Low stock items list -->
-                                <div class="space-y-3">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm font-medium text-gray-900">Low Stock Items</span>
-                                        <span class="text-xs font-semibold px-2 py-1 rounded-full bg-red-100 text-red-800">
-                                            {{ $lowStockData['low_stock_count'] }} items
-                                        </span>
-                                    </div>
-                                    <p class="text-sm text-gray-600">
-                                        There are {{ $lowStockData['low_stock_count'] }} ingredients that are low in stock.
-                                    </p>
-                                    <div class="pt-2">
-                                        <a href="{{ route('admin.inventory') }}" class="inline-flex items-center text-sm font-medium text-red-600 hover:text-red-800">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                            </svg>
-                                            Go to Inventory to restock
-                                        </a>
-                                    </div>
-                                </div>
-                            @else
-                                <!-- No inventory alerts -->
-                                <div class="text-center py-8">
-                                    <svg class="w-12 h-12 text-green-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    <p class="text-gray-700 font-medium">All items are sufficiently stocked</p>
-                                    <p class="text-gray-500 text-sm mt-1">No inventory alerts at this time</p>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                </div>
             </div>
 
         </div>
