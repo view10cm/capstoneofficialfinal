@@ -215,4 +215,64 @@ class AdminController extends Controller
             ], 500);
         }
     }
+
+public function getMonthlySalesData(Request $request)
+{
+    try {
+        // Generate last 12 months labels
+        $labels = [];
+        $salesData = [];
+        
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $labels[] = $date->format('M Y');
+            
+            // Generate some sample data for testing
+            // Replace this with your actual database query
+            $salesData[] = rand(10000, 50000);
+        }
+        
+        // Calculate statistics
+        $totalSales = array_sum($salesData);
+        $averageSales = count($salesData) > 0 ? $totalSales / count($salesData) : 0;
+        $maxSales = max($salesData);
+        $minSales = min($salesData);
+        $growthRate = count($salesData) >= 2 ? 
+            (($salesData[count($salesData)-1] - $salesData[count($salesData)-2]) / $salesData[count($salesData)-2] * 100) : 0;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'labels' => $labels,
+                'datasets' => [
+                    [
+                        'label' => 'Monthly Sales',
+                        'data' => $salesData,
+                        'borderColor' => '#3b82f6',
+                        'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
+                        'tension' => 0.4
+                    ]
+                ],
+                'statistics' => [
+                    'total_sales' => $totalSales,
+                    'average_sales' => $averageSales,
+                    'max_sales' => $maxSales,
+                    'min_sales' => $minSales,
+                    'growth_rate' => $growthRate,
+                    'months_count' => count($labels)
+                ]
+            ]
+        ]);
+
+    } catch (\Exception $e) {
+        \Log::error('Error fetching monthly sales data: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load sales data',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
 }
