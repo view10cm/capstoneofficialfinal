@@ -11,8 +11,9 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\OverallSales;
 use App\Models\OverallMealsServed;
 use App\Models\OverallMenuProducts;
-use App\Models\OverallLowStockItems; // Add this line
+use App\Models\OverallLowStockItems;
 use App\Models\Admin\MenuProduct;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -146,11 +147,39 @@ class AdminController extends Controller
     }
 
     /**
-     * Show order history page
+     * Show order history page with data from staff_to_kitchen_transaction
      */
-    public function orderHistory()
+    public function orderHistory(Request $request)
     {
-        return view('admin.adminOrderHistory');
+        // Get search query if any
+        $search = $request->input('search');
+        
+        // Query the staff_to_kitchen_transaction table
+        $query = DB::table('staff_to_kitchen_transaction')
+            ->select(
+                'id',
+                'orderID',
+                'productName',
+                'totalPrice',
+                'paymentProcessedAt',
+                'quantity',
+                'paymentStatus'
+            )
+            ->where('paymentStatus', 'completed') // Only show completed payments
+            ->orderBy('paymentProcessedAt', 'desc');
+        
+        // Apply search filter if provided
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('orderID', 'like', "%{$search}%")
+                  ->orWhere('productName', 'like', "%{$search}%");
+            });
+        }
+        
+        // Paginate results (10 per page)
+        $orders = $query->paginate(10);
+        
+        return view('admin.adminOrderHistory', compact('orders'));
     }
 
     /**
@@ -216,135 +245,134 @@ class AdminController extends Controller
         }
     }
 
-public function getMonthlySalesData(Request $request)
-{
-    try {
-        // Generate last 12 months labels
-        $labels = [];
-        $salesData = [];
-        
-        // Get current date and calculate last 12 months
-        $currentDate = now();
-        
-        for ($i = 11; $i >= 0; $i--) {
-            $date = $currentDate->copy()->subMonths($i);
-            $month = $date->format('m');
-            $year = $date->format('Y');
+    public function getMonthlySalesData(Request $request)
+    {
+        try {
+            // Generate last 12 months labels
+            $labels = [];
+            $salesData = [];
             
-            // Add to labels
-            $labels[] = $date->format('M Y');
+            // Get current date and calculate last 12 months
+            $currentDate = now();
             
-            // Initialize monthly total to 0
-            $monthlyTotal = 0;
-            
-            // 1. Get sales from staff_to_kitchen_transaction
-            $kitchenSales = \DB::table('staff_to_kitchen_transaction')
-                ->whereYear('paymentProcessedAt', $year)
-                ->whereMonth('paymentProcessedAt', $month)
-                ->where('paymentStatus', 'completed')
-                ->sum('totalPrice');
-            
-            if ($kitchenSales !== null) {
-                $monthlyTotal += $kitchenSales;
+            for ($i = 11; $i >= 0; $i--) {
+                $date = $currentDate->copy()->subMonths($i);
+                $month = $date->format('m');
+                $year = $date->format('Y');
+                
+                // Add to labels
+                $labels[] = $date->format('M Y');
+                
+                // Initialize monthly total to 0
+                $monthlyTotal = 0;
+                
+                // 1. Get sales from staff_to_kitchen_transaction
+                $kitchenSales = \DB::table('staff_to_kitchen_transaction')
+                    ->whereYear('paymentProcessedAt', $year)
+                    ->whereMonth('paymentProcessedAt', $month)
+                    ->where('paymentStatus', 'completed')
+                    ->sum('totalPrice');
+                
+                if ($kitchenSales !== null) {
+                    $monthlyTotal += $kitchenSales;
+                }
+                
+                // 2. Get sales from order_to_staff_transaction
+                $orderSales = \DB::table('order_to_staff_transaction')
+                    ->whereYear('orderCreateDateAndTime', $year)
+                    ->whereMonth('orderCreateDateAndTime', $month)
+                    ->where('orderProductStatus', '!=', 'Product Voided')
+                    ->sum('orderTotalProductPrice');
+                
+                if ($orderSales !== null) {
+                    $monthlyTotal += $orderSales;
+                }
+                
+                // 3. Add tax from order_to_staff_transaction
+                $orderTax = \DB::table('order_to_staff_transaction')
+                    ->whereYear('orderCreateDateAndTime', $year)
+                    ->whereMonth('orderCreateDateAndTime', $month)
+                    ->where('orderProductStatus', '!=', 'Product Voided')
+                    ->sum('orderTotalProductTax');
+                
+                if ($orderTax !== null) {
+                    $monthlyTotal += $orderTax;
+                }
+                
+                // Add the monthly total to sales data (will be 0 if no data)
+                $salesData[] = $monthlyTotal;
             }
             
-            // 2. Get sales from order_to_staff_transaction
-            $orderSales = \DB::table('order_to_staff_transaction')
-                ->whereYear('orderCreateDateAndTime', $year)
-                ->whereMonth('orderCreateDateAndTime', $month)
-                ->where('orderProductStatus', '!=', 'Product Voided')
-                ->sum('orderTotalProductPrice');
-            
-            if ($orderSales !== null) {
-                $monthlyTotal += $orderSales;
-            }
-            
-            // 3. Add tax from order_to_staff_transaction
-            $orderTax = \DB::table('order_to_staff_transaction')
-                ->whereYear('orderCreateDateAndTime', $year)
-                ->whereMonth('orderCreateDateAndTime', $month)
-                ->where('orderProductStatus', '!=', 'Product Voided')
-                ->sum('orderTotalProductTax');
-            
-            if ($orderTax !== null) {
-                $monthlyTotal += $orderTax;
-            }
-            
-            // Add the monthly total to sales data (will be 0 if no data)
-            $salesData[] = $monthlyTotal;
-        }
-        
-        // Calculate statistics
-        $totalSales = array_sum($salesData);
-        $averageSales = count($salesData) > 0 ? $totalSales / count($salesData) : 0;
-        $maxSales = max($salesData);
-        $minSales = min($salesData);
-        $growthRate = count($salesData) >= 2 ? 
-            (($salesData[count($salesData)-1] - $salesData[count($salesData)-2]) / 
-            ($salesData[count($salesData)-2] == 0 ? 1 : $salesData[count($salesData)-2]) * 100) : 0;
+            // Calculate statistics
+            $totalSales = array_sum($salesData);
+            $averageSales = count($salesData) > 0 ? $totalSales / count($salesData) : 0;
+            $maxSales = max($salesData);
+            $minSales = min($salesData);
+            $growthRate = count($salesData) >= 2 ? 
+                (($salesData[count($salesData)-1] - $salesData[count($salesData)-2]) / 
+                ($salesData[count($salesData)-2] == 0 ? 1 : $salesData[count($salesData)-2]) * 100) : 0;
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'labels' => $labels,
-                'datasets' => [
-                    [
-                        'label' => 'Monthly Sales',
-                        'data' => $salesData,
-                        'borderColor' => '#3b82f6',
-                        'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
-                        'tension' => 0.4
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'labels' => $labels,
+                    'datasets' => [
+                        [
+                            'label' => 'Monthly Sales',
+                            'data' => $salesData,
+                            'borderColor' => '#3b82f6',
+                            'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
+                            'tension' => 0.4
+                        ]
+                    ],
+                    'statistics' => [
+                        'total_sales' => $totalSales,
+                        'average_sales' => $averageSales,
+                        'max_sales' => $maxSales,
+                        'min_sales' => $minSales,
+                        'growth_rate' => round($growthRate, 2),
+                        'months_count' => count($labels)
                     ]
-                ],
-                'statistics' => [
-                    'total_sales' => $totalSales,
-                    'average_sales' => $averageSales,
-                    'max_sales' => $maxSales,
-                    'min_sales' => $minSales,
-                    'growth_rate' => round($growthRate, 2),
-                    'months_count' => count($labels)
                 ]
-            ]
-        ]);
+            ]);
 
-    } catch (\Exception $e) {
-        \Log::error('Error fetching monthly sales data: ' . $e->getMessage());
-        
-        // Fallback: Return 0 for all months if there's an error
-        $labels = [];
-        $salesData = [];
-        $currentDate = now();
-        
-        for ($i = 11; $i >= 0; $i--) {
-            $date = $currentDate->copy()->subMonths($i);
-            $labels[] = $date->format('M Y');
-            $salesData[] = 0;
-        }
-        
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'labels' => $labels,
-                'datasets' => [
-                    [
-                        'label' => 'Monthly Sales',
-                        'data' => $salesData,
-                        'borderColor' => '#3b82f6',
-                        'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
-                        'tension' => 0.4
+        } catch (\Exception $e) {
+            \Log::error('Error fetching monthly sales data: ' . $e->getMessage());
+            
+            // Fallback: Return 0 for all months if there's an error
+            $labels = [];
+            $salesData = [];
+            $currentDate = now();
+            
+            for ($i = 11; $i >= 0; $i--) {
+                $date = $currentDate->copy()->subMonths($i);
+                $labels[] = $date->format('M Y');
+                $salesData[] = 0;
+            }
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'labels' => $labels,
+                    'datasets' => [
+                        [
+                            'label' => 'Monthly Sales',
+                            'data' => $salesData,
+                            'borderColor' => '#3b82f6',
+                            'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
+                            'tension' => 0.4
+                        ]
+                    ],
+                    'statistics' => [
+                        'total_sales' => 0,
+                        'average_sales' => 0,
+                        'max_sales' => 0,
+                        'min_sales' => 0,
+                        'growth_rate' => 0,
+                        'months_count' => count($labels)
                     ]
-                ],
-                'statistics' => [
-                    'total_sales' => 0,
-                    'average_sales' => 0,
-                    'max_sales' => 0,
-                    'min_sales' => 0,
-                    'growth_rate' => 0,
-                    'months_count' => count($labels)
                 ]
-            ]
-        ]);
+            ]);
+        }
     }
-}
-
 }
