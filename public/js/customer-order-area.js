@@ -3,7 +3,7 @@ const navigationData = {
     'main-course': ['Pork', 'Chicken', 'Beef', 'Fish & Seafood', 'Pasta', 'Noodles'],
     'appetizers': ['Salads', 'Knick/Knacks', 'Sandwiches'],
     'drinks': ['Hot', 'Iced', 'Frappe', 'Milktea'],
-    'specials': []
+
 };
 
 // Category mapping for database
@@ -11,7 +11,6 @@ const categoryMap = {
     'main-course': 'main-course',
     'appetizers': 'appetizers',
     'drinks': 'drinks',
-    'specials': 'specials'
 };
 
 // Subcategory mapping for database

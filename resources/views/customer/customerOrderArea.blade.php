@@ -447,9 +447,6 @@
                         <button data-category="drinks" class="upper-nav-btn px-4 py-3 text-base md:text-lg font-medium text-gray-800 hover:text-amber-900 transition-colors duration-200">
                             <i class="fas fa-glass-whiskey mr-2"></i>Drinks
                         </button>
-                        <button data-category="specials" class="upper-nav-btn px-4 py-3 text-base md:text-lg font-medium text-gray-800 hover:text-amber-900 transition-colors duration-200">
-                            <i class="fas fa-star mr-2"></i>Specials
-                        </button>
                     </nav>
                 </div>
                 
