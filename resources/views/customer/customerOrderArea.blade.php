@@ -720,6 +720,42 @@
     </div>
 
     <!-- Include external JavaScript file -->
-    <script src="{{ asset('js/customer-order-area.js') }}"></script>
+    <script src="{{ asset('js/customer-order-base.js') }}"></script>
+<script src="{{ asset('js/customer-order-cart.js') }}"></script>
+<script src="{{ asset('js/customer-order-modal.js') }}"></script>
+<script src="{{ asset('js/customer-order-voice.js') }}"></script>
+<script>
+    // Main initialization
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize base app first
+        initializeBaseApp();
+        
+        // Initialize voice DOM elements
+        initializeVoiceDOMElements();
+        
+        // Initialize cart event listeners
+        initializeCartEventListeners();
+        
+        // Initialize modal event listeners
+        initializeModalEventListeners();
+        
+        // Initialize voice event listeners
+        initializeVoiceEventListeners();
+        
+        // Initialize modals
+        createCheckoutModal();
+        createPaymentQueueModal();
+        
+        // Set voice stop button as disabled initially
+        if (domElements.voiceStopBtn) {
+            domElements.voiceStopBtn.disabled = true;
+        }
+        
+        // Initialize calculations
+        calculateTotals();
+        
+        console.log('All modules initialized successfully');
+    });
+</script>
 </body>
 </html>
