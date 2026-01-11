@@ -382,40 +382,51 @@
         }
 
         /* Auto-add notification animation */
-@keyframes fadeInDown {
-    from {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
 
-@keyframes fadeOutUp {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-}
+        @keyframes fadeOutUp {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
 
-.animate__animated {
-    animation-duration: 0.3s;
-    animation-fill-mode: both;
-}
+        .animate__animated {
+            animation-duration: 0.3s;
+            animation-fill-mode: both;
+        }
 
-.animate__fadeInDown {
-    animation-name: fadeInDown;
-}
+        .animate__fadeInDown {
+            animation-name: fadeInDown;
+        }
 
-.animate__fadeOutUp {
-    animation-name: fadeOutUp;
-}
+        .animate__fadeOutUp {
+            animation-name: fadeOutUp;
+        }
+        
+        /* Wake word detection animation */
+        @keyframes wakeWordPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .wake-word-detected {
+            animation: wakeWordPulse 0.5s ease-in-out;
+        }
         
     </style>
 </head>
@@ -579,21 +590,9 @@
                             </div>
                         </div>
                         
-                        <div class="flex space-x-2">
-                            <button id="voice-start" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm">
-                                <i class="fas fa-play mr-1"></i> Start
-                            </button>
-                            <button id="voice-stop" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm">
-                                <i class="fas fa-stop mr-1"></i> Stop
-                            </button>
-                            <button id="voice-help" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm">
-                                <i class="fas fa-question-circle mr-1"></i> Help
-                            </button>
-                        </div>
-                        
                         <div class="text-center md:text-right">
                             <div id="voice-status" class="text-xs font-medium text-gray-700">Status: Ready</div>
-                            <div id="voice-feedback" class="text-xs text-gray-500">Click Start to begin</div>
+                            <div id="voice-feedback" class="text-xs text-gray-500">Say "Hey Arabica" to activate</div>
                         </div>
                     </div>
                     
@@ -605,7 +604,7 @@
                                 <span id="voice-status-badge" class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">Ready</span>
                             </div>
                             <div id="voice-transcript" class="text-gray-700 p-2 bg-gray-50 rounded border text-sm">
-                                Speak now...
+                                Listening for "Hey Arabica"...
                             </div>
                             <div class="mt-2 text-xs text-gray-600">
                                 <i class="fas fa-lightbulb mr-1"></i> Try: "Add pork barbecue" or "Show specials"
@@ -739,17 +738,12 @@
         // Initialize modal event listeners
         initializeModalEventListeners();
         
-        // Initialize voice event listeners
+        // Initialize voice event listeners with wake word detection
         initializeVoiceEventListeners();
         
         // Initialize modals
         createCheckoutModal();
         createPaymentQueueModal();
-        
-        // Set voice stop button as disabled initially
-        if (domElements.voiceStopBtn) {
-            domElements.voiceStopBtn.disabled = true;
-        }
         
         // Initialize calculations
         calculateTotals();
