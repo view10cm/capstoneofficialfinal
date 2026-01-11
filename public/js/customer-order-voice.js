@@ -1,5 +1,5 @@
 // customer-order-voice.js
-// Voice assistant functionality with wake word detection
+// Voice assistant functionality with wake word detection and TTS responses
 
 let speechRecognition = null;
 let isListening = false;
@@ -13,6 +13,8 @@ let analyser = null;
 let microphone = null;
 let javascriptNode = null;
 let isAudioContextInitialized = false;
+let speechSynthesis = window.speechSynthesis;
+let isSpeaking = false;
 
 // Initialize voice DOM elements
 function initializeVoiceDOMElements() {
@@ -62,17 +64,213 @@ async function initializeAudioContext() {
     }
 }
 
+
+function playChime() {
+    try {
+        // Create audio context for chime
+        const chimeContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = chimeContext.createOscillator();
+        const gainNode = chimeContext.createGain();
+        
+        // Configure chime sound
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(800, chimeContext.currentTime); // Higher pitch
+        oscillator.frequency.exponentialRampToValueAtTime(1200, chimeContext.currentTime + 0.3); // Rise
+        
+        // Configure volume envelope
+        gainNode.gain.setValueAtTime(0, chimeContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, chimeContext.currentTime + 0.1); // Fade in
+        gainNode.gain.exponentialRampToValueAtTime(0.01, chimeContext.currentTime + 1); // Fade out
+        
+        // Connect nodes
+        oscillator.connect(gainNode);
+        gainNode.connect(chimeContext.destination);
+        
+        // Play chime
+        oscillator.start();
+        oscillator.stop(chimeContext.currentTime + 1); // Stop after 1 second
+        
+        // Also add visual feedback
+        const voiceIcon = document.getElementById('voice-icon');
+        if (voiceIcon) {
+            voiceIcon.classList.add('wake-word-detected');
+            setTimeout(() => {
+                voiceIcon.classList.remove('wake-word-detected');
+            }, 500);
+        }
+        
+    } catch (error) {
+        console.log('Could not play chime sound:', error);
+        // Fallback visual feedback
+        const voiceIcon = document.getElementById('voice-icon');
+        if (voiceIcon) {
+            voiceIcon.classList.add('wake-word-detected');
+            setTimeout(() => {
+                voiceIcon.classList.remove('wake-word-detected');
+            }, 500);
+        }
+    }
+}
+
+function playWelcomeChime() {
+    try {
+        // Create audio context for welcome chime
+        const chimeContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // First tone
+        const oscillator1 = chimeContext.createOscillator();
+        const gainNode1 = chimeContext.createGain();
+        
+        oscillator1.type = 'sine';
+        oscillator1.frequency.setValueAtTime(523.25, chimeContext.currentTime); // C5
+        gainNode1.gain.setValueAtTime(0, chimeContext.currentTime);
+        gainNode1.gain.linearRampToValueAtTime(0.2, chimeContext.currentTime + 0.1);
+        gainNode1.gain.exponentialRampToValueAtTime(0.01, chimeContext.currentTime + 0.8);
+        
+        oscillator1.connect(gainNode1);
+        gainNode1.connect(chimeContext.destination);
+        
+        // Second tone (delayed)
+        const oscillator2 = chimeContext.createOscillator();
+        const gainNode2 = chimeContext.createGain();
+        
+        oscillator2.type = 'sine';
+        oscillator2.frequency.setValueAtTime(659.25, chimeContext.currentTime + 0.3); // E5
+        gainNode2.gain.setValueAtTime(0, chimeContext.currentTime + 0.3);
+        gainNode2.gain.linearRampToValueAtTime(0.2, chimeContext.currentTime + 0.4);
+        gainNode2.gain.exponentialRampToValueAtTime(0.01, chimeContext.currentTime + 1.2);
+        
+        oscillator2.connect(gainNode2);
+        gainNode2.connect(chimeContext.destination);
+        
+        // Third tone (higher, delayed)
+        const oscillator3 = chimeContext.createOscillator();
+        const gainNode3 = chimeContext.createGain();
+        
+        oscillator3.type = 'sine';
+        oscillator3.frequency.setValueAtTime(783.99, chimeContext.currentTime + 0.6); // G5
+        gainNode3.gain.setValueAtTime(0, chimeContext.currentTime + 0.6);
+        gainNode3.gain.linearRampToValueAtTime(0.2, chimeContext.currentTime + 0.7);
+        gainNode3.gain.exponentialRampToValueAtTime(0.01, chimeContext.currentTime + 1.8);
+        
+        oscillator3.connect(gainNode3);
+        gainNode3.connect(chimeContext.destination);
+        
+        // Play all tones
+        oscillator1.start();
+        oscillator1.stop(chimeContext.currentTime + 0.8);
+        
+        oscillator2.start(chimeContext.currentTime + 0.3);
+        oscillator2.stop(chimeContext.currentTime + 1.2);
+        
+        oscillator3.start(chimeContext.currentTime + 0.6);
+        oscillator3.stop(chimeContext.currentTime + 1.8);
+        
+        // Visual feedback with longer animation
+        const voiceIcon = document.getElementById('voice-icon');
+        if (voiceIcon) {
+            voiceIcon.classList.add('wake-word-detected');
+            
+            // Add pulsing animation
+            voiceIcon.style.animation = 'wakeWordPulse 0.5s ease-in-out 4';
+            
+            setTimeout(() => {
+                voiceIcon.classList.remove('wake-word-detected');
+                voiceIcon.style.animation = '';
+            }, 2000);
+        }
+        
+    } catch (error) {
+        console.log('Could not play welcome chime:', error);
+        // Simple fallback
+        playChime();
+    }
+}
+
+
+// Text-to-Speech function
+function speakText(text) {
+    if (!speechSynthesis) {
+        console.error('Speech synthesis not supported');
+        return Promise.resolve();
+    }
+    
+    // Cancel any ongoing speech
+    speechSynthesis.cancel();
+    
+    return new Promise((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        // Configure voice settings
+        utterance.volume = 1;
+        utterance.rate = 1;
+        utterance.pitch = 1;
+        utterance.lang = 'en-US';
+        
+        // Try to get a female voice if available
+        const voices = speechSynthesis.getVoices();
+        const femaleVoice = voices.find(voice => 
+            voice.lang.includes('en') && 
+            voice.name.toLowerCase().includes('female')
+        );
+        
+        if (femaleVoice) {
+            utterance.voice = femaleVoice;
+        }
+        
+        isSpeaking = true;
+        
+        utterance.onstart = function() {
+            console.log('Speaking:', text);
+            updateVoiceUIForSpeaking();
+        };
+        
+        utterance.onend = function() {
+            console.log('Finished speaking');
+            isSpeaking = false;
+            updateVoiceUIForListening(); // Go back to listening mode
+            resolve();
+        };
+        
+        utterance.onerror = function(event) {
+            console.error('Speech synthesis error:', event);
+            isSpeaking = false;
+            updateVoiceUIForListening();
+            resolve();
+        };
+        
+        speechSynthesis.speak(utterance);
+    });
+}
+
+// Update UI for system speaking
+function updateVoiceUIForSpeaking() {
+    const voiceIcon = document.getElementById('voice-icon');
+    const statusBadge = document.getElementById('voice-status-badge');
+    const levelIndicator = document.getElementById('voice-level-indicator');
+    
+    if (voiceIcon) {
+        voiceIcon.style.backgroundColor = '#8B5CF6';
+        voiceIcon.innerHTML = '<i class="fas fa-volume-up"></i>';
+    }
+    if (statusBadge) {
+        statusBadge.textContent = 'Speaking...';
+        statusBadge.className = 'text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded';
+    }
+    if (levelIndicator) levelIndicator.classList.add('hidden');
+}
+
 // Start voice activity detection
 function startVoiceActivityDetection() {
     if (!isAudioContextInitialized || !javascriptNode) return;
     
     let speechActive = false;
     let consecutiveSilenceFrames = 0;
-    const SILENCE_THRESHOLD = 15; // Adjust this based on testing
-    const SILENCE_FRAMES_REQUIRED = 60; // ~12 seconds at 2048 buffer size (12 seconds ÷ 0.2 seconds per buffer = 60 frames)
+    const SILENCE_THRESHOLD = 15;
+    const SILENCE_FRAMES_REQUIRED = 60;
     
     javascriptNode.onaudioprocess = function() {
-        if (!isListening || isWaitingForWakeWord) return;
+        if (!isListening || isWaitingForWakeWord || isSpeaking) return;
         
         const array = new Uint8Array(analyser.frequencyBinCount);
         analyser.getByteFrequencyData(array);
@@ -88,15 +286,13 @@ function startVoiceActivityDetection() {
         if (average > SILENCE_THRESHOLD) {
             consecutiveSilenceFrames = 0;
             speechActive = true;
-            resetSilenceTimeout(); // Reset the 12-second timeout when speech is detected
+            resetSilenceTimeout();
         } else {
             consecutiveSilenceFrames++;
             if (consecutiveSilenceFrames > SILENCE_FRAMES_REQUIRED && speechActive) {
-                // 12 seconds of silence after speech - user has finished speaking
                 speechActive = false;
                 consecutiveSilenceFrames = 0;
                 
-                // If we have a final transcript, process it
                 const currentTranscript = domElements.voiceTranscript.textContent;
                 if (currentTranscript && !currentTranscript.includes('Listening for') && 
                     !currentTranscript.includes('Say "Hey Arabica"') &&
@@ -111,15 +307,240 @@ function startVoiceActivityDetection() {
 
 // Process detected command after silence
 function processDetectedCommand(transcript) {
-    if (transcript && transcript.length > 2 && !isProcessingVoiceCommand && !isWaitingForWakeWord) {
+    if (transcript && transcript.length > 2 && !isProcessingVoiceCommand && !isWaitingForWakeWord && !isSpeaking) {
         console.log('Processing command after silence:', transcript);
         saveTranscript(transcript);
         processVoiceCommand(transcript);
+    }
+}
+
+// Process voice command with TTS responses
+function processVoiceCommandWithTTS(transcript) {
+    const command = transcript.toLowerCase();
+    
+    if (isProcessingVoiceCommand) {
+        console.log('Already processing a voice command, skipping...');
+        return;
+    }
+    
+    isProcessingVoiceCommand = true;
+    
+    // Check for different command types
+    if (command.includes('add') || command.includes('order') || command.includes('want')) {
+        const words = command.split(' ');
+        const orderKeywords = ['add', 'order', 'want', 'get', 'take', 'have'];
+        let addIndex = -1;
         
-        // Reset to wake word detection after processing
-        setTimeout(() => {
-            resetToWakeWordDetection();
-        }, 3000);
+        for (let i = 0; i < words.length; i++) {
+            if (orderKeywords.includes(words[i])) {
+                addIndex = i;
+                break;
+            }
+        }
+        
+        if (addIndex !== -1 && words.length > addIndex + 1) {
+            const productNameWords = [];
+            for (let i = addIndex + 1; i < words.length; i++) {
+                const fillerWords = ['a', 'an', 'the', 'some', 'please', 'i', 'would', 'like', 'to'];
+                if (!fillerWords.includes(words[i])) {
+                    productNameWords.push(words[i]);
+                }
+            }
+            const productName = productNameWords.join(' ');
+            
+            if (productName.trim() === '') {
+                const response = "Please specify what you want to add. For example, say 'Add pad Thai' or 'I want pad Thai'";
+                domElements.voiceFeedback.textContent = response;
+                speakText(response);
+                isProcessingVoiceCommand = false;
+                return;
+            }
+            
+            console.log('Extracted product name from command:', productName);
+            
+            // Speak acknowledgment
+            speakText(`Looking for ${productName} in our menu. One moment please.`, function() {
+                matchAndProcessProduct(productName);
+            });
+            
+            return;
+        } else {
+            const response = "Please specify what you want to add. For example, say 'Add pad Thai' or 'I want pad Thai'";
+            domElements.voiceFeedback.textContent = response;
+            speakText(response);
+            isProcessingVoiceCommand = false;
+            return;
+        }
+    } 
+    else if (command.includes('show') || command.includes('display')) {
+        if (command.includes('specials')) {
+            const response = "Showing you our specials menu.";
+            domElements.voiceFeedback.textContent = response;
+            speakText(response, function() {
+                const specialsBtn = document.querySelector('[data-category="specials"]');
+                if (specialsBtn) {
+                    specialsBtn.click();
+                }
+                isProcessingVoiceCommand = false;
+                setTimeout(() => resetToWakeWordDetection(), 3000);
+            });
+        } else if (command.includes('drinks')) {
+            const response = "Showing you our drinks menu.";
+            domElements.voiceFeedback.textContent = response;
+            speakText(response, function() {
+                const drinksBtn = document.querySelector('[data-category="drinks"]');
+                if (drinksBtn) {
+                    drinksBtn.click();
+                }
+                isProcessingVoiceCommand = false;
+                setTimeout(() => resetToWakeWordDetection(), 3000);
+            });
+        } else if (command.includes('appetizers')) {
+            const response = "Showing you our appetizers menu.";
+            domElements.voiceFeedback.textContent = response;
+            speakText(response, function() {
+                const appetizersBtn = document.querySelector('[data-category="appetizers"]');
+                if (appetizersBtn) {
+                    appetizersBtn.click();
+                }
+                isProcessingVoiceCommand = false;
+                setTimeout(() => resetToWakeWordDetection(), 3000);
+            });
+        } else if (command.includes('main course') || command.includes('main-course')) {
+            const response = "Showing you our main course menu.";
+            domElements.voiceFeedback.textContent = response;
+            speakText(response, function() {
+                const mainCourseBtn = document.querySelector('[data-category="main-course"]');
+                if (mainCourseBtn) {
+                    mainCourseBtn.click();
+                }
+                isProcessingVoiceCommand = false;
+                setTimeout(() => resetToWakeWordDetection(), 3000);
+            });
+        } else {
+            const response = "What would you like me to show? You can say 'show specials', 'show drinks', or 'show appetizers'.";
+            domElements.voiceFeedback.textContent = response;
+            speakText(response);
+            isProcessingVoiceCommand = false;
+        }
+    }
+    else if (command.includes('clear') || command.includes('remove all')) {
+        const response = "Clearing your order. All items have been removed.";
+        domElements.voiceFeedback.textContent = response;
+        speakText(response, function() {
+            clearOrder();
+            isProcessingVoiceCommand = false;
+            setTimeout(() => resetToWakeWordDetection(), 3000);
+        });
+    }
+    else if (command.includes('checkout') || command.includes('pay')) {
+        const response = "Opening checkout for you.";
+        domElements.voiceFeedback.textContent = response;
+        speakText(response, function() {
+            showCheckoutModal();
+            isProcessingVoiceCommand = false;
+        });
+    }
+    else if (command.includes('thank you') || command.includes('thanks')) {
+        const response = "You're welcome! Is there anything else I can help you with?";
+        domElements.voiceFeedback.textContent = response;
+        speakText(response);
+        isProcessingVoiceCommand = false;
+        setTimeout(() => resetToWakeWordDetection(), 3000);
+    }
+    else if (command.includes('help')) {
+        showVoiceHelp();
+        isProcessingVoiceCommand = false;
+    }
+    else {
+        const response = "I heard you say: " + transcript + ". I'm not sure how to help with that. You can say things like 'Add pork barbecue', 'Show specials', or 'Clear order'.";
+        domElements.voiceFeedback.textContent = response;
+        speakText(response);
+        isProcessingVoiceCommand = false;
+        setTimeout(() => resetToWakeWordDetection(), 3000);
+    }
+}
+
+// Match and process product with TTS feedback
+async function matchAndProcessProduct(productName) {
+    try {
+        const matchResult = await matchTranscriptWithMenuItem(productName);
+        
+        if (matchResult && matchResult.matchedMenuItem) {
+            const confidenceLevel = matchResult.confidence;
+            const matchedItem = matchResult.matchedMenuItem;
+            const productDetails = matchResult.product;
+            
+            // Speak based on confidence level
+            if (confidenceLevel === 'Confident' && productDetails) {
+                const response = `I found ${matchedItem} in our menu. Adding it to your order now.`;
+                domElements.voiceFeedback.textContent = response;
+                
+                speakText(response, function() {
+                    autoAddProductToOrder(productDetails, 'voice-auto');
+                    isProcessingVoiceCommand = false;
+                    setTimeout(() => resetToWakeWordDetection(), 3000);
+                });
+                
+            } else if (confidenceLevel === 'Partially Confident') {
+                const response = `I think you might be looking for ${matchedItem}. Should I add this to your order?`;
+                domElements.voiceFeedback.textContent = response;
+                
+                speakText(response, function() {
+                    showPartialConfirmation(matchedItem, '60-79%').then(confirmed => {
+                        if (confirmed) {
+                            const confirmResponse = `Adding ${matchedItem} to your order.`;
+                            speakText(confirmResponse, function() {
+                                autoAddMenuItemToOrder(matchedItem, confidenceLevel);
+                                isProcessingVoiceCommand = false;
+                                setTimeout(() => resetToWakeWordDetection(), 3000);
+                            });
+                        } else {
+                            const cancelResponse = "Okay, I won't add that item. You can try saying the item name more clearly or search for it manually.";
+                            speakText(cancelResponse);
+                            isProcessingVoiceCommand = false;
+                            setTimeout(() => resetToWakeWordDetection(), 3000);
+                        }
+                    });
+                });
+                
+            } else {
+                const response = `I'm not confident about matching "${productName}" to a menu item. Please try saying the item name more clearly or search for it manually.`;
+                domElements.voiceFeedback.textContent = response;
+                
+                speakText(response, function() {
+                    showLowConfidenceRejection(matchedItem || productName, '40-59%').then(addAnyway => {
+                        if (addAnyway) {
+                            const addResponse = `Adding ${matchedItem || productName} to your order anyway.`;
+                            speakText(addResponse, function() {
+                                autoAddMenuItemToOrder(matchedItem || productName, confidenceLevel);
+                                isProcessingVoiceCommand = false;
+                                setTimeout(() => resetToWakeWordDetection(), 3000);
+                            });
+                        } else {
+                            isProcessingVoiceCommand = false;
+                            setTimeout(() => resetToWakeWordDetection(), 3000);
+                        }
+                    });
+                });
+            }
+        } else {
+            const response = `I couldn't find "${productName}" in our menu. Please check if you said the correct item name or try searching manually.`;
+            domElements.voiceFeedback.textContent = response;
+            
+            speakText(response);
+            isProcessingVoiceCommand = false;
+            setTimeout(() => resetToWakeWordDetection(), 3000);
+        }
+        
+    } catch (error) {
+        console.error('Error processing product:', error);
+        const response = "I'm having trouble processing your request. Please try again or use the manual menu.";
+        domElements.voiceFeedback.textContent = response;
+        
+        speakText(response);
+        isProcessingVoiceCommand = false;
+        setTimeout(() => resetToWakeWordDetection(), 3000);
     }
 }
 
@@ -167,6 +588,8 @@ async function startWakeWordDetection() {
     };
 
     speechRecognition.onresult = function(event) {
+        if (isSpeaking) return;
+        
         let finalTranscript = '';
         let interimTranscript = '';
         
@@ -180,7 +603,6 @@ async function startWakeWordDetection() {
             }
         }
         
-        // Check for wake word in both interim and final results
         const allTranscript = (interimTranscript + ' ' + finalTranscript).toLowerCase();
         
         if (isWaitingForWakeWord) {
@@ -189,58 +611,51 @@ async function startWakeWordDetection() {
                 wakeWordDetected = true;
                 isWaitingForWakeWord = false;
                 
-                // Show visual feedback for wake word detection
-                const voiceIcon = document.getElementById('voice-icon');
-                if (voiceIcon) {
-                    voiceIcon.classList.add('wake-word-detected');
-                    setTimeout(() => {
-                        voiceIcon.classList.remove('wake-word-detected');
-                    }, 500);
-                }
+                // Play 2-second welcome chime
+                playWelcomeChime();
                 
                 domElements.voiceStatus.textContent = 'Status: Wake word detected!';
-                domElements.voiceFeedback.textContent = 'Listening for your order... (Take your time, I\'ll wait)';
                 domElements.voiceCommandDisplay.classList.remove('hidden');
-                domElements.voiceTranscript.textContent = 'What would you like to order? Speak naturally, I\'ll listen for 12 seconds...';
                 
                 updateVoiceUIForListening();
-                
-                // Start a generous timeout for command mode (12 seconds)
                 startSilenceTimeout(12000);
+                
+                // Wait for chime to finish, then speak welcome message
+                setTimeout(() => {
+                    speakText("Hello! I'm your Arabica voice assistant. What would you like to order today?")
+                        .then(() => {
+                            domElements.voiceTranscript.textContent = 'What would you like to order?';
+                            domElements.voiceFeedback.textContent = 'Listening for your order...';
+                        });
+                }, 2000); // Wait 2 seconds for chime to complete
             }
             
             if (interimTranscript) {
                 domElements.voiceTranscript.textContent = `Listening: "${interimTranscript}"...`;
             }
         } else {
-            // We're in command mode after wake word
             if (interimTranscript || finalTranscript) {
-                // Update transcript display
                 const displayText = interimTranscript || finalTranscript;
                 if (displayText) {
                     domElements.voiceTranscript.textContent = `"${displayText}"`;
-                    domElements.voiceFeedback.textContent = 'Listening... (You have 12 seconds to finish speaking)';
+                    domElements.voiceFeedback.textContent = 'Listening...';
                 }
-                
-                // Reset silence timeout when we get speech
                 resetSilenceTimeout();
             }
         }
     };
 
     speechRecognition.onerror = function(event) {
-        console.error('Speech recognition error:', event.error);
+        console.error('Speech recognition error:', event);
         
         if (event.error === 'not-allowed') {
             domElements.voiceFeedback.textContent = 'Microphone access denied. Please allow microphone access.';
         } else if (event.error === 'no-speech') {
-            // This is normal when no one is speaking
             console.log('No speech detected (normal for wake word detection)');
         } else {
             domElements.voiceFeedback.textContent = `Error: ${event.error}`;
         }
         
-        // Try to restart after error
         setTimeout(() => {
             if (isListening) {
                 resetToWakeWordDetection();
@@ -251,9 +666,9 @@ async function startWakeWordDetection() {
     speechRecognition.onend = function() {
         console.log('Speech recognition ended');
         
-        if (isListening) {
+        if (isListening && !isSpeaking) {
             setTimeout(() => {
-                if (isListening) {
+                if (isListening && !isSpeaking) {
                     try {
                         speechRecognition.start();
                     } catch (e) {
@@ -272,13 +687,11 @@ function startSilenceTimeout(duration) {
     }
     
     silenceTimeout = setTimeout(() => {
-        if (isListening) {
+        if (isListening && !isSpeaking) {
             if (isWaitingForWakeWord) {
                 console.log('No wake word detected for ' + (duration/1000) + ' seconds. Still listening...');
-                // Don't reset for wake word detection, just keep listening
-                startSilenceTimeout(duration); // Restart the timeout
+                startSilenceTimeout(duration);
             } else {
-                // In command mode, check if we have a transcript to process
                 const currentTranscript = domElements.voiceTranscript.textContent;
                 if (currentTranscript && !currentTranscript.includes('Listening for') && 
                     !currentTranscript.includes('Say "Hey Arabica"') && 
@@ -289,7 +702,6 @@ function startSilenceTimeout(duration) {
                     processDetectedCommand(currentTranscript.replace(/[""]/g, '').trim());
                 } else {
                     console.log('No speech detected for 12 seconds in command mode, resetting...');
-                    domElements.voiceFeedback.textContent = 'No speech detected. Say "Hey Arabica" to try again.';
                     resetToWakeWordDetection();
                 }
             }
@@ -300,10 +712,8 @@ function startSilenceTimeout(duration) {
 // Reset silence timeout
 function resetSilenceTimeout() {
     if (isWaitingForWakeWord) {
-        // In wake word mode, use 30-second timeout
         startSilenceTimeout(30000);
     } else {
-        // In command mode, use 12-second timeout (generous time for speaking)
         startSilenceTimeout(12000);
     }
 }
@@ -326,8 +736,6 @@ function resetToWakeWordDetection() {
     domElements.voiceTranscript.textContent = 'Listening for "Hey Arabica"...';
     
     updateVoiceUIForReady();
-    
-    // Restart with wake word timeout
     startSilenceTimeout(30000);
 }
 
@@ -338,8 +746,8 @@ function updateVoiceUIForListening() {
     const levelIndicator = document.getElementById('voice-level-indicator');
     
     if (voiceIcon) {
-        voiceIcon.classList.add('voice-recording');
-        voiceIcon.style.backgroundColor = '#10B981'; // Green when listening
+        voiceIcon.style.backgroundColor = '#10B981';
+        voiceIcon.innerHTML = '<i class="fas fa-microphone"></i>';
     }
     if (statusBadge) {
         statusBadge.textContent = 'Listening...';
@@ -355,8 +763,8 @@ function updateVoiceUIForReady() {
     const levelIndicator = document.getElementById('voice-level-indicator');
     
     if (voiceIcon) {
-        voiceIcon.classList.remove('voice-recording');
-        voiceIcon.style.backgroundColor = '#3B82F6'; // Blue when ready
+        voiceIcon.style.backgroundColor = '#3B82F6';
+        voiceIcon.innerHTML = '<i class="fas fa-microphone"></i>';
     }
     if (statusBadge) {
         statusBadge.textContent = 'Ready';
@@ -384,7 +792,10 @@ function stopVoiceAssistant() {
         speechRecognition = null;
     }
     
-    // Clean up audio context
+    if (speechSynthesis && speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+    }
+    
     if (audioContext && audioContext.state !== 'closed') {
         audioContext.close();
         isAudioContextInitialized = false;
@@ -396,6 +807,7 @@ function stopVoiceAssistant() {
     
     updateVoiceUIForReady();
 }
+
 
 // Match transcript with menu item
 async function matchTranscriptWithMenuItem(transcript) {
@@ -462,47 +874,75 @@ async function saveTranscript(transcript) {
         const confidenceLevel = matchResult ? matchResult.confidence : 'Not Confident';
         const productDetails = matchResult ? matchResult.product : null;
         
+        let responseMessage = '';
+        
         if (confidenceLevel === 'Confident' && productDetails) {
             console.log('Auto-adding product to order:', productDetails.name);
             autoAddProductToOrder(productDetails, 'voice-auto');
-        }
-        
-        const response = await fetch('/customer/save-transcript', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                transcribedData: transcript,
-                matchedMenuItem: matchedMenuItem,
-                confidenceLevel: confidenceLevel
-            })
-        });
-        
-        if (response.ok) {
-            const result = await response.json();
-            console.log('Transcript saved to server:', result);
-            
-            if (matchedMenuItem) {
-                showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, result.addedToGallery);
+            responseMessage = `I've added ${productDetails.name} to your order. Is there anything else you'd like?`;
+        } else if (confidenceLevel === 'Partially Confident' && matchedMenuItem) {
+            responseMessage = `I think you said ${matchedMenuItem}. I'll add it to your order now.`;
+            if (productDetails) {
+                autoAddProductToOrder(productDetails, 'voice-partial');
             }
+        } else if (confidenceLevel === 'Not Confident' && matchedMenuItem) {
+            responseMessage = `I'm not sure I understood correctly. Did you mean ${matchedMenuItem}?`;
         } else {
-            console.log('Server save failed, transcript stored locally');
-            const errorText = await response.text();
-            console.log('Error response:', errorText);
-            if (matchedMenuItem) {
-                showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, false);
-            }
+            responseMessage = "I'm sorry, I didn't understand that. Could you please repeat or try saying the item name more clearly?";
         }
+        
+        // Play a short confirmation chime before speaking
+        playChime();
+        
+        // Wait a moment, then speak the response
+        setTimeout(async () => {
+            await speakText(responseMessage);
+            
+            // Save to server after speaking
+            try {
+                const serverResponse = await fetch('/customer/save-transcript', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        transcribedData: transcript,
+                        matchedMenuItem: matchedMenuItem,
+                        confidenceLevel: confidenceLevel
+                    })
+                });
+                
+                if (serverResponse.ok) {
+                    const result = await serverResponse.json();
+                    console.log('Transcript saved to server:', result);
+                    
+                    if (matchedMenuItem) {
+                        showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, result.addedToGallery);
+                    }
+                }
+            } catch (error) {
+                console.log('Could not reach server, transcript stored locally');
+            }
+        }, 500);
+        
     } catch (error) {
         console.log('Could not reach server, transcript stored locally');
         console.log('Error:', error);
-        if (matchedMenuItem) {
-            showMatchedMenuItem(transcript, matchedMenuItem, confidenceLevel, false);
-        }
+        playChime();
+        await speakText("I heard your request. Let me process that for you.");
     } finally {
         isProcessingVoiceCommand = false;
+        
+        // Return to listening mode after speaking
+        if (!isWaitingForWakeWord) {
+            setTimeout(() => {
+                domElements.voiceFeedback.textContent = 'Listening for more items...';
+                domElements.voiceTranscript.textContent = 'What else would you like?';
+                updateVoiceUIForListening();
+                startSilenceTimeout(12000);
+            }, 1000);
+        }
     }
 }
 
@@ -564,27 +1004,10 @@ function showMatchedMenuItem(transcript, menuItem, confidenceLevel, addedToGalle
                 <p class="text-gray-700 text-sm mb-1">You said: "<span class="font-medium">${transcript}</span>"</p>
                 <p class="text-gray-700 text-sm mb-1">Matched: <span class="font-bold ${confidenceLevel === 'Confident' ? 'text-green-600' : confidenceLevel === 'Partially Confident' ? 'text-yellow-600' : 'text-red-600'}">${menuItem}</span></p>
                 <p class="text-xs text-gray-500 mb-2">${thresholdInfo}</p>
-                
                 ${galleryBadge}
-                
-                <!-- Auto-add button -->
-                <div class="mt-2">
-                    <button class="auto-add-menu-btn ${confidenceLevel === 'Confident' ? 'bg-green-600 hover:bg-green-700' : confidenceLevel === 'Partially Confident' ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-red-600 hover:bg-red-700'} text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-xs"
-                            data-menu-item="${menuItem}">
-                        <i class="fas fa-plus mr-1"></i> Auto-Add "${menuItem}" to Order
-                    </button>
-                </div>
             </div>
         </div>
     `;
-    
-    const autoAddBtn = matchDisplay.querySelector('.auto-add-menu-btn');
-    if (autoAddBtn) {
-        autoAddBtn.addEventListener('click', function() {
-            const menuItemName = this.getAttribute('data-menu-item');
-            autoAddMenuItemToOrder(menuItemName, confidenceLevel);
-        });
-    }
     
     setTimeout(() => {
         if (matchDisplay && matchDisplay.parentNode) {
@@ -625,34 +1048,14 @@ async function autoAddMenuItemToOrder(menuItemName, confidenceLevel) {
                 if (result.success && result.product) {
                     console.log('Found product details:', result.product);
                     autoAddProductToOrder(result.product, 'manual-confident');
+                    
+                    playChime();
+                    speakText(`I've added ${result.product.name} to your order.`);
                     return;
                 }
             }
         } catch (error) {
             console.error('Error fetching product details:', error);
-        }
-    }
-    
-    if (confidenceLevel === 'Not Confident') {
-        const confirmed = await showLowConfidenceRejection(menuItemName, '40-59%');
-        if (confirmed) {
-            domElements.voiceFeedback.textContent = `Manually adding "${menuItemName}" despite low confidence match`;
-            domElements.voiceFeedback.style.color = '#F59E0B';
-        } else {
-            domElements.voiceFeedback.textContent = `Low confidence match (40-59%). "${menuItemName}" was NOT added to order.`;
-            domElements.voiceFeedback.style.color = '#EF4444';
-            
-            showRejectionMessage(menuItemName, '40-59%');
-            return;
-        }
-    }
-    
-    if (confidenceLevel === 'Partially Confident') {
-        const confirmed = await showPartialConfirmation(menuItemName, '60-79%');
-        if (!confirmed) {
-            domElements.voiceFeedback.textContent = 'Cancelled adding item to order';
-            domElements.voiceFeedback.style.color = '#EF4444';
-            return;
         }
     }
     
@@ -670,92 +1073,16 @@ async function autoAddMenuItemToOrder(menuItemName, confidenceLevel) {
             
             addToOrder(name, price, category, image);
             
-            let confidenceText = '';
-            if (confidenceLevel === 'Confident') {
-                confidenceText = ' (High confidence - ≥80% match)';
-            } else if (confidenceLevel === 'Partially Confident') {
-                confidenceText = ' (Medium confidence - 60-79% match)';
-            }
-            
-            domElements.voiceFeedback.textContent = `Added "${name}" to order${confidenceText}`;
-            domElements.voiceFeedback.style.color = '#10B981';
+            playChime();
+            speakText(`Added ${name} to your order.`);
             
             found = true;
         }
     });
     
     if (!found) {
-        domElements.voiceFeedback.textContent = `"${menuItemName}" not found in current view. Try navigating to the correct category.`;
-        domElements.voiceFeedback.style.color = '#EF4444';
-        
-        let categoryToLoad = 'main-course';
-        
-        if (menuItemName.toLowerCase().includes('hot') || 
-            menuItemName.toLowerCase().includes('iced') ||
-            menuItemName.toLowerCase().includes('frappe') ||
-            menuItemName.toLowerCase().includes('milktea') ||
-            menuItemName.toLowerCase().includes('cappuccino') ||
-            menuItemName.toLowerCase().includes('latte') ||
-            menuItemName.toLowerCase().includes('espresso') ||
-            menuItemName.toLowerCase().includes('mocha') ||
-            menuItemName.toLowerCase().includes('americano') ||
-            menuItemName.toLowerCase().includes('choco') ||
-            menuItemName.toLowerCase().includes('caramel') ||
-            menuItemName.toLowerCase().includes('vanilla') ||
-            menuItemName.toLowerCase().includes('matcha')) {
-            categoryToLoad = 'drinks';
-        } else if (menuItemName.toLowerCase().includes('salad') ||
-                  menuItemName.toLowerCase().includes('nachos') ||
-                  menuItemName.toLowerCase().includes('fries') ||
-                  menuItemName.toLowerCase().includes('sandwich') ||
-                  menuItemName.toLowerCase().includes('quesadilla') ||
-                  menuItemName.toLowerCase().includes('wrap')) {
-            categoryToLoad = 'appetizers';
-        } else if (menuItemName.toLowerCase().includes('pasta') ||
-                  menuItemName.toLowerCase().includes('noodles') ||
-                  menuItemName.toLowerCase().includes('lasagna') ||
-                  menuItemName.toLowerCase().includes('paella') ||
-                  menuItemName.toLowerCase().includes('crispy') ||
-                  menuItemName.toLowerCase().includes('grilled') ||
-                  menuItemName.toLowerCase().includes('roasted') ||
-                  menuItemName.toLowerCase().includes('pork') ||
-                  menuItemName.toLowerCase().includes('chicken') ||
-                  menuItemName.toLowerCase().includes('beef') ||
-                  menuItemName.toLowerCase().includes('seafood') ||
-                  menuItemName.toLowerCase().includes('fish')) {
-            categoryToLoad = 'main-course';
-        }
-        
-        const categoryBtn = document.querySelector(`[data-category="${categoryToLoad}"]`);
-        if (categoryBtn) {
-            categoryBtn.click();
-            
-            setTimeout(() => {
-                const newAddButtons = document.querySelectorAll('.add-to-order-btn');
-                let itemFound = false;
-                
-                newAddButtons.forEach(btn => {
-                    const name = btn.getAttribute('data-name');
-                    if (name.toLowerCase().includes(menuItemName.toLowerCase()) || 
-                        menuItemName.toLowerCase().includes(name.toLowerCase())) {
-                        
-                        const price = btn.getAttribute('data-price');
-                        const category = btn.getAttribute('data-category');
-                        const image = btn.getAttribute('data-image');
-                        addToOrder(name, price, category, image);
-                        
-                        domElements.voiceFeedback.textContent = `Successfully added "${name}" to order!`;
-                        domElements.voiceFeedback.style.color = '#10B981';
-                        itemFound = true;
-                    }
-                });
-                
-                if (!itemFound) {
-                    domElements.voiceFeedback.textContent = `"${menuItemName}" not found. Please try searching manually.`;
-                    domElements.voiceFeedback.style.color = '#EF4444';
-                }
-            }, 1000);
-        }
+        playChime();
+        speakText(`I couldn't find ${menuItemName} in the current menu. Please try navigating to the correct category or say the item name more clearly.`);
     }
 }
 
@@ -915,19 +1242,18 @@ function showPartialConfirmation(menuItemName, similarityRange) {
     });
 }
 
-// Process voice commands
+// Process voice commands (legacy function, using new one with TTS)
 function processVoiceCommand(transcript) {
     const command = transcript.toLowerCase();
-    let feedback = '';
     
     if (isProcessingVoiceCommand) {
         console.log('Already processing a voice command, skipping...');
         return;
     }
     
-    if (command.includes('add') || command.includes('order') || command.includes('want')) {
+    if (command.includes('add') || command.includes('order') || command.includes('want') || command.includes('get') || command.includes('take')) {
         const words = command.split(' ');
-        const orderKeywords = ['add', 'order', 'want', 'get', 'take', 'have'];
+        const orderKeywords = ['add', 'order', 'want', 'get', 'take', 'have', 'i\'d like', 'i would like'];
         let addIndex = -1;
         
         for (let i = 0; i < words.length; i++) {
@@ -948,96 +1274,150 @@ function processVoiceCommand(transcript) {
             const productName = productNameWords.join(' ');
             
             if (productName.trim() === '') {
-                feedback = 'Please specify what you want to add. Example: "Add pad Thai" or "I want to order pad Thai"';
-                domElements.voiceFeedback.textContent = feedback;
+                playChime();
+                speakText('Please specify what you want to add. For example, say "Add pad Thai" or "I want to order pad Thai"');
                 return;
             }
             
             console.log('Extracted product name from command:', productName);
-            feedback = `Processing "${productName}"...`;
-            domElements.voiceFeedback.textContent = feedback;
-            
             return;
         } else {
-            feedback = 'Please specify what you want to add. Example: "Add pad Thai" or "I want pad Thai"';
+            playChime();
+            speakText('Please specify what you want to add. For example, say "Add pad Thai" or "I want pad Thai"');
         }
     } 
-    else if (command.includes('show') || command.includes('display')) {
+    else if (command.includes('show') || command.includes('display') || command.includes('see')) {
         if (command.includes('specials')) {
             const specialsBtn = document.querySelector('[data-category="specials"]');
             if (specialsBtn) {
+                playChime();
                 specialsBtn.click();
-                feedback = 'Showing specials menu';
+                speakText('Showing you our specials menu.');
             } else {
-                feedback = 'Specials menu not available';
+                playChime();
+                speakText('Specials menu is not available at the moment.');
             }
-        } else if (command.includes('drinks')) {
+        } else if (command.includes('drinks') || command.includes('beverage') || command.includes('coffee')) {
             const drinksBtn = document.querySelector('[data-category="drinks"]');
             if (drinksBtn) {
+                playChime();
                 drinksBtn.click();
-                feedback = 'Showing drinks menu';
+                speakText('Here are our drinks and beverages.');
             }
-        } else if (command.includes('appetizers')) {
+        } else if (command.includes('appetizers') || command.includes('starter') || command.includes('snack')) {
             const appetizersBtn = document.querySelector('[data-category="appetizers"]');
             if (appetizersBtn) {
+                playChime();
                 appetizersBtn.click();
-                feedback = 'Showing appetizers menu';
+                speakText('Showing you our appetizers and snacks.');
             }
-        } else if (command.includes('main course') || command.includes('main-course')) {
+        } else if (command.includes('main course') || command.includes('main-course') || command.includes('entree') || command.includes('main')) {
             const mainCourseBtn = document.querySelector('[data-category="main-course"]');
             if (mainCourseBtn) {
+                playChime();
                 mainCourseBtn.click();
-                feedback = 'Showing main course menu';
+                speakText('Here are our main course options.');
             }
+        } else {
+            playChime();
+            speakText('What would you like to see? You can say "show specials", "show drinks", or "show appetizers".');
         }
     }
-    else if (command.includes('clear') || command.includes('remove all')) {
+    else if (command.includes('clear') || command.includes('remove all') || command.includes('empty')) {
         clearOrder();
-        feedback = 'Order cleared';
+        playChime();
+        speakText('I have cleared your order. You can start adding items again.');
     }
-    else if (command.includes('checkout') || command.includes('pay')) {
-        showCheckoutModal();
-        feedback = 'Opening checkout';
+    else if (command.includes('checkout') || command.includes('pay') || command.includes('finish') || command.includes('done')) {
+        if (globalState.orderItems.length === 0) {
+            playChime();
+            speakText('Your order is empty. Please add some items before checking out.');
+        } else {
+            playChime();
+            speakText('Taking you to checkout now.').then(() => {
+                setTimeout(() => {
+                    showCheckoutModal();
+                }, 500);
+            });
+        }
+    }
+    else if (command.includes('thank you') || command.includes('thanks')) {
+        playChime();
+        speakText('You\'re welcome! Is there anything else I can help you with?');
+    }
+    else if (command.includes('hello') || command.includes('hi') || command.includes('hey')) {
+        playChime();
+        speakText('Hello! How can I help you with your order today?');
     }
     else if (command.includes('help')) {
-        showVoiceHelp();
-        feedback = 'Showing voice help';
+        playChime();
+        speakText('I can help you add items to your order, show different menus, clear your order, or proceed to checkout. Just tell me what you\'d like to do.');
+    }
+    else if (command.includes('how much') || command.includes('total') || command.includes('price')) {
+        const total = calculateOrderTotal();
+        if (total > 0) {
+            playChime();
+            speakText(`Your current order total is ${formatPrice(total).replace('₱', '')} pesos.`);
+        } else {
+            playChime();
+            speakText('Your order is currently empty.');
+        }
+    }
+    else if (command.includes('what\'s in') || command.includes('what is in') || command.includes('my order')) {
+        if (globalState.orderItems.length > 0) {
+            const itemList = globalState.orderItems.map(item => 
+                `${item.quantity} ${item.name}${item.quantity > 1 ? 's' : ''}`
+            ).join(', ');
+            playChime();
+            speakText(`You have ${itemList} in your order.`);
+        } else {
+            playChime();
+            speakText('Your order is currently empty.');
+        }
+    }
+    else if (command.includes('goodbye') || command.includes('bye') || command.includes('exit') || command.includes('quit')) {
+        playChime();
+        speakText('Goodbye! Thank you for visiting Caffé Arabica.').then(() => {
+            setTimeout(() => {
+                resetToWakeWordDetection();
+            }, 1000);
+        });
     }
     else {
-        feedback = 'Processing your request...';
+        playChime();
+        speakText('I\'m here to help you order. You can say things like "Add pork barbecue", "Show me drinks", "What\'s in my order?", or "Checkout". What would you like to do?');
     }
-    
-    domElements.voiceFeedback.textContent = feedback;
 }
+
+
 
 // Show voice help
 function showVoiceHelp() {
-    alert('🎤 Voice Assistant Guide:\n\n' +
-          '🗣️ HOW TO USE:\n' +
-          '• Say "Hey Arabica" to activate the voice assistant\n' +
-          '• After activation, speak your order naturally\n' +
-          '• Take your time - you have 12 seconds to finish speaking\n' +
-          '• The system will wait patiently until you stop speaking\n' +
-          '• Speak clearly and include the full item name\n\n' +
-          '🎯 VOICE COMMANDS:\n' +
-          '• "Add [item name]" - Add item to cart\n' +
-          '• "Show specials" - Show specials\n' +
-          '• "Clear order" - Clear all items\n' +
-          '• "Checkout" - Proceed to checkout\n\n' +
-          '🎚️ CONFIDENCE LEVELS:\n' +
-          '• High (≥80% match) - Auto-adds to order\n' +
-          '• Medium (60-79% match) - Quick confirmation needed\n' +
-          '• Low (40-59% match) - NOT added automatically\n\n' +
-          '💡 TIPS:\n' +
-          '• Speak at a normal pace - you have plenty of time\n' +
-          '• Pause naturally when thinking - the system will wait 12 seconds\n' +
-          '• Include details like "pork barbecue" instead of just "barbecue"\n' +
-          '• Say "Hey Arabica" clearly to activate');
+    speakText(`Here's how to use the voice assistant:
+        Say "Hey Arabica" to activate me.
+        You can then say things like:
+        "Add pork barbecue" to add items to your order.
+        "Show drinks" to see beverage options.
+        "What's in my order?" to hear your current items.
+        "Checkout" to proceed to payment.
+        "Clear order" to remove all items.
+        I'll speak back to confirm your actions.
+        Take your time speaking - I'll listen for 12 seconds.
+        Say "Goodbye" when you're done.`);
 }
 
 // Initialize voice event listeners
 function initializeVoiceEventListeners() {
     console.log('Initializing voice event listeners with wake word detection...');
+    
+    // Initialize speech synthesis voices
+    if (speechSynthesis) {
+        speechSynthesis.getVoices();
+        
+        speechSynthesis.addEventListener('voiceschanged', function() {
+            console.log('Voices loaded:', speechSynthesis.getVoices().length);
+        });
+    }
     
     // Start wake word detection when page loads
     setTimeout(() => {
@@ -1053,9 +1433,13 @@ window.startWakeWordDetection = startWakeWordDetection;
 window.stopVoiceAssistant = stopVoiceAssistant;
 window.matchTranscriptWithMenuItem = matchTranscriptWithMenuItem;
 window.saveTranscript = saveTranscript;
+window.speakText = speakText;
+window.playChime = playChime;
+window.playWelcomeChime = playWelcomeChime;
 window.showMatchedMenuItem = showMatchedMenuItem;
 window.autoAddMenuItemToOrder = autoAddMenuItemToOrder;
 window.processVoiceCommand = processVoiceCommand;
+window.processVoiceCommandWithTTS = processVoiceCommandWithTTS;
 window.showVoiceHelp = showVoiceHelp;
 window.initializeVoiceEventListeners = initializeVoiceEventListeners;
 window.showLowConfidenceRejection = showLowConfidenceRejection;

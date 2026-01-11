@@ -428,6 +428,33 @@
             animation: wakeWordPulse 0.5s ease-in-out;
         }
         
+        @keyframes wakeWordPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
+    70% { transform: scale(1.2); box-shadow: 0 0 0 20px rgba(139, 92, 246, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+}
+
+/* Gentle pulse animation for regular listening */
+@keyframes gentlePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.voice-pulse {
+    animation: gentlePulse 2s infinite;
+}
+
+/* Success chime animation */
+@keyframes successChime {
+    0% { transform: scale(1); background-color: #10B981; }
+    50% { transform: scale(1.1); background-color: #34D399; }
+    100% { transform: scale(1); background-color: #10B981; }
+}
+
+.success-chime {
+    animation: successChime 0.5s ease-in-out;
+}
+
     </style>
 </head>
 <body class="bg-gray-50 h-full">
@@ -483,9 +510,6 @@
                             </button>
                             <button class="subcategory-btn bg-white text-amber-900 border border-amber-200 px-3 py-1.5 rounded-full font-medium hover:bg-amber-100 hover-lift transition-all duration-200 shadow-sm text-sm md:text-base">
                                 Noodles
-                            </button>
-                            <button class="subcategory-btn bg-amber-100 text-amber-900 border border-amber-300 px-3 py-1.5 rounded-full font-medium hover:bg-amber-200 hover-lift transition-all duration-200 shadow-sm text-sm md:text-base">
-                                <i class="fas fa-star mr-1"></i>Specials
                             </button>
                         </div>
                     </div>
