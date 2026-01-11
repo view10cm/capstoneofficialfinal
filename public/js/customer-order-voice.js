@@ -1,82 +1,141 @@
 // customer-order-voice.js
-// Voice assistant functionality
+// Voice assistant functionality with wake word detection
 
 let speechRecognition = null;
 let isListening = false;
-let recognitionTimeout = null;
+let silenceTimeout = null;
 let isProcessingVoiceCommand = false;
+let isWaitingForWakeWord = true;
+let wakeWordDetected = false;
+let lastSpeechTime = 0;
+let audioContext = null;
+let analyser = null;
+let microphone = null;
+let javascriptNode = null;
+let isAudioContextInitialized = false;
 
 // Initialize voice DOM elements
 function initializeVoiceDOMElements() {
-    domElements.voiceStartBtn = document.getElementById('voice-start');
-    domElements.voiceStopBtn = document.getElementById('voice-stop');
-    domElements.voiceHelpBtn = document.getElementById('voice-help');
     domElements.voiceStatus = document.getElementById('voice-status');
     domElements.voiceFeedback = document.getElementById('voice-feedback');
     domElements.voiceCommandDisplay = document.getElementById('voice-command-display');
     domElements.voiceTranscript = document.getElementById('voice-transcript');
 }
 
-// Start silence timeout
-function startSilenceTimeout(duration = 8000) {
-    if (recognitionTimeout) {
-        clearTimeout(recognitionTimeout);
-    }
+// Initialize audio context for voice activity detection
+async function initializeAudioContext() {
+    if (isAudioContextInitialized) return true;
     
-    recognitionTimeout = setTimeout(() => {
-        if (isListening) {
-            console.log('No speech detected for ' + (duration/1000) + ' seconds, stopping...');
-            domElements.voiceFeedback.textContent = 'No speech detected. Stopping...';
-            stopVoiceAssistant();
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContext();
+        
+        // Get microphone access
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            } 
+        });
+        
+        // Create audio nodes
+        microphone = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.8;
+        
+        microphone.connect(analyser);
+        
+        // Create script processor for analyzing audio
+        javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+        analyser.connect(javascriptNode);
+        javascriptNode.connect(audioContext.destination);
+        
+        isAudioContextInitialized = true;
+        console.log('Audio context initialized for voice activity detection');
+        return true;
+        
+    } catch (error) {
+        console.error('Error initializing audio context:', error);
+        return false;
+    }
+}
+
+// Start voice activity detection
+function startVoiceActivityDetection() {
+    if (!isAudioContextInitialized || !javascriptNode) return;
+    
+    let speechActive = false;
+    let consecutiveSilenceFrames = 0;
+    const SILENCE_THRESHOLD = 15; // Adjust this based on testing
+    const SILENCE_FRAMES_REQUIRED = 60; // ~12 seconds at 2048 buffer size (12 seconds ÷ 0.2 seconds per buffer = 60 frames)
+    
+    javascriptNode.onaudioprocess = function() {
+        if (!isListening || isWaitingForWakeWord) return;
+        
+        const array = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(array);
+        
+        // Calculate average volume
+        let values = 0;
+        for (let i = 0; i < array.length; i++) {
+            values += array[i];
         }
-    }, duration);
+        const average = values / array.length;
+        
+        // Check if speech is detected
+        if (average > SILENCE_THRESHOLD) {
+            consecutiveSilenceFrames = 0;
+            speechActive = true;
+            resetSilenceTimeout(); // Reset the 12-second timeout when speech is detected
+        } else {
+            consecutiveSilenceFrames++;
+            if (consecutiveSilenceFrames > SILENCE_FRAMES_REQUIRED && speechActive) {
+                // 12 seconds of silence after speech - user has finished speaking
+                speechActive = false;
+                consecutiveSilenceFrames = 0;
+                
+                // If we have a final transcript, process it
+                const currentTranscript = domElements.voiceTranscript.textContent;
+                if (currentTranscript && !currentTranscript.includes('Listening for') && 
+                    !currentTranscript.includes('Say "Hey Arabica"') &&
+                    !currentTranscript.includes('What would you like')) {
+                    console.log('12 seconds of silence detected, processing command...');
+                    processDetectedCommand(currentTranscript.replace(/[""]/g, '').trim());
+                }
+            }
+        }
+    };
 }
 
-// Reset silence timeout
-function resetSilenceTimeout(duration = 8000) {
-    if (recognitionTimeout) {
-        clearTimeout(recognitionTimeout);
+// Process detected command after silence
+function processDetectedCommand(transcript) {
+    if (transcript && transcript.length > 2 && !isProcessingVoiceCommand && !isWaitingForWakeWord) {
+        console.log('Processing command after silence:', transcript);
+        saveTranscript(transcript);
+        processVoiceCommand(transcript);
+        
+        // Reset to wake word detection after processing
+        setTimeout(() => {
+            resetToWakeWordDetection();
+        }, 3000);
     }
-    startSilenceTimeout(duration);
 }
 
-// Update voice UI for listening
-function updateVoiceUIForListening() {
-    const voiceIcon = document.getElementById('voice-icon');
-    const statusBadge = document.getElementById('voice-status-badge');
-    const levelIndicator = document.getElementById('voice-level-indicator');
-    
-    if (voiceIcon) voiceIcon.classList.add('voice-recording');
-    if (statusBadge) {
-        statusBadge.textContent = 'Listening...';
-        statusBadge.className = 'text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded';
-    }
-    if (levelIndicator) levelIndicator.classList.remove('hidden');
-}
-
-// Update voice UI for ready
-function updateVoiceUIForReady() {
-    const voiceIcon = document.getElementById('voice-icon');
-    const statusBadge = document.getElementById('voice-status-badge');
-    const levelIndicator = document.getElementById('voice-level-indicator');
-    
-    if (voiceIcon) voiceIcon.classList.remove('voice-recording');
-    if (statusBadge) {
-        statusBadge.textContent = 'Ready';
-        statusBadge.className = 'text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded';
-    }
-    if (levelIndicator) levelIndicator.classList.add('hidden');
-}
-
-// Start voice assistant
-function startVoiceAssistant() {
-    console.log('Start voice assistant clicked');
+// Start wake word detection
+async function startWakeWordDetection() {
+    console.log('Starting wake word detection...');
     
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert('Sorry, your browser does not support speech recognition. Please use Chrome, Edge, or Safari.');
+        console.log('Browser does not support speech recognition');
+        domElements.voiceFeedback.textContent = 'Voice assistant not supported in this browser';
         return;
     }
 
+    // Initialize audio context for voice activity detection
+    await initializeAudioContext();
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     speechRecognition = new SpeechRecognition();
     
@@ -85,35 +144,29 @@ function startVoiceAssistant() {
     speechRecognition.lang = 'en-US';
     speechRecognition.maxAlternatives = 3;
     
-    const SILENCE_TIMEOUT = 8000;
-    
     try {
         speechRecognition.start();
-        console.log('Speech recognition started successfully');
+        console.log('Wake word detection started');
+        domElements.voiceFeedback.textContent = 'Listening for "Hey Arabica"...';
+        domElements.voiceStatus.textContent = 'Status: Listening for wake word';
     } catch (error) {
         console.error('Failed to start speech recognition:', error);
-        alert('Failed to start microphone. Please check your microphone settings.');
+        domElements.voiceFeedback.textContent = 'Failed to start microphone. Please check permissions.';
         return;
     }
     
     isListening = true;
-    domElements.voiceStatus.textContent = 'Status: Listening...';
-    domElements.voiceFeedback.textContent = 'Speak now. I\'m listening...';
-    domElements.voiceCommandDisplay.classList.remove('hidden');
-    domElements.voiceStartBtn.disabled = true;
-    domElements.voiceStopBtn.disabled = false;
+    isWaitingForWakeWord = true;
     
-    updateVoiceUIForListening();
-    startSilenceTimeout(SILENCE_TIMEOUT);
-
+    // Start voice activity detection
+    startVoiceActivityDetection();
+    
     speechRecognition.onstart = function() {
-        console.log('Speech recognition started');
-        domElements.voiceTranscript.textContent = 'Listening...';
+        console.log('Wake word detection started');
+        domElements.voiceTranscript.textContent = 'Say "Hey Arabica" to activate...';
     };
 
     speechRecognition.onresult = function(event) {
-        resetSilenceTimeout(SILENCE_TIMEOUT);
-        
         let finalTranscript = '';
         let interimTranscript = '';
         
@@ -127,26 +180,51 @@ function startVoiceAssistant() {
             }
         }
         
-        if (interimTranscript) {
-            domElements.voiceTranscript.textContent = `"${interimTranscript}"...`;
-            domElements.voiceFeedback.textContent = 'I\'m listening, please continue...';
-        }
+        // Check for wake word in both interim and final results
+        const allTranscript = (interimTranscript + ' ' + finalTranscript).toLowerCase();
         
-        if (finalTranscript) {
-            console.log('Final transcript:', finalTranscript);
-            
-            domElements.voiceTranscript.textContent = `"${finalTranscript}"`;
-            domElements.voiceFeedback.textContent = 'Processing your command...';
-            
-            saveTranscript(finalTranscript);
-            processVoiceCommand(finalTranscript);
-            
-            setTimeout(() => {
-                if (isListening) {
-                    domElements.voiceFeedback.textContent = 'Ready for next command...';
-                    domElements.voiceTranscript.textContent = 'Listening...';
+        if (isWaitingForWakeWord) {
+            if (allTranscript.includes('hey arabica') || allTranscript.includes('hey arabika')) {
+                console.log('Wake word detected!');
+                wakeWordDetected = true;
+                isWaitingForWakeWord = false;
+                
+                // Show visual feedback for wake word detection
+                const voiceIcon = document.getElementById('voice-icon');
+                if (voiceIcon) {
+                    voiceIcon.classList.add('wake-word-detected');
+                    setTimeout(() => {
+                        voiceIcon.classList.remove('wake-word-detected');
+                    }, 500);
                 }
-            }, 2000);
+                
+                domElements.voiceStatus.textContent = 'Status: Wake word detected!';
+                domElements.voiceFeedback.textContent = 'Listening for your order... (Take your time, I\'ll wait)';
+                domElements.voiceCommandDisplay.classList.remove('hidden');
+                domElements.voiceTranscript.textContent = 'What would you like to order? Speak naturally, I\'ll listen for 12 seconds...';
+                
+                updateVoiceUIForListening();
+                
+                // Start a generous timeout for command mode (12 seconds)
+                startSilenceTimeout(12000);
+            }
+            
+            if (interimTranscript) {
+                domElements.voiceTranscript.textContent = `Listening: "${interimTranscript}"...`;
+            }
+        } else {
+            // We're in command mode after wake word
+            if (interimTranscript || finalTranscript) {
+                // Update transcript display
+                const displayText = interimTranscript || finalTranscript;
+                if (displayText) {
+                    domElements.voiceTranscript.textContent = `"${displayText}"`;
+                    domElements.voiceFeedback.textContent = 'Listening... (You have 12 seconds to finish speaking)';
+                }
+                
+                // Reset silence timeout when we get speech
+                resetSilenceTimeout();
+            }
         }
     };
 
@@ -155,14 +233,19 @@ function startVoiceAssistant() {
         
         if (event.error === 'not-allowed') {
             domElements.voiceFeedback.textContent = 'Microphone access denied. Please allow microphone access.';
-            alert('Microphone access is required for voice commands. Please allow microphone access in your browser settings.');
         } else if (event.error === 'no-speech') {
-            domElements.voiceFeedback.textContent = 'No speech detected. Try speaking louder.';
+            // This is normal when no one is speaking
+            console.log('No speech detected (normal for wake word detection)');
         } else {
             domElements.voiceFeedback.textContent = `Error: ${event.error}`;
         }
         
-        stopVoiceAssistant();
+        // Try to restart after error
+        setTimeout(() => {
+            if (isListening) {
+                resetToWakeWordDetection();
+            }
+        }, 1000);
     };
 
     speechRecognition.onend = function() {
@@ -182,14 +265,114 @@ function startVoiceAssistant() {
     };
 }
 
+// Start silence timeout (fallback method)
+function startSilenceTimeout(duration) {
+    if (silenceTimeout) {
+        clearTimeout(silenceTimeout);
+    }
+    
+    silenceTimeout = setTimeout(() => {
+        if (isListening) {
+            if (isWaitingForWakeWord) {
+                console.log('No wake word detected for ' + (duration/1000) + ' seconds. Still listening...');
+                // Don't reset for wake word detection, just keep listening
+                startSilenceTimeout(duration); // Restart the timeout
+            } else {
+                // In command mode, check if we have a transcript to process
+                const currentTranscript = domElements.voiceTranscript.textContent;
+                if (currentTranscript && !currentTranscript.includes('Listening for') && 
+                    !currentTranscript.includes('Say "Hey Arabica"') && 
+                    !currentTranscript.includes('What would you like') &&
+                    !currentTranscript.includes('Speak naturally')) {
+                    
+                    console.log('12-second silence timeout in command mode, processing:', currentTranscript);
+                    processDetectedCommand(currentTranscript.replace(/[""]/g, '').trim());
+                } else {
+                    console.log('No speech detected for 12 seconds in command mode, resetting...');
+                    domElements.voiceFeedback.textContent = 'No speech detected. Say "Hey Arabica" to try again.';
+                    resetToWakeWordDetection();
+                }
+            }
+        }
+    }, duration);
+}
+
+// Reset silence timeout
+function resetSilenceTimeout() {
+    if (isWaitingForWakeWord) {
+        // In wake word mode, use 30-second timeout
+        startSilenceTimeout(30000);
+    } else {
+        // In command mode, use 12-second timeout (generous time for speaking)
+        startSilenceTimeout(12000);
+    }
+}
+
+// Reset to wake word detection
+function resetToWakeWordDetection() {
+    console.log('Resetting to wake word detection mode');
+    
+    isWaitingForWakeWord = true;
+    wakeWordDetected = false;
+    isProcessingVoiceCommand = false;
+    
+    if (silenceTimeout) {
+        clearTimeout(silenceTimeout);
+    }
+    
+    domElements.voiceStatus.textContent = 'Status: Ready';
+    domElements.voiceFeedback.textContent = 'Say "Hey Arabica" to start voice ordering';
+    domElements.voiceCommandDisplay.classList.add('hidden');
+    domElements.voiceTranscript.textContent = 'Listening for "Hey Arabica"...';
+    
+    updateVoiceUIForReady();
+    
+    // Restart with wake word timeout
+    startSilenceTimeout(30000);
+}
+
+// Update voice UI for listening
+function updateVoiceUIForListening() {
+    const voiceIcon = document.getElementById('voice-icon');
+    const statusBadge = document.getElementById('voice-status-badge');
+    const levelIndicator = document.getElementById('voice-level-indicator');
+    
+    if (voiceIcon) {
+        voiceIcon.classList.add('voice-recording');
+        voiceIcon.style.backgroundColor = '#10B981'; // Green when listening
+    }
+    if (statusBadge) {
+        statusBadge.textContent = 'Listening...';
+        statusBadge.className = 'text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded';
+    }
+    if (levelIndicator) levelIndicator.classList.remove('hidden');
+}
+
+// Update voice UI for ready
+function updateVoiceUIForReady() {
+    const voiceIcon = document.getElementById('voice-icon');
+    const statusBadge = document.getElementById('voice-status-badge');
+    const levelIndicator = document.getElementById('voice-level-indicator');
+    
+    if (voiceIcon) {
+        voiceIcon.classList.remove('voice-recording');
+        voiceIcon.style.backgroundColor = '#3B82F6'; // Blue when ready
+    }
+    if (statusBadge) {
+        statusBadge.textContent = 'Ready';
+        statusBadge.className = 'text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded';
+    }
+    if (levelIndicator) levelIndicator.classList.add('hidden');
+}
+
 // Stop voice assistant
 function stopVoiceAssistant() {
-    console.log('Stop voice assistant clicked');
+    console.log('Stopping voice assistant...');
     isListening = false;
     
-    if (recognitionTimeout) {
-        clearTimeout(recognitionTimeout);
-        recognitionTimeout = null;
+    if (silenceTimeout) {
+        clearTimeout(silenceTimeout);
+        silenceTimeout = null;
     }
     
     if (speechRecognition) {
@@ -201,18 +384,17 @@ function stopVoiceAssistant() {
         speechRecognition = null;
     }
     
-    domElements.voiceStatus.textContent = 'Status: Ready';
-    domElements.voiceFeedback.textContent = 'Click Start to begin voice ordering';
+    // Clean up audio context
+    if (audioContext && audioContext.state !== 'closed') {
+        audioContext.close();
+        isAudioContextInitialized = false;
+    }
+    
+    domElements.voiceStatus.textContent = 'Status: Stopped';
+    domElements.voiceFeedback.textContent = 'Voice assistant stopped';
     domElements.voiceCommandDisplay.classList.add('hidden');
-    domElements.voiceStartBtn.disabled = false;
-    domElements.voiceStopBtn.disabled = true;
     
     updateVoiceUIForReady();
-    
-    if (domElements.voiceTranscript.textContent !== 'Listening...' && 
-        domElements.voiceTranscript.textContent !== 'Speak now...') {
-        domElements.voiceTranscript.textContent = 'Voice assistant stopped';
-    }
 }
 
 // Match transcript with menu item
@@ -262,7 +444,8 @@ async function saveTranscript(transcript) {
     const transcripts = JSON.parse(localStorage.getItem('voiceTranscripts') || '[]');
     transcripts.push({
         text: transcript,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        wakeWordDetected: wakeWordDetected
     });
     localStorage.setItem('voiceTranscripts', JSON.stringify(transcripts));
     
@@ -825,20 +1008,17 @@ function processVoiceCommand(transcript) {
     }
     
     domElements.voiceFeedback.textContent = feedback;
-    
-    setTimeout(() => {
-        stopVoiceAssistant();
-    }, 2000);
 }
 
 // Show voice help
 function showVoiceHelp() {
     alert('🎤 Voice Assistant Guide:\n\n' +
           '🗣️ HOW TO USE:\n' +
-          '• Click START to begin listening\n' +
-          '• Speak naturally - I\'ll wait up to 8 seconds for you to finish\n' +
-          '• You can say multiple commands in one session\n' +
-          '• Click STOP when you\'re done\n\n' +
+          '• Say "Hey Arabica" to activate the voice assistant\n' +
+          '• After activation, speak your order naturally\n' +
+          '• Take your time - you have 12 seconds to finish speaking\n' +
+          '• The system will wait patiently until you stop speaking\n' +
+          '• Speak clearly and include the full item name\n\n' +
           '🎯 VOICE COMMANDS:\n' +
           '• "Add [item name]" - Add item to cart\n' +
           '• "Show specials" - Show specials\n' +
@@ -849,42 +1029,27 @@ function showVoiceHelp() {
           '• Medium (60-79% match) - Quick confirmation needed\n' +
           '• Low (40-59% match) - NOT added automatically\n\n' +
           '💡 TIPS:\n' +
-          '• Speak clearly and at a normal pace\n' +
-          '• Include the full item name\n' +
-          '• You have plenty of time to speak - no rush!');
+          '• Speak at a normal pace - you have plenty of time\n' +
+          '• Pause naturally when thinking - the system will wait 12 seconds\n' +
+          '• Include details like "pork barbecue" instead of just "barbecue"\n' +
+          '• Say "Hey Arabica" clearly to activate');
 }
 
 // Initialize voice event listeners
 function initializeVoiceEventListeners() {
-    console.log('Initializing voice event listeners...');
+    console.log('Initializing voice event listeners with wake word detection...');
     
-    if (domElements.voiceStartBtn) {
-        console.log('Adding click event to voice start button');
-        domElements.voiceStartBtn.addEventListener('click', startVoiceAssistant);
-    } else {
-        console.error('Voice start button not found!');
-    }
+    // Start wake word detection when page loads
+    setTimeout(() => {
+        startWakeWordDetection();
+    }, 1000);
     
-    if (domElements.voiceStopBtn) {
-        console.log('Adding click event to voice stop button');
-        domElements.voiceStopBtn.addEventListener('click', stopVoiceAssistant);
-    } else {
-        console.error('Voice stop button not found!');
-    }
-    
-    if (domElements.voiceHelpBtn) {
-        console.log('Adding click event to voice help button');
-        domElements.voiceHelpBtn.addEventListener('click', showVoiceHelp);
-    } else {
-        console.error('Voice help button not found!');
-    }
-    
-    console.log('Voice event listeners initialized');
+    console.log('Voice wake word detection initialized');
 }
 
 // Export functions
 window.initializeVoiceDOMElements = initializeVoiceDOMElements;
-window.startVoiceAssistant = startVoiceAssistant;
+window.startWakeWordDetection = startWakeWordDetection;
 window.stopVoiceAssistant = stopVoiceAssistant;
 window.matchTranscriptWithMenuItem = matchTranscriptWithMenuItem;
 window.saveTranscript = saveTranscript;
@@ -896,3 +1061,4 @@ window.initializeVoiceEventListeners = initializeVoiceEventListeners;
 window.showLowConfidenceRejection = showLowConfidenceRejection;
 window.showRejectionMessage = showRejectionMessage;
 window.showPartialConfirmation = showPartialConfirmation;
+window.resetToWakeWordDetection = resetToWakeWordDetection;
