@@ -69,9 +69,6 @@
         .refresh-btn {
             transition: all 0.2s ease;
         }
-        .refresh-btn:hover {
-            transform: rotate(180deg);
-        }
         .loading-spinner {
             border: 3px solid rgba(255, 255, 255, 0.1);
             border-radius: 50%;
