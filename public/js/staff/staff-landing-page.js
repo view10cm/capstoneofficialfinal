@@ -569,10 +569,15 @@ function transformOrderData(orders) {
                 typeColor: order.orderType === 'dine-in' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200',
                 payment: order.orderPaymentMethod === 'cash' ? 'Cash' : 'Electronic',
                 items: [],
-                taxRate: 0.12, // Still store tax rate but won't use it for display
+                taxRate: 0.12,
                 status: order.orderProductStatus || 'For Payment',
-                notes: 'None' // Initialize as 'None' - will be updated if any items have notes
+                notes: null // Initialize notes as null - will be set only once
             };
+        }
+        
+        // Set notes ONLY on the first item (to avoid duplication)
+        if (groupedOrders[orderKey].items.length === 0 && order.orderNotes) {
+            groupedOrders[orderKey].notes = order.orderNotes.trim();
         }
         
         // Add item to the order with its individual notes
@@ -586,24 +591,11 @@ function transformOrderData(orders) {
         });
     });
     
-    // After grouping, process notes at both order and item level
+    // After grouping, process notes at item level only
     Object.values(groupedOrders).forEach(order => {
-        // Collect all unique non-empty notes from items
-        const itemNotes = order.items
-            .map(item => item.notes)
-            .filter(note => note && note.trim() !== '');
-        
-        // Remove duplicates
-        const uniqueNotes = [...new Set(itemNotes)];
-        
-        // Combine notes for order-level display
-        if (uniqueNotes.length > 0) {
-            order.notes = uniqueNotes.join(' | ');
-        }
-        
-        // Also keep item-level notes for display
+        // Clean up item notes for display
         order.items.forEach(item => {
-            // Clean up item notes for display
+            // Only keep item-level notes if they exist
             if (item.notes && item.notes.trim() !== '') {
                 item.displayNotes = item.notes.trim();
             } else {
@@ -979,9 +971,6 @@ function renderOrders() {
         // Check if order has items
         const hasItems = order.items.length > 0;
         
-        // Check if any items have notes
-        const hasItemNotes = order.items.some(item => item.displayNotes);
-        
         orderCard.innerHTML = `
             <div class="p-5">
                 <!-- Order ID and Payment Number in same row -->
@@ -1010,7 +999,7 @@ function renderOrders() {
                         </div>
                     </div>
                     
-                    <!-- Order Notes Summary (only show if there are notes) -->
+                    <!-- Order Notes Summary (only show if there are notes) 
                     ${order.notes !== 'None' ? `
                     <div class="order-notes-summary mb-3">
                         <div class="order-notes-label">
@@ -1019,6 +1008,18 @@ function renderOrders() {
                         </div>
                         <div class="order-notes-content">
                             ${order.notes}
+                        </div>
+                    </div>
+                    ` : ''}-->
+                    <!-- Order Notes (Display once above items) -->
+                    ${order.notes && order.notes !== 'None' ? `
+                    <div class="order-notes-summary mb-3">
+                        <div class="flex items-start gap-2">
+                            <i class="fas fa-sticky-note text-amber-600 mt-1"></i>
+                            <div>
+                                <p class="text-xs font-semibold text-white mb-1">Order Notes Summary:</p>
+                                <p class="text-sm text-white whitespace-pre-wrap">${order.notes}</p>
+                            </div>
                         </div>
                     </div>
                     ` : ''}
@@ -1048,15 +1049,15 @@ function renderOrders() {
                         </label>
                     </div>
                     
+                    
+                    
                     <!-- Order Items with Checkboxes, Quantities and Prices -->
                     <ul class="space-y-2" id="items-list-${order.id}-${order.paymentNumber}">
                         ${order.items.map((item, itemIndex) => {
                             const itemKey = getItemKey(order.id, order.paymentNumber, itemIndex);
                             const isChecked = checkedItemsState.get(itemKey) || false;
                             const itemClass = isChecked ? 'item-checked' : '';
-                            const isVoidable = isVoidState;
                             const checkboxClass = isVoidState ? 'item-checkbox-void' : '';
-                            const hasNotes = item.displayNotes;
                             
                             return `
                             <li class="price-item ${itemClass}" id="item-${order.id}-${order.paymentNumber}-${itemIndex}">
@@ -1082,12 +1083,6 @@ function renderOrders() {
                                                 <span class="quantity-badge">×${item.quantity}</span>
                                             </div>
                                         </div>
-                                        ${hasNotes ? `
-                                        <div class="item-notes-section">
-                                            <span class="notes-label">Note:</span>
-                                            <span class="notes-content">${item.displayNotes}</span>
-                                        </div>
-                                        ` : ''}
                                     </div>
                                 </div>
                                 <span class="price-tag">
@@ -1972,6 +1967,7 @@ function closeModal(modal) {
 // Event Listeners for Footer
 termsBtn.addEventListener('click', () => openModal(termsModal));
 privacyBtn.addEventListener('click', () => openModal(privacyModal));
+
 
 closeTerms.addEventListener('click', () => closeModal(termsModal));
 closePrivacy.addEventListener('click', () => closeModal(privacyModal));

@@ -136,7 +136,7 @@
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
+                            <tbody class="bg-white divide-y divide-gray-200 max-h-80 overflow-y-auto block">
                                 <!-- Inventory rows will be populated here dynamically -->
                             </tbody>
                         </table>
