@@ -537,7 +537,7 @@
                     year: 'numeric'
                 });
                 
-                orderCard.className = `order-card bg-gray-800 rounded-xl p-5 border border-gray-700 ${cardBorderClass}`;
+                orderCard.className = `order-card bg-gray-800 rounded-xl p-5 border border-gray-700 ${cardBorderClass} flex flex-col`;
                 orderCard.innerHTML = `
                     <!-- Order Header -->
                     <div class="flex justify-between items-start mb-4">
@@ -558,7 +558,7 @@
                     </div>
                     
                     <!-- Order Details -->
-                    <div class="space-y-3">
+                    <div class="space-y-3 flex-1">
                         <div class="flex items-center justify-between">
                             <span class="text-gray-400">Order Type:</span>
                             <span class="${typeBadgeClass} order-type-badge">${typeText}</span>
@@ -596,7 +596,7 @@
                     </div>
                     
                     <!-- Order Summary - Only Total -->
-                    <div class="mt-4 pt-4 border-t border-gray-700">
+                    <div class="mt-4 pt-4 border-t border-gray-700 mt-auto">
                         <div class="flex justify-between items-center">
                             <span class="text-white font-semibold">Total:</span>
                             <span class="text-green-400 font-bold">
