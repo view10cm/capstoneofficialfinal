@@ -301,9 +301,9 @@
         <div class="max-w-6xl mx-auto">
             <!-- Stats Overview -->
             <div class="mb-3">
-                <h2 class="text-2xl font-bold text-white mb-4 px-20">Completed Orders Overview</h2>
+                <h2 class="text-2xl font-bold text-white mb-4">Completed Orders Overview</h2>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-3 px-20">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-3">
                     <!-- Total Orders Card -->
                     <div class="stats-card">
                         <div class="flex items-center">
@@ -342,7 +342,7 @@
                 </div>
                 
                 <!-- Time Filter -->
-                <div class="flex gap-2 mb-2 px-20">
+                <div class="flex gap-2 mb-2">
                     <button class="time-filter-btn active" onclick="filterOrders('today')">Today</button>
                     <button class="time-filter-btn" onclick="filterOrders('week')">This Week</button>
                     <button class="time-filter-btn" onclick="filterOrders('month')">This Month</button>
@@ -368,126 +368,116 @@
                         krsort($ordersByDate);
                     @endphp
                     
-                    <!-- Pagination Wrapper with Side Buttons -->
-                    <div class="flex items-center justify-center gap-6">
-                        <!-- Previous Button (Left Side) -->
-                        <button id="prev-page" class="pagination-arrow" onclick="previousPage()" disabled>
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-
-                        <!-- Order Groups Container (Center) -->
-                        <div class="order-groups-container flex-1">
-                            @php
-                                // Flatten all orders into a single array for pagination
-                                $allOrders = [];
-                                foreach ($ordersByDate as $date => $orders) {
-                                    foreach ($orders as $orderID => $orderGroup) {
-                                        $allOrders[] = [
-                                            'orderID' => $orderID,
-                                            'orderGroup' => $orderGroup,
-                                            'date' => $date
-                                        ];
-                                    }
+                    <div class="order-groups-container">
+                        @php
+                            // Flatten all orders into a single array for pagination
+                            $allOrders = [];
+                            foreach ($ordersByDate as $date => $orders) {
+                                foreach ($orders as $orderID => $orderGroup) {
+                                    $allOrders[] = [
+                                        'orderID' => $orderID,
+                                        'orderGroup' => $orderGroup,
+                                        'date' => $date
+                                    ];
                                 }
-                                
-                                // Split orders into groups of 3
-                                $orderGroups = array_chunk($allOrders, 3);
-                            @endphp
+                            }
                             
-                            <div id="order-groups">
-                                @foreach($orderGroups as $groupIndex => $group)
-                                <div class="order-group @if($groupIndex > 0) hidden @endif" data-group-index="{{ $groupIndex }}">
-                                    @foreach($group as $order)
-                                        @php
-                                            $orderID = $order['orderID'];
-                                            $orderGroup = $order['orderGroup'];
-                                        @endphp
-                                            <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700 paginated-order flex flex-col">
-                                                <!-- Order Header -->
-                                                <div class="mb-4">
-                                                    <!-- Top Row: Order Number and Completed Badge -->
-                                                    <div class="flex items-center justify-between mb-1">
-                                                        <div class="flex items-center gap-2">
-                                                            <span class="text-white font-bold text-lg">Order #{{ $orderGroup[0]->paymentNumber }}</span>
-                                                            <span class="status-completed">Completed</span>
-                                                        </div>
-                                                        <div class="text-right">
-                                                            <div class="text-gray-400 text-xs mb-1">Completed At</div>
-                                                            <div class="text-white font-semibold text-lg">
-                                                                {{ date('h:i A', strtotime($orderGroup[0]->paymentProcessedAt)) }}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <!-- Bottom Row: ID and Badges -->
-                                                    <div class="flex items-center gap-3">
-                                                        <span class="text-gray-300 text-sm">ID: {{ $orderID }}</span>
-                                                        <span class="order-type-badge 
-                                                            @if($orderGroup[0]->orderType == 'dine-in') bg-blue-900 text-blue-200
-                                                            @else bg-green-900 text-green-200 @endif">
-                                                            {{ ucfirst($orderGroup[0]->orderType) }}
-                                                        </span>
-                                                        <span class="payment-badge 
-                                                            @if($orderGroup[0]->paymentMethod == 'cash') bg-green-900 text-green-200
-                                                            @else bg-purple-900 text-purple-200 @endif">
-                                                            {{ ucfirst($orderGroup[0]->paymentMethod) }}
-                                                        </span>
-                                                    </div>
+                            // Split orders into groups of 3 (single column, 3 rows)
+                            $orderGroups = array_chunk($allOrders, 3);
+                        @endphp
+                        
+                        @foreach($orderGroups as $groupIndex => $group)
+                        <div class="order-group @if($groupIndex > 0) hidden @endif" data-group-index="{{ $groupIndex }}">
+                            @foreach($group as $order)
+                                @php
+                                    $orderID = $order['orderID'];
+                                    $orderGroup = $order['orderGroup'];
+                                @endphp
+                                    <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700 paginated-order">
+                                        <!-- Order Header -->
+                                        <div class="mb-4">
+                                            <!-- Top Row: Order Number and Completed Badge -->
+                                            <div class="flex items-center justify-between mb-1">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-white font-bold text-lg">Order #{{ $orderGroup[0]->paymentNumber }}</span>
+                                                    <span class="status-completed">Completed</span>
                                                 </div>
-
-                                                <!-- Order Items -->
-                                                <div class="mb-2 flex-1">
-                                                    <div class="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto pr-2">
-                                                        @foreach($orderGroup as $item)
-                                                            <div class="flex items-center justify-between py-2 px-3 border-b border-gray-700 last:border-b-0 bg-gray-700/30 rounded">
-                                                                <div class="flex items-center flex-1">
-                                                                    <span class="product-quantity-small">{{ $item->quantity }}x</span>
-                                                                    <span class="text-white text-sm">{{ $item->productName }}</span>
-                                                                </div>
-                                                                <div class="text-right">
-                                                                    <div class="text-gray-300 text-sm font-medium">${{ number_format($item->totalPrice, 2) }}</div>
-                                                                </div>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
-
-                                                <!-- Order Summary -->
-                                                <div class="pt-4 border-t border-gray-700 mt-auto">
-                                                    <div class="flex justify-between items-center mb-2">
-                                                        <span class="text-gray-400">Total Items:</span>
-                                                        <span class="text-white font-bold">{{ count($orderGroup) }}</span>
-                                                    </div>
-                                                    @php
-                                                        $orderTotal = 0;
-                                                        foreach ($orderGroup as $item) {
-                                                            $orderTotal += $item->totalPrice;
-                                                        }
-                                                    @endphp
-                                                    <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-700">
-                                                        <span class="text-gray-400">Order Total:</span>
-                                                        <span class="text-green-400 font-bold text-lg">${{ number_format($orderTotal, 2) }}</span>
+                                                <div class="text-right">
+                                                    <div class="text-gray-400 text-xs mb-1">Completed At</div>
+                                                    <div class="text-white font-semibold text-lg">
+                                                        {{ date('h:i A', strtotime($orderGroup[0]->paymentProcessedAt)) }}
                                                     </div>
                                                 </div>
                                             </div>
-                                    @endforeach
-                                </div>
-                                @endforeach
-                            </div>
+                                            
+                                            <!-- Bottom Row: ID and Badges -->
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-gray-300 text-sm">ID: {{ $orderID }}</span>
+                                                <span class="order-type-badge 
+                                                    @if($orderGroup[0]->orderType == 'dine-in') bg-blue-900 text-blue-200
+                                                    @else bg-green-900 text-green-200 @endif">
+                                                    {{ ucfirst($orderGroup[0]->orderType) }}
+                                                </span>
+                                                <span class="payment-badge 
+                                                    @if($orderGroup[0]->paymentMethod == 'cash') bg-green-900 text-green-200
+                                                    @else bg-purple-900 text-purple-200 @endif">
+                                                    {{ ucfirst($orderGroup[0]->paymentMethod) }}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Order Items -->
+                                        <div class="space-y-2 mb-4">
+                                            @foreach($orderGroup as $item)
+                                                <div class="flex items-center justify-between py-2 border-b border-gray-700 last:border-b-0">
+                                                    <div class="flex items-center">
+                                                        <span class="product-quantity-small">{{ $item->quantity }}x</span>
+                                                        <span class="text-white">{{ $item->productName }}</span>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <div class="text-gray-300 text-sm">${{ number_format($item->totalPrice, 2) }}</div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+
+                                        <!-- Order Summary -->
+                                        <div class="pt-4 border-t border-gray-700">
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="text-gray-400">Total Items:</span>
+                                                <span class="text-white font-bold">{{ count($orderGroup) }}</span>
+                                            </div>
+                                            @php
+                                                $orderTotal = 0;
+                                                foreach ($orderGroup as $item) {
+                                                    $orderTotal += $item->totalPrice;
+                                                }
+                                            @endphp
+                                            <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-700">
+                                                <span class="text-gray-400">Order Total:</span>
+                                                <span class="text-green-400 font-bold text-lg">${{ number_format($orderTotal, 2) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                            @endforeach
                         </div>
-
-                        <!-- Next Button (Right Side) -->
-                        <button id="next-page" class="pagination-arrow" onclick="nextPage()" @if(count($orderGroups) <= 1) disabled @endif>
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
+                        @endforeach
                     </div>
-
-                    <!-- Pagination Info (Centered Below) -->
+                    
+                    <!-- Pagination Controls -->
                     @if(count($orderGroups) > 1)
-                    <div class="flex justify-center mt-6 mb-4">
+                    <div class="pagination-controls mb-2 mt-2">
+                        <button id="prev-page" class="pagination-arrow" onclick="previousPage()" disabled>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        
                         <div class="pagination-info">
                             <span id="current-page">1</span> / <span id="total-pages">{{ count($orderGroups) }}</span>
                         </div>
+                        
+                        <button id="next-page" class="pagination-arrow" onclick="nextPage()" @if(count($orderGroups) <= 1) disabled @endif>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
                     @endif
                     
