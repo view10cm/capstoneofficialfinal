@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\CustomerController;
-use App\Models\VoiceTranscript; // Add this line
+use App\Models\VoiceTranscript;
 
 // Customer routes - protected by customer middleware
 Route::middleware(['auth', 'customer'])->group(function () {
@@ -22,6 +22,10 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::get('/customer/order-area', [CustomerController::class, 'orderArea'])
         ->name('customer.orderArea');
 
+    // Image Serving Route (Fixes the 404 errors)
+    Route::get('/customer/serve-image/{filename}', [CustomerController::class, 'serveImage'])
+        ->name('serve.image');
+
     // AJAX route for filtering products
     Route::post('/customer/get-products', [CustomerController::class, 'getProductsByCategory'])
         ->name('customer.getProducts');
@@ -34,7 +38,7 @@ Route::middleware(['auth', 'customer'])->group(function () {
     Route::post('/customer/save-order', [CustomerController::class, 'saveOrderToStaffTransaction'])
         ->name('customer.saveOrder');
         
-    // NEW: AJAX route for saving voice transcripts
+    // AJAX route for saving voice transcripts
     Route::post('/customer/save-transcript', [CustomerController::class, 'saveVoiceTranscript'])
         ->name('customer.saveTranscript');
 
