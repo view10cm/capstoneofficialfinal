@@ -183,11 +183,85 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+        /* Pagination controls */
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 30px;
+            margin-bottom: 20px;
+        }
+        .pagination-arrow {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #374151;
+            border: 2px solid #4B5563;
+            color: white;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .pagination-arrow:hover:not(:disabled) {
+            background-color: #4B5563;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .pagination-arrow:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pagination-info {
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            min-width: 120px;
+            text-align: center;
+        }
+        .footer-link {
+            color: #9CA3AF;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .footer-link:hover {
+            color: #FFFFFF;
+            text-decoration: underline;
+        }
+        /* Reduced footer height */
+        .compact-footer {
+            padding-top: 0.75rem !important;
+            padding-bottom: 0.75rem !important;
+        }
+        .compact-footer .text-sm {
+            font-size: 0.75rem !important;
+        }
+        .compact-footer .footer-link {
+            font-size: 0.75rem !important;
+        }
         .completed-date {
             background-color: rgba(16, 185, 129, 0.1);
             border-left: 4px solid #10B981;
             padding-left: 12px;
             margin-bottom: 20px;
+        }
+        /* Order groups container */
+        .order-groups-container {
+            position: relative;
+            margin: 0 auto;
+            max-width: 1400px;
+        }
+        .order-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            transition: opacity 0.3s ease;
+        }
+        .order-group.hidden {
+            display: none;
         }
     </style>
 </head>
@@ -206,15 +280,15 @@
                     </div>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-white tracking-tight cinzel-font">CAFFE ARABICA</h1>
-                    <p class="text-sm text-gray-400 cinzel-font">Completed Orders History</p>
+                    <h1 class="text-2xl font-bold text-white tracking-tight cinzel-font" style="font-size: 32px;">CAFFE ARABICA</h1>
+                    <p class="text-sm text-gray-400 cinzel-font" style="font-size: 24px;">Completed Orders History</p>
                 </div>
             </div>
             
             <!-- Right Section: Time Info -->
             <div class="flex items-center space-x-8">
                 <!-- Live Clock -->
-                <div class="bg-gray-800 text-white rounded-lg px-4 py-3 min-w-[130px] text-center clock">
+                <div class="bg-gray-800 text-white rounded-lg px-4 py-3 min-w-[180px] text-center clock">
                     <div id="live-clock" class="text-xl font-bold tracking-wider">2:45:59 PM</div>
                     <div id="current-date" class="text-xs text-gray-400">May 25, 2025</div>
                 </div>
@@ -223,13 +297,13 @@
     </div>
 
     <!-- Main Content -->
-    <div class="pt-24 px-6 pb-10">
+    <div class="pt-28 px-6 pb-20">
         <div class="max-w-6xl mx-auto">
             <!-- Stats Overview -->
-            <div class="mb-8">
-                <h2 class="text-2xl font-bold text-white mb-6">Completed Orders Overview</h2>
+            <div class="mb-3">
+                <h2 class="text-2xl font-bold text-white mb-4">Completed Orders Overview</h2>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-3">
                     <!-- Total Orders Card -->
                     <div class="stats-card">
                         <div class="flex items-center">
@@ -268,7 +342,7 @@
                 </div>
                 
                 <!-- Time Filter -->
-                <div class="flex gap-2 mb-6">
+                <div class="flex gap-2 mb-2">
                     <button class="time-filter-btn active" onclick="filterOrders('today')">Today</button>
                     <button class="time-filter-btn" onclick="filterOrders('week')">This Week</button>
                     <button class="time-filter-btn" onclick="filterOrders('month')">This Month</button>
@@ -294,37 +368,61 @@
                         krsort($ordersByDate);
                     @endphp
                     
-                    @foreach($ordersByDate as $date => $orders)
-                        <div class="mb-8">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                @foreach($orders as $orderID => $orderGroup)
-                                    <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700">
+                    <div class="order-groups-container">
+                        @php
+                            // Flatten all orders into a single array for pagination
+                            $allOrders = [];
+                            foreach ($ordersByDate as $date => $orders) {
+                                foreach ($orders as $orderID => $orderGroup) {
+                                    $allOrders[] = [
+                                        'orderID' => $orderID,
+                                        'orderGroup' => $orderGroup,
+                                        'date' => $date
+                                    ];
+                                }
+                            }
+                            
+                            // Split orders into groups of 3 (single column, 3 rows)
+                            $orderGroups = array_chunk($allOrders, 3);
+                        @endphp
+                        
+                        @foreach($orderGroups as $groupIndex => $group)
+                        <div class="order-group @if($groupIndex > 0) hidden @endif" data-group-index="{{ $groupIndex }}">
+                            @foreach($group as $order)
+                                @php
+                                    $orderID = $order['orderID'];
+                                    $orderGroup = $order['orderGroup'];
+                                @endphp
+                                    <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700 paginated-order">
                                         <!-- Order Header -->
-                                        <div class="flex justify-between items-start mb-4">
-                                            <div>
-                                                <div class="flex items-center gap-2 mb-2">
+                                        <div class="mb-4">
+                                            <!-- Top Row: Order Number and Completed Badge -->
+                                            <div class="flex items-center justify-between mb-1">
+                                                <div class="flex items-center gap-2">
                                                     <span class="text-white font-bold text-lg">Order #{{ $orderGroup[0]->paymentNumber }}</span>
                                                     <span class="status-completed">Completed</span>
                                                 </div>
-                                                <div class="flex items-center gap-4 text-sm">
-                                                    <span class="text-gray-300">ID: {{ $orderID }}</span>
-                                                    <span class="order-type-badge 
-                                                        @if($orderGroup[0]->orderType == 'dine-in') bg-blue-900 text-blue-200
-                                                        @else bg-green-900 text-green-200 @endif">
-                                                        {{ ucfirst($orderGroup[0]->orderType) }}
-                                                    </span>
-                                                    <span class="payment-badge 
-                                                        @if($orderGroup[0]->paymentMethod == 'cash') bg-green-900 text-green-200
-                                                        @else bg-purple-900 text-purple-200 @endif">
-                                                        {{ ucfirst($orderGroup[0]->paymentMethod) }}
-                                                    </span>
+                                                <div class="text-right">
+                                                    <div class="text-gray-400 text-xs mb-1">Completed At</div>
+                                                    <div class="text-white font-semibold text-lg">
+                                                        {{ date('h:i A', strtotime($orderGroup[0]->paymentProcessedAt)) }}
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="text-right">
-                                                <div class="text-gray-400 text-sm">Completed At</div>
-                                                <div class="text-white font-semibold">
-                                                    {{ date('H:i', strtotime($orderGroup[0]->paymentProcessedAt)) }}
-                                                </div>
+                                            
+                                            <!-- Bottom Row: ID and Badges -->
+                                            <div class="flex items-center gap-3">
+                                                <span class="text-gray-300 text-sm">ID: {{ $orderID }}</span>
+                                                <span class="order-type-badge 
+                                                    @if($orderGroup[0]->orderType == 'dine-in') bg-blue-900 text-blue-200
+                                                    @else bg-green-900 text-green-200 @endif">
+                                                    {{ ucfirst($orderGroup[0]->orderType) }}
+                                                </span>
+                                                <span class="payment-badge 
+                                                    @if($orderGroup[0]->paymentMethod == 'cash') bg-green-900 text-green-200
+                                                    @else bg-purple-900 text-purple-200 @endif">
+                                                    {{ ucfirst($orderGroup[0]->paymentMethod) }}
+                                                </span>
                                             </div>
                                         </div>
 
@@ -361,20 +459,27 @@
                                             </div>
                                         </div>
                                     </div>
-                                @endforeach
-                            </div>
+                            @endforeach
                         </div>
-                    @endforeach
+                        @endforeach
+                    </div>
                     
-                    <!-- Pagination -->
-                    <div class="flex justify-center gap-4 mt-10">
-                        <button id="prev-page" class="pagination-btn rounded-lg px-4 py-2 text-white disabled">
-                            <i class="fas fa-chevron-left mr-2"></i> Previous
+                    <!-- Pagination Controls -->
+                    @if(count($orderGroups) > 1)
+                    <div class="pagination-controls mb-2 mt-2">
+                        <button id="prev-page" class="pagination-arrow" onclick="previousPage()" disabled>
+                            <i class="fas fa-chevron-left"></i>
                         </button>
-                        <button id="next-page" class="pagination-btn rounded-lg px-4 py-2 text-white">
-                            Next <i class="fas fa-chevron-right ml-2"></i>
+                        
+                        <div class="pagination-info">
+                            <span id="current-page">1</span> / <span id="total-pages">{{ count($orderGroups) }}</span>
+                        </div>
+                        
+                        <button id="next-page" class="pagination-arrow" onclick="nextPage()" @if(count($orderGroups) <= 1) disabled @endif>
+                            <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
+                    @endif
                     
                 @else
                     <!-- Empty State -->
@@ -389,6 +494,101 @@
                         </a>
                     </div>
                 @endif
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer with Reduced Height -->
+    <footer class="bg-gray-900 border-t border-gray-800 compact-footer fixed bottom-0 left-0 right-0 z-40">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex justify-between items-center">
+                <!-- Left: Terms and Conditions -->
+                <button id="terms-btn" class="footer-link text-sm">
+                    Terms and Conditions
+                </button>
+                
+                <!-- Center: Copyright -->
+                <p class="text-gray-500 text-sm">
+                    © 2025 CAFFE ARABICA Kitchen Display System. All Rights Reserved.
+                </p>
+                
+                <!-- Right: Privacy Policy -->
+                <button id="privacy-btn" class="footer-link text-sm">
+                    Privacy Policy
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal for Terms and Conditions -->
+    <div id="terms-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">Terms and Conditions</h2>
+                <button id="close-terms" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="text-gray-300 space-y-4">
+                <p>Last Updated: May 25, 2025</p>
+                
+                <h3 class="text-lg font-semibold text-white">1. Acceptance of Terms</h3>
+                <p>By accessing and using the CAFFE ARABICA Kitchen Display System, you agree to be bound by these Terms and Conditions. If you do not agree with any part of these terms, you must not use the system.</p>
+                
+                <h3 class="text-lg font-semibold text-white">2. Employee Responsibilities</h3>
+                <p>Employees are responsible for maintaining the confidentiality of their login credentials and for all activities that occur under their account. Any unauthorized use of the system must be reported immediately.</p>
+                
+                <h3 class="text-lg font-semibold text-white">3. Order Management</h3>
+                <p>The kitchen display system is intended for internal use only. All orders must be processed accurately and in a timely manner. Cancellation or voiding of orders requires proper authorization.</p>
+                
+                <h3 class="text-lg font-semibold text-white">4. System Usage</h3>
+                <p>The system should only be used for legitimate business purposes. Any misuse or unauthorized access may result in disciplinary action.</p>
+                
+                <h3 class="text-lg font-semibold text-white">5. Amendments</h3>
+                <p>CAFFE ARABICA reserves the right to modify these terms at any time. Continued use of the system after changes constitutes acceptance of the modified terms.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button id="accept-terms" class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-lg">
+                    I Understand
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Privacy Policy -->
+    <div id="privacy-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-white">Privacy Policy</h2>
+                <button id="close-privacy" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="text-gray-300 space-y-4">
+                <p>Last Updated: May 25, 2025</p>
+                
+                <h3 class="text-lg font-semibold text-white">1. Information Collection</h3>
+                <p>The CAFFE ARABICA Kitchen Display System collects employee login information, order data, and timestamps for operational purposes only.</p>
+                
+                <h3 class="text-lg font-semibold text-white">2. Use of Information</h3>
+                <p>Collected information is used solely for order processing, kitchen management, and performance analytics. No personal customer data is stored in this system.</p>
+                
+                <h3 class="text-lg font-semibold text-white">3. Data Security</h3>
+                <p>We implement appropriate security measures to protect against unauthorized access, alteration, or destruction of data. Access to the system is restricted to authorized personnel only.</p>
+                
+                <h3 class="text-lg font-semibold text-white">4. Data Retention</h3>
+                <p>Order data is retained for 90 days for operational and analytical purposes, after which it is securely archived or deleted.</p>
+                
+                <h3 class="text-lg font-semibold text-white">5. Employee Privacy</h3>
+                <p>Employee activity within the system is monitored for quality control and training purposes only. Individual performance data is confidential and accessible only to management.</p>
+                
+                <h3 class="text-lg font-semibold text-white">6. Third-Party Disclosure</h3>
+                <p>We do not sell, trade, or otherwise transfer system data to outside parties, except as required by law or for essential business operations.</p>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button id="accept-privacy" class="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-lg">
+                    I Understand
+                </button>
             </div>
         </div>
     </div>
@@ -415,6 +615,82 @@
         
         setInterval(updateClock, 1000);
         updateClock();
+
+        // Pagination functionality
+        let currentPage = 1;
+        const orderGroups = document.querySelectorAll('.order-group');
+        const totalPages = orderGroups.length;
+
+        function updatePagination() {
+            // Update order groups visibility
+            orderGroups.forEach((group, index) => {
+                if (index + 1 === currentPage) {
+                    group.classList.remove('hidden');
+                } else {
+                    group.classList.add('hidden');
+                }
+            });
+
+            // Update page indicator
+            const currentPageElement = document.getElementById('current-page');
+            if (currentPageElement && totalPages > 0) {
+                currentPageElement.textContent = currentPage;
+            }
+
+            // Update button states
+            const prevBtn = document.getElementById('prev-page');
+            const nextBtn = document.getElementById('next-page');
+
+            if (prevBtn) prevBtn.disabled = currentPage === 1;
+            if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Initialize pagination when page loads
+        if (orderGroups.length > 0) {
+            updatePagination();
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePagination();
+            }
+        }
+
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePagination();
+            }
+        }
+
+        // Modal functionality
+        document.getElementById('terms-btn').addEventListener('click', () => {
+            document.getElementById('terms-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('privacy-btn').addEventListener('click', () => {
+            document.getElementById('privacy-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('close-terms').addEventListener('click', () => {
+            document.getElementById('terms-modal').classList.add('hidden');
+        });
+
+        document.getElementById('close-privacy').addEventListener('click', () => {
+            document.getElementById('privacy-modal').classList.add('hidden');
+        });
+
+        document.getElementById('accept-terms').addEventListener('click', () => {
+            document.getElementById('terms-modal').classList.add('hidden');
+        });
+
+        document.getElementById('accept-privacy').addEventListener('click', () => {
+            document.getElementById('privacy-modal').classList.add('hidden');
+        });
 
         // Time Filter Functionality
         function filterOrders(filterType) {
@@ -461,15 +737,6 @@
                 }, 300);
             }, 3000);
         }
-
-        // Simple Pagination (for demo - in production you would implement actual pagination)
-        document.getElementById('next-page')?.addEventListener('click', () => {
-            showNotification('Next page would load more orders');
-        });
-        
-        document.getElementById('prev-page')?.addEventListener('click', () => {
-            showNotification('Previous page would load earlier orders');
-        });
     </script>
 </body>
 </html>

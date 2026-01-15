@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Kitchen Landing Page - CAFFE ARABICA</title>
+    <title>Kitchen - CAFFE ARABICA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -641,7 +641,7 @@
         }
         .order-group {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             transition: opacity 0.3s ease;
         }
@@ -710,7 +710,7 @@
             <!-- Right Section: Employee & Time Info -->
             <div class="flex items-center space-x-8">
                 <!-- Employee Info -->
-                <div class="text-right">
+                <div class="text-center">
                     <p class="text-sm text-gray-400" style="font-size: 15px;">Employee</p>
                     <p class="font-semibold text-white" style="font-size: 18px;">{{ auth()->user()->name ?? 'Staff Member' }}</p>
                 </div>
@@ -733,8 +733,8 @@
                 </div>
                 
                 <!-- Live Clock -->
-                <div class="bg-gray-800 text-white rounded-lg px-4 py-3 min-w-[130px] text-center clock">
-                    <div id="live-clock" class="text-xl font-bold tracking-wider" style="font-size: 22px;">2:45:59 PM</div>
+                <div class="bg-gray-800 text-white rounded-lg px-4 py-3 min-w-[180px] text-center clock">
+                    <div id="live-clock" class="text-xl font-bold tracking-wider" style="font-size: 20px;">2:45:59 PM</div>
                     <div id="current-date" class="text-xs text-gray-400" style="font-size: 13px;">May 25, 2025</div>
                 </div>
             </div>
@@ -742,9 +742,9 @@
     </div>
 
     <!-- Main Content Area for Orders -->
-    <div class="main-content pt-20 px-6">
+    <div class="main-content pt-20 pb-1 px-6">
         <div class="max-w-6xl mx-auto">
-            <div class="mt-16 mb-6">
+            <div class="mt-8 mb-4">
                 <h2 class="text-2xl font-bold text-white">Kitchen Orders</h2>
                 <p class="text-gray-400">Manage and prepare orders from staff</p>
             </div>
@@ -769,7 +769,7 @@
                         }
                         
                         // Split orders into groups of 4
-                        $orderGroups = array_chunk($ordersArray, 4);
+                        $orderGroups = array_chunk($ordersArray, 3);
                     @endphp
                     
                     <div id="order-groups">
@@ -778,14 +778,12 @@
                             @foreach($group as $order)
                             <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700" data-order-id="{{ $order['orderID'] }}" data-payment-number="{{ $order['paymentNumber'] }}">
                                 <!-- Order Header -->
-                                <div class="flex justify-between items-start mb-4">
-                                    <div>
-                                        <!-- Order ID and Payment Number -->
-                                        <div class="order-header-info">
+                                <div class="mb-2">
+                                    <!-- Top Row: Order Number, Payment Badge, Status, and Time -->
+                                    {{-- <div class="flex items-center justify-between mb-3"> --}}
+                                        <div class="flex items-center justify-between mb-1">
+                                            <div class="flex items-center gap-2">
                                             <span class="text-white font-bold text-lg">Order #{{ $order['paymentNumber'] }}</span>
-                                            <span class="payment-number-display">
-                                                Payment: {{ $order['paymentNumber'] }}
-                                            </span>
                                             <span class="order-status 
                                                 @if($order['status'] == 'pending') status-pending
                                                 @elseif($order['status'] == 'preparing') status-preparing
@@ -793,28 +791,32 @@
                                                 @else status-completed @endif">
                                                 {{ ucfirst($order['status']) }}
                                             </span>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="text-gray-400 text-xs mb-1 mr-6">Time</div>
+                                                <div class="text-white font-semibold text-lg">{{ date('h:i A', strtotime($order['paymentProcessedAt'])) }}</div>
+                                            </div> 
                                         </div>
-                                        
-                                        <!-- Order Details -->
-                                        <div class="flex items-center gap-4 text-sm mt-2">
-                                            <span class="text-gray-300">ID: {{ $order['orderID'] }}</span>
-                                            <span class="px-3 py-1 rounded-full 
-                                                @if($order['orderType'] == 'dine-in') bg-blue-900 text-blue-200
-                                                @else bg-green-900 text-green-200 @endif">
-                                                {{ ucfirst($order['orderType']) }}
-                                            </span>
-                                            <span class="px-3 py-1 rounded-full 
-                                                @if($order['paymentMethod'] == 'cash') payment-badge-cash
-                                                @else payment-badge-electronic @endif">
-                                                {{ ucfirst($order['paymentMethod']) }}
-                                            </span>
-                                        </div>
+                                    {{-- </div> --}}
+                                    
+                                    <!-- Bottom Row: ID and Badges -->
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <span class="text-gray-300 text-sm">ID: {{ $order['orderID'] }}</span>
+                                        <span class="px-3 py-1 rounded-[4px] font-semibold 
+                                            @if($order['orderType'] == 'dine-in') bg-blue-900 text-blue-200
+                                            @else bg-green-900 text-green-200 @endif">
+                                            {{ ucfirst($order['orderType']) }}
+                                        </span>
+                                        <span class="px-3 py-1 rounded-[4px] font-semibold
+                                            @if($order['paymentMethod'] == 'cash') payment-badge-cash
+                                            @else payment-badge-electronic @endif">
+                                            {{ ucfirst($order['paymentMethod']) }}
+                                        </span>
                                     </div>
-                                    <div class="text-right">
-                                        <div class="text-gray-400 text-sm">Time</div>
-                                        <div class="text-white font-semibold">
-                                            {{ date('H:i', strtotime($order['paymentProcessedAt'])) }}
-                                        </div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="payment-number-display text-[14px] font-semibold">
+                                            Payment: {{ $order['paymentNumber'] }}
+                                        </span>
                                     </div>
                                 </div>
 
@@ -869,9 +871,9 @@
                             </div>
                             @endforeach
                             
-                            <!-- Fill empty slots if less than 4 orders in this group -->
-                            @if(count($group) < 4)
-                                @for($i = count($group); $i < 4; $i++)
+                            <!-- Fill empty slots if less than 3 orders in this group -->
+                            @if(count($group) < 3)
+                                @for($i = count($group); $i < 3; $i++)
                                     <div class="bg-gray-800/30 rounded-xl p-5 border border-gray-700/50 border-dashed flex items-center justify-center min-h-[300px]">
                                         <div class="text-center">
                                             <i class="fas fa-clipboard-list text-4xl text-gray-600 mb-3"></i>
@@ -886,7 +888,7 @@
                     
                     <!-- Pagination Controls -->
                     @if(count($orderGroups) > 1)
-                    <div class="pagination-controls">
+                    <div class="pagination-controls mb-4 mt-4">
                         <button id="prev-page" class="pagination-arrow" disabled>
                             <i class="fas fa-chevron-left"></i>
                         </button>
@@ -900,12 +902,12 @@
                         </button>
                     </div>
                     
-                    <!-- Page Indicator Dots -->
+                    {{-- <!-- Page Indicator Dots -->
                     <div class="page-indicators">
                         @for($i = 0; $i < count($orderGroups); $i++)
                             <div class="page-dot @if($i == 0) active @endif" data-page="{{ $i + 1 }}"></div>
                         @endfor
-                    </div>
+                    </div> --}}
                     @endif
                     
                 @else
@@ -919,30 +921,23 @@
     </div>
 
     <!-- Footer with Reduced Height -->
-    <footer class="bg-gray-900 border-t border-gray-800 compact-footer mt-auto">
+    <footer class="bg-gray-900 border-t border-gray-800 compact-footer">
         <div class="max-w-7xl mx-auto px-6">
-            <!-- First Line: All Rights Reserved (Centered) -->
-            <div class="text-center mb-1">
+            <div class="flex justify-between items-center">
+                <!-- Left: Terms and Conditions -->
+                <button id="terms-btn" class="footer-link text-sm">
+                    Terms and Conditions
+                </button>
+                
+                <!-- Center: Copyright -->
                 <p class="text-gray-500 text-sm">
                     © 2025 CAFFE ARABICA Kitchen Display System. All Rights Reserved.
                 </p>
-            </div>
-            
-            <!-- Second Line: Terms and Conditions (Left) and Privacy Policy (Right) -->
-            <div class="flex flex-col sm:flex-row justify-between items-center">
-                <!-- Left: Terms and Conditions -->
-                <div class="mb-1 sm:mb-0">
-                    <button id="terms-btn" class="footer-link text-sm">
-                        Terms and Conditions
-                    </button>
-                </div>
                 
                 <!-- Right: Privacy Policy -->
-                <div>
-                    <button id="privacy-btn" class="footer-link text-sm">
-                        Privacy Policy
-                    </button>
-                </div>
+                <button id="privacy-btn" class="footer-link text-sm">
+                    Privacy Policy
+                </button>
             </div>
         </div>
     </footer>
