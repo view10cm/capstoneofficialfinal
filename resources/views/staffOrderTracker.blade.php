@@ -127,7 +127,7 @@
 <body class="bg-gray-900 min-h-screen">
     <!-- Fixed Header -->
     <div class="header-bg shadow-md fixed top-0 left-0 right-0 z-50">
-        <div class="flex items-center justify-between px-6 py-4">
+        <div class="flex items-center justify-between px-8 py-6">
             <!-- Left Section: Back Button and Title -->
             <div class="flex items-center">
                 <button onclick="goBack()" class="back-btn bg-amber-900 border border-amber-800 rounded-lg px-4 py-2 mr-4">
@@ -135,8 +135,8 @@
                     <span class="text-amber-100 font-medium">Back to Dashboard</span>
                 </button>
                 <div>
-                    <h1 class="text-2xl font-bold text-white tracking-tight cinzel-font">CAFFE ARABICA</h1>
-                    <p class="text-sm text-gray-400 cinzel-font">Order Tracker System</p>
+                    <h1 class="text-2xl font-bold text-white tracking-tight cinzel-font" style="font-size: 32px;" >CAFFE ARABICA</h1>
+                    <p class="text-sm text-gray-400 cinzel-font" style="font-size: 24px;">Order Tracker System</p>
                 </div>
             </div>
             
@@ -150,7 +150,7 @@
                 
                 <!-- Employee Info -->
                 <div class="text-right">
-                    <p class="text-sm text-gray-400">Employee</p>
+                    <p class="text-sm text-gray-400 pr-2">Employee</p>
                     <p class="font-semibold text-white">{{ auth()->user()->name ?? 'Staff Member' }}</p>
                 </div>
             </div>
@@ -158,7 +158,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="pt-24 px-6 pb-8">
+    <div class="pt-28 px-6 pb-8">
         <div class="max-w-7xl mx-auto">
             <!-- Header with Stats -->
             <div class="flex justify-between items-center mb-8">

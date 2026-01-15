@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Staff Landing Page - AFFE ARABICA</title>
+    <title>Staff - CAFFE ARABICA</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Cinzel:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -586,7 +586,7 @@
                 </div>
                 <div>
                     <h1 class="text-2xl font-bold text-white tracking-tight cinzel-font" style="font-size: 32px;">CAFFE ARABICA</h1>
-                    <p class="text-sm text-gray-400 cinzel-font" style="font-size: 24px;">Kitchen Display System</p>
+                    <p class="text-sm text-gray-400 cinzel-font" style="font-size: 24px;">Staff Display System</p>
                 </div>
             </div>
             
@@ -594,7 +594,7 @@
             <div class="flex items-center space-x-8">
                 <!-- Employee Info -->
                 <div class="text-right">
-                    <p class="text-sm text-gray-400" style="font-size: 15px;">Employee</p>
+                    <p class="text-sm text-gray-400 pr-2" style="font-size: 15px;">Employee</p>
                     <p class="font-semibold text-white" style="font-size: 18px;">{{ auth()->user()->name ?? 'Staff Member' }}</p>
                 </div>
                 
@@ -609,8 +609,8 @@
                 </div>
                 
                 <!-- Live Clock -->
-                <div class="bg-gray-800 text-white rounded-lg px-4 py-3 min-w-[130px] text-center clock">
-                    <div id="live-clock" class="text-xl font-bold tracking-wider" style="font-size: 22px;">2:45:59 PM</div>
+                <div class="bg-gray-800 text-white rounded-lg px-4 py-3 w-[180px] text-center clock">
+                    <div id="live-clock" class="text-xl font-bold tracking-wider" style="font-size: 20px;">2:45:59 PM</div>
                     <div id="current-date" class="text-xs text-gray-400" style="font-size: 13px;">May 25, 2025</div>
                 </div>
             </div>
@@ -618,23 +618,23 @@
     </div>
 
     <!-- Main Content Area (Order Display) -->
-    <div class="pt-36 pb-8 px-6 flex-grow">
+    <div class="pt-32 pb-8 px-6 flex-grow">
         <div class="max-w-7xl mx-auto">
             <!-- Pagination Controls -->
-            <div class="flex justify-between items-center mb-6">
+            <div class="flex justify-between items-center mb-5">
                 <!-- Left Pagination Button -->
-                <button id="prev-page-btn" class="pagination-btn text-white px-5 py-3 rounded-lg flex items-center space-x-2" disabled>
+                <button id="prev-page-btn" class="pagination-btn text-white px-4 py-2 rounded-lg flex items-center space-x-2" disabled>
                     <i class="fas fa-chevron-left"></i>
                     <span>Previous</span>
                 </button>
                 
                 <!-- Page Indicator -->
-                <div class="text-gray-300 text-lg font-medium">
+                <div class="text-gray-300 text-m font-medium">
                     Page <span id="current-page">1</span> of <span id="total-pages">1</span>
                 </div>
                 
                 <!-- Right Pagination Button -->
-                <button id="next-page-btn" class="pagination-btn text-white px-5 py-3 rounded-lg flex items-center space-x-2" disabled>
+                <button id="next-page-btn" class="pagination-btn text-white px-4 py-2 rounded-lg flex items-center space-x-2" disabled>
                     <span>Next</span>
                     <i class="fas fa-chevron-right"></i>
                 </button>
@@ -655,28 +655,21 @@
     <!-- Footer with Reduced Height -->
     <footer class="bg-gray-900 border-t border-gray-800 compact-footer">
         <div class="max-w-7xl mx-auto px-6">
-            <!-- First Line: All Rights Reserved (Centered) -->
-            <div class="text-center mb-1">
+            <div class="flex justify-between items-center">
+                <!-- Left: Terms and Conditions -->
+                <button id="terms-btn" class="footer-link text-sm">
+                    Terms and Conditions
+                </button>
+                
+                <!-- Center: Copyright -->
                 <p class="text-gray-500 text-sm">
                     © 2025 CAFFE ARABICA Kitchen Display System. All Rights Reserved.
                 </p>
-            </div>
-            
-            <!-- Second Line: Terms and Conditions (Left) and Privacy Policy (Right) -->
-            <div class="flex flex-col sm:flex-row justify-between items-center">
-                <!-- Left: Terms and Conditions -->
-                <div class="mb-1 sm:mb-0">
-                    <button id="terms-btn" class="footer-link text-sm">
-                        Terms and Conditions
-                    </button>
-                </div>
                 
                 <!-- Right: Privacy Policy -->
-                <div>
-                    <button id="privacy-btn" class="footer-link text-sm">
-                        Privacy Policy
-                    </button>
-                </div>
+                <button id="privacy-btn" class="footer-link text-sm">
+                    Privacy Policy
+                </button>
             </div>
         </div>
     </footer>
