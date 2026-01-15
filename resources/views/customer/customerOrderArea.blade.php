@@ -60,7 +60,6 @@
                 <div class="bg-amber-50 border-y border-amber-100">
                     <div class="px-4">
                         <div id="lower-nav" class="py-2 flex flex-wrap justify-center gap-1 md:gap-3">
-                            <button class="subcategory-btn bg-white text-amber-900 border border-amber-200 px-3 py-1.5 rounded-full font-medium shadow-sm text-sm">Pork</button>
                         </div>
                     </div>
                 </div>
@@ -73,31 +72,50 @@
                     <div id="carousel-slides" class="carousel-slide">
                         @foreach($slides as $slideIndex => $slideProducts)
                             <div class="carousel-page" data-page="{{ $slideIndex }}" style="min-width: 100%;">
-                                <div class="product-grid">
-                                    @forelse($slideProducts as $product)
-                                        <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
-                                            <div class="product-image-container">
-                                                @if($product->menuImage)
-                                                    <img src="{{ asset('storage/' . $product->menuImage) }}" alt="{{ $product->menuName }}" class="product-image">
-                                                @else
-                                                    <div class="w-full h-full flex items-center justify-center bg-gray-200"><i class="fas fa-utensils text-gray-400 text-4xl"></i></div>
-                                                @endif
-                                            </div>
-                                            <div class="p-4 flex-1 flex flex-col">
-                                                <div class="flex justify-between items-start mb-2">
-                                                    <h3 class="text-lg font-bold text-gray-800 truncate">{{ $product->menuName }}</h3>
-                                                    <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full">{{ ucfirst($product->menuSubcategory) }}</span>
-                                                </div>
-                                                <div class="flex justify-between items-center mt-auto">
-                                                    <span class="text-xl font-bold text-amber-700">₱{{ number_format($product->menuPrice, 2) }}</span>
-                                                    <button class="add-to-order-btn bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm" data-name="{{ $product->menuName }}" data-price="{{ $product->menuPrice }}" data-category="{{ $product->menuCategory }}" data-image="{{ $product->menuImage ? asset('storage/' . $product->menuImage) : '' }}"><i class="fas fa-plus mr-1"></i> Add</button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @empty
-                                        <div class="col-span-3 row-span-2 flex items-center justify-center"><div class="text-center text-gray-400"><i class="fas fa-utensils text-6xl mb-4"></i><p>No products found</p></div></div>
-                                    @endforelse
-                                </div>
+<div class="product-grid">
+    @forelse($products as $product)
+        <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
+            <div class="product-image-container">
+                @if($product->menuImage)
+                    {{-- FIXED: Use serve.image route instead of direct storage link --}}
+<img src="{{ route('serve.image', ['filename' => basename($product->menuImage)]) }}" 
+     alt="{{ $product->menuName }}" 
+     class="product-image">
+                @else
+                    <div class="w-full h-full flex items-center justify-center bg-gray-200">
+                        <i class="fas fa-utensils text-gray-400 text-4xl"></i>
+                    </div>
+                @endif
+            </div>
+            <div class="p-4 flex-1 flex flex-col">
+                <div class="flex justify-between items-start mb-2">
+                    <h3 class="text-lg font-bold text-gray-800 truncate">{{ $product->menuName }}</h3>
+                    <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full">
+                        {{ ucfirst($product->menuSubcategory) }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center mt-auto">
+                    <span class="text-xl font-bold text-amber-700">₱{{ number_format($product->menuPrice, 2) }}</span>
+                    {{-- FIXED: Update data-image attribute to use serve.image route as well --}}
+                    <button class="add-to-order-btn bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm" 
+                        data-name="{{ $product->menuName }}" 
+                        data-price="{{ $product->menuPrice }}" 
+                        data-category="{{ $product->menuCategory }}" 
+                        data-image="{{ $product->menuImage ? route('serve.image', ['filename' => basename($product->menuImage)]) : '' }}">
+                        <i class="fas fa-plus mr-1"></i> Add
+                    </button>
+                </div>
+            </div>
+        </div>
+    @empty
+        <div class="col-span-3 row-span-2 flex items-center justify-center">
+            <div class="text-center text-gray-400">
+                <i class="fas fa-utensils text-6xl mb-4"></i>
+                <p>No products found</p>
+            </div>
+        </div>
+    @endforelse
+</div>
                             </div>
                         @endforeach
                     </div>
