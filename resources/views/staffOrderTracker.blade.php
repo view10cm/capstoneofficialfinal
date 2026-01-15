@@ -124,7 +124,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-900 min-h-screen">
+<body class="bg-gray-900 min-h-screen pb-16">
     <!-- Fixed Header -->
     <div class="header-bg shadow-md fixed top-0 left-0 right-0 z-50">
         <div class="flex items-center justify-between px-8 py-6">
@@ -135,7 +135,7 @@
                     <span class="text-amber-100 font-medium">Back to Dashboard</span>
                 </button>
                 <div>
-                    <h1 class="text-2xl font-bold text-white tracking-tight cinzel-font" style="font-size: 32px;" >CAFFE ARABICA</h1>
+                    <h1 class="text-2xl font-bold text-white tracking-tight cinzel-font" style="    ;" >CAFFE ARABICA</h1>
                     <p class="text-sm text-gray-400 cinzel-font" style="font-size: 24px;">Order Tracker System</p>
                 </div>
             </div>
@@ -161,7 +161,7 @@
     <div class="pt-28 px-6 pb-8">
         <div class="max-w-7xl mx-auto">
             <!-- Header with Stats -->
-            <div class="flex justify-between items-center mb-8">
+            <div class="flex justify-between items-center mb-4">
                 <div>
                     <h2 class="text-3xl font-bold text-white mb-2">Order Tracker</h2>
                     <p class="text-gray-400">Track and monitor all kitchen orders in real-time</p>
@@ -173,7 +173,8 @@
             </div>
             
             <!-- Status Filter Tabs -->
-            <div class="flex flex-wrap gap-3 mb-8">
+            <div class="flex justify-between items-center">
+            <div class="flex flex-wrap gap-3 mb-4">
                 <button onclick="filterOrders('all')" class="filter-tab active px-6 py-3 bg-blue-600 text-white rounded-lg font-medium transition" data-status="all">
                     All Orders
                 </button>
@@ -190,9 +191,25 @@
                     <i class="fas fa-check mr-2"></i>Completed
                 </button>
             </div>
+            <!-- Pagination Info -->
+            <div id="pagination-info" class="flex justify-between items-center mb-4 hidden">
+                <div class="text-gray-300 hidden">
+                    Showing <span id="current-start">1</span> - <span id="current-end">3</span> of <span id="total-filtered">0</span> orders
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="previousPage()" id="prev-btn" class="pagination-btn bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition" disabled>
+                        <i class="fas fa-chevron-left mr-1"></i> Previous
+                    </button>
+                    <span class="text-gray-300 mx-2" id="page-indicator">Page 1</span>
+                    <button onclick="nextPage()" id="next-btn" class="pagination-btn bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition" disabled>
+                        Next <i class="fas fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+            </div>
             
             <!-- Stats Summary -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div class="bg-gray-800 rounded-xl p-5 border-l-4 border-amber-500">
                     <div class="flex justify-between items-center">
                         <div>
@@ -231,21 +248,7 @@
                 </div>
             </div>
             
-            <!-- Pagination Info -->
-            <div id="pagination-info" class="flex justify-between items-center mb-4 hidden">
-                <div class="text-gray-300">
-                    Showing <span id="current-start">1</span> - <span id="current-end">3</span> of <span id="total-filtered">0</span> orders
-                </div>
-                <div class="flex items-center space-x-2">
-                    <button onclick="previousPage()" id="prev-btn" class="pagination-btn bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition" disabled>
-                        <i class="fas fa-chevron-left mr-1"></i> Previous
-                    </button>
-                    <span class="text-gray-300 mx-2" id="page-indicator">Page 1</span>
-                    <button onclick="nextPage()" id="next-btn" class="pagination-btn bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition" disabled>
-                        Next <i class="fas fa-chevron-right ml-1"></i>
-                    </button>
-                </div>
-            </div>
+
             
             <!-- Loading State -->
             <div id="loading-container" class="text-center py-12">
@@ -274,6 +277,28 @@
     <div id="status-message" class="fixed bottom-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg opacity-0 transform translate-y-4 transition-all duration-300 z-50">
         Status updated successfully!
     </div>
+
+    <!-- Footer with Reduced Height -->
+    <footer class="bg-gray-900 border-t border-gray-800 fixed bottom-0 left-0 right-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4">
+            <div class="flex justify-between items-center">
+                <!-- Left: Terms and Conditions -->
+                <button id="terms-btn" class="text-gray-400 hover:text-white transition text-sm">
+                    Terms and Conditions
+                </button>
+                
+                <!-- Center: Copyright -->
+                <p class="text-gray-500 text-sm">
+                    © 2025 CAFFE ARABICA Kitchen Display System. All Rights Reserved.
+                </p>
+                
+                <!-- Right: Privacy Policy -->
+                <button id="privacy-btn" class="text-gray-400 hover:text-white transition text-sm">
+                    Privacy Policy
+                </button>
+            </div>
+        </div>
+    </footer>
 
     <script>
         // Global variables

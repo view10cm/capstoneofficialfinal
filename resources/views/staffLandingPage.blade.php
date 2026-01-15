@@ -593,8 +593,8 @@
             <!-- Right Section: Employee & Time Info -->
             <div class="flex items-center space-x-8">
                 <!-- Employee Info -->
-                <div class="text-right">
-                    <p class="text-sm text-gray-400 pr-2" style="font-size: 15px;">Employee</p>
+                <div class="text-center">
+                    <p class="text-sm text-gray-400" style="font-size: 15px;">Employee</p>
                     <p class="font-semibold text-white" style="font-size: 18px;">{{ auth()->user()->name ?? 'Staff Member' }}</p>
                 </div>
                 
