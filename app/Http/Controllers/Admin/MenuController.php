@@ -18,8 +18,12 @@ class MenuController extends Controller
     public function index(Request $request)
     {
         try {
+            // Start the query
             $query = MenuProduct::query();
             
+            // UNCOMMENT THE LINE BELOW if you need to see deleted items:
+            // $query->withTrashed();
+
             // Search functionality
             if ($request->has('search') && !empty($request->search)) {
                 $search = $request->search;
@@ -39,14 +43,13 @@ class MenuController extends Controller
             // Order by creation date (newest first)
             $query->orderBy('created_at', 'desc');
             
-            // Get all results without pagination for client-side pagination
+            // Get all results
             $menuProducts = $query->get();
             
+            // FIXED: Return data directly, removing the extra nested 'data' array
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'data' => $menuProducts
-                ]
+                'data' => $menuProducts
             ]);
             
         } catch (\Exception $e) {
@@ -96,84 +99,84 @@ class MenuController extends Controller
     /**
      * Store a newly created menu product
      */
-public function store(Request $request)
-{
-    // Validate the request
-    $validator = Validator::make($request->all(), [
-        'productName' => 'required|string|max:200',
-        'productCategory' => 'required|string|in:main-course,appetizers,drinks',
-        'productSubcategory' => 'required|string',
-        'productPrice' => 'required|numeric|min:0|max:999999.99',
-        'productImage' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
-    ], [
-        'productImage.image' => 'The file must be an image.',
-        'productImage.mimes' => 'The image must be a file of type: jpeg, png, jpg, gif.',
-        'productImage.max' => 'The image may not be greater than 5MB.',
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'success' => false,
-            'message' => $validator->errors()->first()
-        ], 422);
-    }
-
-    try {
-        DB::beginTransaction();
-
-        // Generate menu ID
-        $menuID = $this->generateMenuID($request->productCategory);
-        
-        // Handle image upload
-        $imagePath = null;
-if ($request->hasFile('productImage') && $request->file('productImage')->isValid()) {
-    try {
-        $image = $request->file('productImage');
-        $filename = 'menu_' . time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
-        
-        // Store in storage/app/public/menu-images
-        $path = $image->storeAs('public/menu-images', $filename);
-        
-        // Save just the relative path without 'public/'
-        $imagePath = 'menu-images/' . $filename;
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'Image upload failed: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-        // Create the menu product
-        $menuProduct = MenuProduct::create([
-            'menuID' => $menuID,
-            'menuName' => $request->productName,
-            'menuCategory' => $request->productCategory,
-            'menuSubcategory' => $request->productSubcategory,
-            'menuPrice' => $request->productPrice,
-            'menuStatus' => 'Available',
-            'menuImage' => $imagePath,
+    public function store(Request $request)
+    {
+        // Validate the request
+        $validator = Validator::make($request->all(), [
+            'productName' => 'required|string|max:200',
+            'productCategory' => 'required|string|in:main-course,appetizers,drinks',
+            'productSubcategory' => 'required|string',
+            'productPrice' => 'required|numeric|min:0|max:999999.99',
+            'productImage' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:5120', // 5MB max
+        ], [
+            'productImage.image' => 'The file must be an image.',
+            'productImage.mimes' => 'The image must be a file of type: jpeg, png, jpg, gif.',
+            'productImage.max' => 'The image may not be greater than 5MB.',
         ]);
 
-        DB::commit();
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first()
+            ], 422);
+        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Menu item created successfully!',
-            'data' => $menuProduct,
-            'image_url' => $imagePath ? asset('storage/' . $imagePath) : null
-        ]);
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to create menu item: ' . $e->getMessage()
-        ], 500);
+        try {
+            DB::beginTransaction();
+
+            // Generate menu ID
+            $menuID = $this->generateMenuID($request->productCategory);
+            
+            // Handle image upload
+            $imagePath = null;
+            if ($request->hasFile('productImage') && $request->file('productImage')->isValid()) {
+                try {
+                    $image = $request->file('productImage');
+                    $filename = 'menu_' . time() . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
+                    
+                    // Store in storage/app/public/menu-images
+                    $path = $image->storeAs('public/menu-images', $filename);
+                    
+                    // Save just the relative path without 'public/'
+                    $imagePath = 'menu-images/' . $filename;
+                    
+                } catch (\Exception $e) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Image upload failed: ' . $e->getMessage()
+                    ], 500);
+                }
+            }
+
+            // Create the menu product
+            $menuProduct = MenuProduct::create([
+                'menuID' => $menuID,
+                'menuName' => $request->productName,
+                'menuCategory' => $request->productCategory,
+                'menuSubcategory' => $request->productSubcategory,
+                'menuPrice' => $request->productPrice,
+                'menuStatus' => 'Available',
+                'menuImage' => $imagePath,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Menu item created successfully!',
+                'data' => $menuProduct,
+                'image_url' => $imagePath ? asset('storage/' . $imagePath) : null
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create menu item: ' . $e->getMessage()
+            ], 500);
+        }
     }
-}
 
     /**
      * Get subcategories based on category
