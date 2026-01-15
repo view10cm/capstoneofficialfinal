@@ -1,9 +1,174 @@
 // public/js/admin-users.js
 
+// Pagination variables
+let allUsers = [];
+let currentPage = 1;
+const itemsPerPage = 7;
+
 let currentUserId = null;
 let currentUserName = null;
 let currentUserRole = null;
 let openDropdownId = null;
+
+// Display a specific page of users
+function displayPage(pageNumber) {
+    const tableBody = document.getElementById('usersTableBody');
+    const totalPages = Math.ceil(allUsers.length / itemsPerPage);
+    
+    if (pageNumber < 1) pageNumber = 1;
+    if (pageNumber > totalPages) pageNumber = totalPages;
+    
+    currentPage = pageNumber;
+    
+    const startIndex = (pageNumber - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageItems = allUsers.slice(startIndex, endIndex);
+    
+    tableBody.innerHTML = '';
+    
+    pageItems.forEach(user => {
+        const row = createUserRow(user);
+        tableBody.appendChild(row);
+    });
+    
+    updatePaginationControls();
+}
+
+// Create user row element
+function createUserRow(user) {
+    const row = document.createElement('tr');
+    row.className = 'user-row hover:bg-gray-50';
+    row.setAttribute('data-name', user.name.toLowerCase());
+    row.setAttribute('data-email', user.email.toLowerCase());
+    row.setAttribute('data-status', user.status);
+    
+    const statusBadgeClass = user.status === 'Activated' ? 
+        'bg-green-100 text-green-800 border-green-200 hover:bg-green-50' : 
+        'bg-red-100 text-red-800 border-red-200 hover:bg-red-50';
+    
+    const lastLogin = user.last_login ? 
+        new Date(user.last_login).toLocaleString('en-US', { 
+            year: 'numeric', month: '2-digit', day: '2-digit', 
+            hour: '2-digit', minute: '2-digit', hour12: false 
+        }).replace(',', '') : 'Never logged in';
+    
+    let roleClass = 'bg-gray-100 text-gray-800';
+    if (user.role === 'Admin') roleClass = 'bg-purple-100 text-purple-800';
+    else if (user.role === 'Staff') roleClass = 'bg-blue-100 text-blue-800';
+    else if (user.role === 'Kitchen') roleClass = 'bg-yellow-100 text-yellow-800';
+    
+    row.innerHTML = `
+        <td class="py-4 px-6 whitespace-nowrap">
+            <div class="flex items-center">
+                <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
+                    <span class="text-gray-600 font-medium">${user.name.charAt(0).toUpperCase()}</span>
+                </div>
+                <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">${user.name}</div>
+                </div>
+            </div>
+        </td>
+        <td class="py-4 px-6 whitespace-nowrap">
+            <div class="text-sm text-gray-900">${user.email}</div>
+        </td>
+        <td class="py-4 px-6 whitespace-nowrap">
+            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${roleClass}">
+                ${user.role}
+            </span>
+        </td>
+        <td class="py-4 px-6 whitespace-nowrap">
+            <div class="relative inline-block w-40">
+                <div class="relative">
+                    <div id="status-badge-${user.id}" 
+                         onclick="toggleDropdown(${user.id})"
+                         class="inline-flex items-center justify-between px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all duration-200 hover:shadow-md ${statusBadgeClass} border">
+                        <span>${user.status}</span>
+                        <svg class="ml-2 w-4 h-4 transition-transform duration-200" 
+                             id="dropdown-arrow-${user.id}"
+                             fill="none" 
+                             stroke="currentColor" 
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" 
+                                  stroke-linejoin="round" 
+                                  stroke-width="2" 
+                                  d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
+                    <div id="status-dropdown-${user.id}" 
+                         class="absolute z-10 hidden mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 py-1">
+                        <button type="button" 
+                                onclick="selectStatus(${user.id}, 'Activated', '${user.name}', '${user.role}')"
+                                class="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between ${user.status === 'Activated' ? 'bg-green-50 text-green-700 font-medium' : 'text-gray-700'}">
+                            <span>Activated</span>
+                            ${user.status === 'Activated' ? '<svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>' : ''}
+                        </button>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <button type="button" 
+                                onclick="selectStatus(${user.id}, 'Deactivated', '${user.name}', '${user.role}')"
+                                class="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between ${user.status === 'Deactivated' ? 'bg-red-50 text-red-700 font-medium' : 'text-gray-700'}">
+                            <span>Deactivated</span>
+                            ${user.status === 'Deactivated' ? '<svg class="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>' : ''}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </td>
+        <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">
+            ${lastLogin}
+        </td>
+    `;
+    
+    return row;
+}
+
+// Update pagination controls
+function updatePaginationControls() {
+    const totalPages = Math.ceil(allUsers.length / itemsPerPage);
+    
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    const currentPageSpan = document.getElementById('currentPageNum');
+    const totalPagesSpan = document.getElementById('totalPagesNum');
+    
+    if (currentPageSpan) currentPageSpan.textContent = currentPage;
+    if (totalPagesSpan) totalPagesSpan.textContent = totalPages;
+    
+    if (prevBtn) {
+        if (currentPage === 1) {
+            prevBtn.disabled = true;
+            prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            prevBtn.disabled = false;
+            prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+    
+    if (nextBtn) {
+        if (currentPage >= totalPages) {
+            nextBtn.disabled = true;
+            nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
+}
+
+// Navigation functions
+function previousPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        displayPage(currentPage);
+    }
+}
+
+function nextPage() {
+    const totalPages = Math.ceil(allUsers.length / itemsPerPage);
+    if (currentPage < totalPages) {
+        currentPage++;
+        displayPage(currentPage);
+    }
+}
 
 // Toggle dropdown visibility
 function toggleDropdown(userId) {
@@ -472,40 +637,58 @@ function closeAddUserModal() {
 function searchUsers() {
     const searchInput = document.getElementById('searchInput');
     const filter = searchInput.value.toLowerCase();
-    const rows = document.querySelectorAll('.user-row');
+    const statusFilter = document.getElementById('statusFilter');
+    const selectedStatus = statusFilter.value;
     
-    rows.forEach(row => {
-        const name = row.getAttribute('data-name');
-        const email = row.getAttribute('data-email');
+    // Get base users (stored during page load)
+    const baseUsers = window.baseUsersData || allUsers;
+    
+    // Filter users based on search and status
+    const filteredUsers = baseUsers.filter(user => {
+        const nameMatch = user.name.toLowerCase().includes(filter);
+        const emailMatch = user.email.toLowerCase().includes(filter);
+        const statusMatch = !selectedStatus || user.status === selectedStatus;
         
-        if (name.includes(filter) || email.includes(filter)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+        return (nameMatch || emailMatch) && statusMatch;
     });
+    
+    // Update display with filtered users
+    const tableBody = document.getElementById('usersTableBody');
+    tableBody.innerHTML = '';
+    
+    filteredUsers.forEach(user => {
+        const row = createUserRow(user);
+        tableBody.appendChild(row);
+    });
+    
+    // Update pagination for filtered results
+    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+    currentPage = 1;
+    
+    const currentPageSpan = document.getElementById('currentPageNum');
+    const totalPagesSpan = document.getElementById('totalPagesNum');
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    
+    if (currentPageSpan) currentPageSpan.textContent = currentPage;
+    if (totalPagesSpan) totalPagesSpan.textContent = totalPages;
+    
+    if (prevBtn) {
+        prevBtn.disabled = true;
+        prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+    if (nextBtn) {
+        nextBtn.disabled = totalPages <= 1;
+        if (totalPages <= 1) {
+            nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    }
 }
 
 function filterUsers() {
-    const statusFilter = document.getElementById('statusFilter');
-    const selectedStatus = statusFilter.value;
-    const rows = document.querySelectorAll('.user-row');
-    
-    rows.forEach(row => {
-        const status = row.getAttribute('data-status');
-        
-        if (!selectedStatus || status === selectedStatus) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-    
-    // Update the search input if it has value
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput.value) {
-        searchUsers(); // Reapply search filter after status filter
-    }
+    searchUsers(); // Use unified search function
 }
 
 // Initialize event listeners

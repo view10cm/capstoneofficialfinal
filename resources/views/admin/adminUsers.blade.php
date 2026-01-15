@@ -8,24 +8,40 @@
         @include('admin.adminSidebar')
 
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col">
+        <div class="flex-1 flex flex-col overflow-y-auto">
             <!-- Header -->
-            <div class="bg-white shadow p-6">
-                <h1 class="text-2xl font-bold text-gray-800">User Management</h1>
+            <div class="bg-white p-5 shadow-sm shadow-gray-500/50">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:space-x-6">
+                        <div class="text-center lg:text-left">
+                            <h1 class="text-3xl font-bold text-gray-900">Users</h1>
+                            <p class="text-gray-500 text-sm">Manage users account on your system</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Users Table Container -->
-            <div class="flex-1 p-6">
+            <div class="flex-1 p-5">
                 <!-- Header with Controls -->
-                <div class="bg-white rounded-lg shadow mb-6">
-                    <div class="p-6 border-b border-gray-200">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-4 border-b border-gray-200">
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <!-- Left side: User Text -->
-                            <div class="flex items-center">
-                                <h2 class="text-lg font-semibold text-gray-800">Users</h2>
-                                <span class="ml-2 px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                            <div class="flex items-center mb-4 lg:mb-0">
+                                <div class="bg-white p-3 rounded-lg mr-3">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 13C11.2091 13 13 11.2091 13 9C13 6.79086 11.2091 5 9 5C6.79086 5 5 6.79086 5 9C5 11.2091 6.79086 13 9 13Z" stroke="#E67809" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M16 19C16 15.686 12.866 13 9 13C5.134 13 2 15.686 2 19M15 13C15.6684 13 16.3261 12.8324 16.9131 12.5127C17.5 12.193 17.9975 11.7313 18.3601 11.1698C18.7227 10.6083 18.9388 9.96494 18.9886 9.29841C19.0385 8.63189 18.9205 7.9635 18.6456 7.3543C18.3706 6.7451 17.9473 6.21453 17.4144 5.81105C16.8816 5.40757 16.2561 5.14404 15.5952 5.04456C14.9342 4.94507 14.2589 5.01279 13.6309 5.24154C13.0028 5.47028 12.4421 5.85275 12 6.354" stroke="#E67809" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M22 19.0001C22 15.6861 18.866 13.0001 15 13.0001C14.193 13.0001 12.897 12.7071 12 11.7651" stroke="#E67809" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                </div>
+                            <div>    
+                                <h1 class="text-2xl font-bold text-gray-800">Users</h1>
+                                {{-- <span class="ml-2 px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
                                     {{ $users->total() }} total
-                                </span>
+                                </span> --}}
+                            </div>
                             </div>
 
                             <!-- Right side: Search, Filter, and Add Button -->
@@ -71,10 +87,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Table Container -->
-                <div class="bg-white rounded-lg shadow overflow-hidden">
                     <!-- Table -->
                     <div class="overflow-x-auto">
                         <table class="w-full">
@@ -183,7 +196,47 @@
 
                     <!-- Orange-themed Pagination -->
                     <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-                        <div class="flex-1 flex justify-between sm:hidden">
+                        <div class="flex items-center justify-between w-full">
+                            <button id="prevPage" onclick="previousPage()" 
+                                    class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-amber-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-gray-700">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                </svg>
+                                <span>Previous</span>
+                            </button>
+                            
+                            <div class="text-sm text-gray-700">
+                                Page <span id="currentPageNum" class="font-semibold text-amber-700">1</span> of 
+                                <span id="totalPagesNum" class="font-semibold">1</span>
+                            </div>
+                            
+                            <button id="nextPage" onclick="nextPage()" 
+                                    class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-amber-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-gray-700">
+                                <span>Next</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Initialize pagination on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Store initial users from blade
+        allUsers = @json($users->items());
+        window.baseUsersData = @json($users->items());
+        displayPage(1);
+    });
+    </script>
+
+    <!-- Hidden original pagination for reference -->
+    <div style="display: none;">
+        <div class="flex-1 flex justify-between sm:hidden">
                             @if($users->onFirstPage())
                                 <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-white cursor-not-allowed">
                                     <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -330,7 +383,7 @@
     </div>
 
     <!-- Confirmation Modal -->
-    <div id="confirmationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div id="confirmationModal" class="fixed inset-0 bg-transparent bg-opacity-50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="modalContent">
             <div class="p-6">
                 <div class="flex items-start mb-4">
@@ -372,7 +425,7 @@
     </div>
 
     <!-- Add User Modal -->
-    <div id="addUserModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+    <div id="addUserModal" class="fixed inset-0 bg-transparent bg-opacity-50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95 opacity-0" id="addUserModalContent">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-6">

@@ -39,12 +39,14 @@ class MenuController extends Controller
             // Order by creation date (newest first)
             $query->orderBy('created_at', 'desc');
             
-            // Paginate results
-            $menuProducts = $query->paginate(7);
+            // Get all results without pagination for client-side pagination
+            $menuProducts = $query->get();
             
             return response()->json([
                 'success' => true,
-                'data' => $menuProducts
+                'data' => [
+                    'data' => $menuProducts
+                ]
             ]);
             
         } catch (\Exception $e) {
