@@ -4,12 +4,9 @@
 
 @section('content')
     <div class="flex min-h-screen bg-gray-100">
-        <!-- Sidebar -->
         @include('admin.adminSidebar')
 
-        <!-- Main Content Area -->
         <div class="flex-1 flex flex-col overflow-y-auto">
-            <!-- Header -->
             <div class="bg-white p-5 shadow-sm shadow-gray-500/50">
                 <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                     <div class="flex flex-col lg:flex-row lg:items-center lg:space-x-6">
@@ -21,27 +18,19 @@
                 </div>
             </div>
 
-            <!-- Content area below the header -->
             <div class="flex-1 p-5">
-                <!-- Table Container -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <!-- Second Row: Menu Icon, Text, Search, Filter, and Add Button -->
-                <div class="pl-2 pr-2 pt-2 pb-1.5 flex flex-col lg:flex-row lg:items-center lg:justify-between">
-                    <!-- Left side: Inventory Icon and Text -->
+            <div class="pl-2 pr-2 pt-2 pb-1.5 flex flex-col lg:flex-row lg:items-center lg:justify-between">
                     <div class="flex items-center mb-4 lg:mb-0">
-                        <!-- Inventory Icon -->
                         <div class="bg-white p-3 rounded-lg mr-3">
                             <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24"><g fill="none" fill-rule="evenodd"><path d="m12.594 23.258l-.012.002l-.071.035l-.02.004l-.014-.004l-.071-.036q-.016-.004-.024.006l-.004.01l-.017.428l.005.02l.01.013l.104.074l.015.004l.012-.004l.104-.074l.012-.016l.004-.017l-.017-.427q-.004-.016-.016-.018m.264-.113l-.014.002l-.184.093l-.01.01l-.003.011l.018.43l.005.012l.008.008l.201.092q.019.005.029-.008l.004-.014l-.034-.614q-.005-.019-.02-.022m-.715.002a.02.02 0 0 0-.027.006l-.006.014l-.034.614q.001.018.017.024l.015-.002l.201-.093l.01-.008l.003-.011l.018-.43l-.003-.012l-.01-.01z"/><path fill="#f59e0b" d="M9 4a1 1 0 0 1 1-1h4a1 1 0 1 1 0 2h-1v1.035c5.44.49 9.01 6.132 6.929 11.336A1 1 0 0 1 19 18H5a1 1 0 0 1-.928-.629C1.99 12.167 5.56 6.525 11 6.035V5h-1a1 1 0 0 1-1-1m2.77 4c-4.226 0-7.184 4.053-6.057 8h12.574c1.127-3.947-1.831-8-6.057-8zM3 20a1 1 0 0 1 1-1h16a1 1 0 1 1 0 2H4a1 1 0 0 1-1-1"/></g></svg>
                         </div>
-                        <!-- Menu Text -->
                         <div>
                             <h1 class="text-2xl font-bold text-gray-800">Menu Items</h1>
                         </div>
                     </div>
                     
-                    <!-- Right side: Search, Filter Dropdown, and Add Button -->
                     <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                        <!-- Search Bar -->
                         <div class="relative w-full sm:w-auto">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-3 w-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -54,7 +43,6 @@
                                    class="pl-10 pr-4 py-2 w-full sm:w-64 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors">
                         </div>
                         
-                        <!-- Beautiful Orange-Themed Category Dropdown -->
                         <div class="relative w-full sm:w-56 group">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                                 <svg class="h-3 w-3 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,55 +63,45 @@
                             </div>
                         </div>
                         
-                        <!-- Add Menu Item Button -->
                         <button onclick="openCreatePopup()" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-semibold py-2 px-5 rounded-xl transition-all duration-200 shadow hover:shadow-md w-full sm:w-auto">
                             + Add Menu Item
                         </button>
                     </div>
                 </div>
-                    <!-- Table -->
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <!-- Checkbox Header -->
                                     <th scope="col" class="px-4 py-3 text-left">
                                         <div class="flex items-center">
                                             <input type="checkbox" id="selectAll" class="h-5 w-5 text-amber-500 focus:ring-amber-400 border-gray-300 rounded">
                                         </div>
                                     </th>
                                     
-                                    <!-- Image Header -->
                                     <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Image
                                     </th>
                                     
-                                    <!-- Menu Name Header -->
                                     <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Menu Name
                                     </th>
                                     
-                                    <!-- Category Header -->
                                     <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Category
                                     </th>
                                     
-                                    <!-- Subcategory Header -->
                                     <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Subcategory
                                     </th>
                                     
-                                    <!-- Price Header -->
                                     <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Price
                                     </th>
                                     
-                                    <!-- Status Header -->
                                     <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Status
                                     </th>
                                     
-                                    <!-- Actions Header -->
                                     <th scope="col" class="px-3 py-2 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                         Actions
                                     </th>
@@ -131,7 +109,6 @@
                             </thead>
                             
                             <tbody id="menuTableBody" class="bg-white divide-y divide-gray-200">
-                                <!-- Table rows will be dynamically populated here -->
                                 <tr>
                                     <td class="px-3 py-2 text-center text-gray-500 italic" colspan="8">
                                         Loading menu items...
@@ -141,9 +118,7 @@
                         </table>
                     </div>
                     
-                    <!-- Pagination -->
                     <div class="flex items-center justify-between px-4 py-2.5 bg-white border-t border-gray-200">
-                        <!-- Previous Button -->
                         <button id="prevPage" class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -151,7 +126,6 @@
                             Previous
                         </button>
                         
-                        <!-- Page Info -->
                         <div class="flex items-center space-x-1">
                             <span class="text-sm text-gray-700">Page</span>
                             <span id="currentPage" class="text-sm font-semibold text-gray-900">1</span>
@@ -159,7 +133,6 @@
                             <span id="totalPages" class="text-sm font-semibold text-gray-900">1</span>
                         </div>
                         
-                        <!-- Next Button -->
                         <button id="nextPage" class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors">
                             Next
                             <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,10 +145,8 @@
         </div>
     </div>
 
-    <!-- Create Menu Item Popup -->
     <div id="createMenuItemPopup" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-transparent backdrop-blur-sm bg-opacity-50">
         <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all">
-            <!-- Popup header -->
             <div class="px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
@@ -194,15 +165,12 @@
                 </div>
             </div>
             
-            <!-- Popup form -->
             <form id="createMenuItemForm" class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-                <!-- Product Image Upload -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         Product Image <span class="text-red-500">*</span>
                     </label>
                     <div class="mt-1">
-                        <!-- Upload Area -->
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-amber-400 transition-colors">
                             <input type="file" 
                                    id="productImage" 
@@ -220,7 +188,6 @@
                                 <p class="text-xs text-gray-500 mt-0.5">PNG, JPG, GIF up to 5MB</p>
                             </label>
                         </div>
-                        <!-- Image Preview -->
                         <div id="imagePreview" class="hidden mt-2">
                             <div class="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-300">
                                 <img id="previewImage" class="w-full h-full object-cover" src="" alt="Preview">
@@ -234,7 +201,6 @@
                     </div>
                 </div>
                 
-                <!-- Product Name -->
                 <div>
                     <label for="productName" class="block text-sm font-medium text-gray-700 mb-1">
                         Product Name <span class="text-red-500">*</span>
@@ -254,9 +220,7 @@
                     </div>
                 </div>
                 
-                <!-- Product Category and Subcategory -->
                 <div class="grid grid-cols-2 gap-3">
-                    <!-- Category -->
                     <div>
                         <label for="productCategory" class="block text-sm font-medium text-gray-700 mb-1">
                             Category <span class="text-red-500">*</span>
@@ -284,7 +248,6 @@
                         </div>
                     </div>
                     
-                    <!-- Subcategory -->
                     <div>
                         <label for="productSubcategory" class="block text-sm font-medium text-gray-700 mb-1">
                             Subcategory <span class="text-red-500">*</span>
@@ -300,7 +263,6 @@
                                     class="pl-9 pr-8 py-2.5 w-full bg-white border border-amber-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400 focus:outline-none transition-all duration-200 appearance-none cursor-pointer text-sm"
                                     required>
                                 <option value="">Select Subcategory</option>
-                                <!-- Main Course Subcategories -->
                                 <option value="pork" class="category-main-course">Pork</option>
                                 <option value="chicken" class="category-main-course">Chicken</option>
                                 <option value="beef" class="category-main-course">Beef</option>
@@ -308,12 +270,10 @@
                                 <option value="pasta" class="category-main-course">Pasta</option>
                                 <option value="noodles" class="category-main-course">Noodles</option>
                                 
-                                <!-- Appetizers Subcategories -->
                                 <option value="knick-knacks" class="category-appetizers">Knick/Knacks</option>
                                 <option value="sandwiches" class="category-appetizers">Sandwiches</option>
                                 <option value="salads" class="category-appetizers">Salads</option>
                                 
-                                <!-- Drinks Subcategories -->
                                 <option value="hot" class="category-drinks">Hot</option>
                                 <option value="iced" class="category-drinks">Iced</option>
                                 <option value="frappe" class="category-drinks">Frappe</option>
@@ -328,7 +288,6 @@
                     </div>
                 </div>
                 
-                <!-- Price -->
                 <div>
                     <label for="productPrice" class="block text-sm font-medium text-gray-700 mb-1">
                         Price <span class="text-red-500">*</span>
@@ -353,7 +312,6 @@
                     </div>
                 </div>
                 
-                <!-- Popup footer -->
                 <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                     <button type="button" 
                             onclick="closeCreatePopup()" 
@@ -370,10 +328,8 @@
         </div>
     </div>
 
-    <!-- Edit Menu Item Popup -->
     <div id="editMenuItemPopup" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black bg-opacity-50">
         <div class="relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all">
-            <!-- Popup header -->
             <div class="px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
@@ -392,17 +348,14 @@
                 </div>
             </div>
             
-            <!-- Popup form -->
             <form id="editMenuItemForm" class="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
                 <input type="hidden" id="editMenuID" name="menuID">
                 
-                <!-- Product Image Upload -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">
                         Product Image
                     </label>
                     <div class="mt-1">
-                        <!-- Current Image -->
                         <div id="currentImageContainer" class="mb-3 hidden">
                             <p class="text-sm text-gray-600 mb-2">Current Image:</p>
                             <div class="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-300">
@@ -410,7 +363,6 @@
                             </div>
                         </div>
                         
-                        <!-- Upload Area -->
                         <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
                             <input type="file" 
                                    id="editProductImage" 
@@ -427,7 +379,6 @@
                                 <p class="text-xs text-gray-500 mt-0.5">PNG, JPG, GIF up to 5MB</p>
                             </label>
                         </div>
-                        <!-- New Image Preview -->
                         <div id="editImagePreview" class="hidden mt-2">
                             <p class="text-sm text-gray-600 mb-2">New Image:</p>
                             <div class="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-300">
@@ -442,7 +393,6 @@
                     </div>
                 </div>
                 
-                <!-- Product Name -->
                 <div>
                     <label for="editProductName" class="block text-sm font-medium text-gray-700 mb-1">
                         Product Name <span class="text-red-500">*</span>
@@ -462,9 +412,7 @@
                     </div>
                 </div>
                 
-                <!-- Product Category and Subcategory -->
                 <div class="grid grid-cols-2 gap-3">
-                    <!-- Category -->
                     <div>
                         <label for="editProductCategory" class="block text-sm font-medium text-gray-700 mb-1">
                             Category <span class="text-red-500">*</span>
@@ -492,7 +440,6 @@
                         </div>
                     </div>
                     
-                    <!-- Subcategory -->
                     <div>
                         <label for="editProductSubcategory" class="block text-sm font-medium text-gray-700 mb-1">
                             Subcategory <span class="text-red-500">*</span>
@@ -508,8 +455,7 @@
                                     class="pl-9 pr-8 py-2.5 w-full bg-white border border-blue-300 text-gray-800 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 focus:outline-none transition-all duration-200 appearance-none cursor-pointer text-sm"
                                     required>
                                 <option value="">Select Subcategory</option>
-                                <!-- Options will be populated by JavaScript -->
-                            </select>
+                                </select>
                             <div class="absolute inset-y-0 right-0 pr-2 flex items-center pointer-events-none">
                                 <svg class="h-4 w-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -519,7 +465,6 @@
                     </div>
                 </div>
                 
-                <!-- Price -->
                 <div>
                     <label for="editProductPrice" class="block text-sm font-medium text-gray-700 mb-1">
                         Price <span class="text-red-500">*</span>
@@ -544,7 +489,6 @@
                     </div>
                 </div>
                 
-                <!-- Popup footer -->
                 <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                     <button type="button" 
                             onclick="closeEditPopup()" 
@@ -615,7 +559,7 @@
         // Global variables for pagination
         let allMenuItems = [];
         let currentPage = 1;
-        const itemsPerPage = 10;
+        const itemsPerPage = 7; // UPDATED: Show 7 items per page
         let currentSearch = '';
         let currentCategory = '';
 
@@ -961,9 +905,24 @@
             }
         }
 
-        // Function to update table with data
+        // FIXED: Function to update table with data - Handles both simplified array and legacy object
         function updateTableWithData(data) {
-            allMenuItems = data.data || [];
+            // Check if data is array directly (new simplified controller)
+            if (Array.isArray(data)) {
+                allMenuItems = data;
+            } 
+            // Check if data is nested inside data (old controller style or pagination)
+            else if (data && Array.isArray(data.data)) {
+                allMenuItems = data.data;
+            } 
+            else {
+                allMenuItems = [];
+            }
+            
+            // Log what we found to the console for debugging
+            console.log("Menu Items Loaded:", allMenuItems);
+            
+            // Reset page to 1 on new data load
             currentPage = 1;
             
             if (!allMenuItems || allMenuItems.length === 0) {
@@ -974,6 +933,8 @@
                         </td>
                     </tr>
                 `;
+                // Still update controls to show "Page 1 of 1"
+                updatePaginationControls();
                 return;
             }
             
@@ -987,7 +948,7 @@
             const totalPages = Math.ceil(allMenuItems.length / itemsPerPage);
             
             if (pageNumber < 1) pageNumber = 1;
-            if (pageNumber > totalPages) pageNumber = totalPages;
+            if (totalPages > 0 && pageNumber > totalPages) pageNumber = totalPages;
             
             currentPage = pageNumber;
             
@@ -1007,50 +968,35 @@
                 
                 // Get subcategory display name
                 const subcategoryNames = {
-                    'pork': 'Pork',
-                    'chicken': 'Chicken',
-                    'beef': 'Beef',
-                    'fish-seafood': 'Fish & Seafood',
-                    'pasta': 'Pasta',
-                    'noodles': 'Noodles',
-                    'knick-knacks': 'Knick/Knacks',
-                    'sandwiches': 'Sandwiches',
-                    'salads': 'Salads',
-                    'hot': 'Hot',
-                    'iced': 'Iced',
-                    'frappe': 'Frappe',
-                    'milktea': 'Milktea'
+                    'pork': 'Pork', 'chicken': 'Chicken', 'beef': 'Beef',
+                    'fish-seafood': 'Fish & Seafood', 'pasta': 'Pasta', 'noodles': 'Noodles',
+                    'knick-knacks': 'Knick/Knacks', 'sandwiches': 'Sandwiches', 'salads': 'Salads',
+                    'hot': 'Hot', 'iced': 'Iced', 'frappe': 'Frappe', 'milktea': 'Milktea'
                 };
                 
-                // FIXED: Image path - Use the correct storage URL
+                // Robust Image Path Logic for Shared Hosting / Local Dev
                 let imageUrl = '{{ asset("images/default-menu.png") }}';
                 
                 if (item.menuImage) {
-                    // Check if the path already contains 'storage/'
-                    if (item.menuImage.includes('storage/')) {
+                    if (item.menuImage.startsWith('http')) {
+                        imageUrl = item.menuImage;
+                    } else if (item.menuImage.startsWith('storage/')) {
                         imageUrl = `{{ asset('') }}${item.menuImage}`;
-                    } else if (item.menuImage.includes('menu-images/')) {
-                        // If it's just 'menu-images/filename.png'
-                        imageUrl = `{{ asset('storage') }}/${item.menuImage}`;
                     } else {
-                        // For any other format
-                        imageUrl = `{{ asset('storage/menu-images') }}/${item.menuImage}`;
+                        // Ensure we don't double slash if path starts with /
+                        const cleanPath = item.menuImage.startsWith('/') ? item.menuImage.substring(1) : item.menuImage;
+                        imageUrl = `{{ asset('storage') }}/${cleanPath}`;
                     }
                 }
                 
-                console.log('Image path for', item.menuName, ':', item.menuImage);
-                console.log('Image URL:', imageUrl);
-                
                 html += `
                     <tr class="hover:bg-gray-50 transition-colors">
-                        <!-- Checkbox -->
                         <td class="px-4 py-3 whitespace-nowrap">
                             <div class="flex items-center">
                                 <input type="checkbox" class="item-checkbox h-5 w-5 text-amber-500 focus:ring-amber-400 border-gray-300 rounded" value="${item.menuID}">
                             </div>
                         </td>
                         
-                        <!-- Image -->
                         <td class="px-4 py-3 whitespace-nowrap">
                             <div class="h-10 w-10 rounded-lg overflow-hidden">
                                 <img src="${imageUrl}" 
@@ -1060,28 +1006,23 @@
                             </div>
                         </td>
                         
-                        <!-- Menu Name -->
                         <td class="px-3 py-2 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">${item.menuName}</div>
                             <div class="text-sm text-gray-500">${item.menuID}</div>
                         </td>
                         
-                        <!-- Category -->
                         <td class="px-3 py-2 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${categoryNames[item.menuCategory] || item.menuCategory}</div>
                         </td>
                         
-                        <!-- Subcategory -->
                         <td class="px-3 py-2 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${subcategoryNames[item.menuSubcategory] || item.menuSubcategory}</div>
                         </td>
                         
-                        <!-- Price -->
                         <td class="px-3 py-2 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">PHP ${parseFloat(item.menuPrice).toFixed(2)}</div>
                         </td>
                         
-                        <!-- Status -->
                         <td class="px-3 py-2 whitespace-nowrap">
                             <div class="relative w-32">
                                 <select onchange="updateStatus('${item.menuID}', this.value)" 
@@ -1092,7 +1033,6 @@
                             </div>
                         </td>
                         
-                        <!-- Actions -->
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center space-x-3">
                                 <button onclick="editMenuItem('${item.menuID}')" class="text-blue-600 hover:text-blue-900 transition-colors">
@@ -1117,24 +1057,30 @@
             const selectAllCheckbox = document.getElementById('selectAll');
             const itemCheckboxes = document.querySelectorAll('.item-checkbox');
             
-            selectAllCheckbox.addEventListener('change', function() {
-                itemCheckboxes.forEach(checkbox => {
-                    checkbox.checked = this.checked;
-                });
-            });
+            // Re-bind Select All logic
+            if(selectAllCheckbox) {
+                selectAllCheckbox.checked = false; // Reset on page change
+                selectAllCheckbox.onchange = function() {
+                    itemCheckboxes.forEach(checkbox => {
+                        checkbox.checked = this.checked;
+                    });
+                };
+            }
             
-            // Add event listener to individual checkboxes
+            // Re-bind Individual checkbox logic
             itemCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
+                checkbox.onchange = function() {
                     const allChecked = Array.from(itemCheckboxes).every(cb => cb.checked);
-                    selectAllCheckbox.checked = allChecked;
-                });
+                    if(selectAllCheckbox) selectAllCheckbox.checked = allChecked;
+                };
             });
         }
 
         // Update pagination controls
         function updatePaginationControls() {
             const totalPages = Math.ceil(allMenuItems.length / itemsPerPage);
+            const displayTotalPages = totalPages > 0 ? totalPages : 1;
+
             const prevBtn = document.getElementById('prevPage');
             const nextBtn = document.getElementById('nextPage');
             const currentPageSpan = document.getElementById('currentPage');
@@ -1142,7 +1088,7 @@
             
             // Update page info
             if (currentPageSpan) currentPageSpan.textContent = currentPage;
-            if (totalPagesSpan) totalPagesSpan.textContent = totalPages;
+            if (totalPagesSpan) totalPagesSpan.textContent = displayTotalPages;
             
             // Update button states
             if (prevBtn) {
@@ -1158,11 +1104,11 @@
             }
             
             if (nextBtn) {
-                nextBtn.disabled = currentPage >= totalPages;
-                nextBtn.classList.toggle('opacity-50', currentPage >= totalPages);
-                nextBtn.classList.toggle('cursor-not-allowed', currentPage >= totalPages);
+                nextBtn.disabled = currentPage >= displayTotalPages;
+                nextBtn.classList.toggle('opacity-50', currentPage >= displayTotalPages);
+                nextBtn.classList.toggle('cursor-not-allowed', currentPage >= displayTotalPages);
                 nextBtn.onclick = () => {
-                    if (currentPage < totalPages) {
+                    if (currentPage < displayTotalPages) {
                         displayPage(currentPage + 1);
                         updatePaginationControls();
                     }
@@ -1222,19 +1168,19 @@
                     populateSubcategoryOptions(item.menuCategory, 'editProductSubcategory');
                     document.getElementById('editProductSubcategory').value = item.menuSubcategory;
                     
-                    // Handle image display
+                    // Handle image display with robust path logic
                     const currentImageContainer = document.getElementById('currentImageContainer');
                     const currentImage = document.getElementById('currentImage');
                     
                     if (item.menuImage) {
-                        // Build the correct image URL
                         let imageUrl;
-                        if (item.menuImage.includes('storage/')) {
+                        if (item.menuImage.startsWith('http')) {
+                            imageUrl = item.menuImage;
+                        } else if (item.menuImage.startsWith('storage/')) {
                             imageUrl = `{{ asset('') }}${item.menuImage}`;
-                        } else if (item.menuImage.includes('menu-images/')) {
-                            imageUrl = `{{ asset('storage') }}/${item.menuImage}`;
                         } else {
-                            imageUrl = `{{ asset('storage/menu-images') }}/${item.menuImage}`;
+                            const cleanPath = item.menuImage.startsWith('/') ? item.menuImage.substring(1) : item.menuImage;
+                            imageUrl = `{{ asset('storage') }}/${cleanPath}`;
                         }
                         
                         currentImage.src = imageUrl;
@@ -1282,7 +1228,7 @@
             }
         }
 
-        // Function to update status - FIXED: Only show one message
+        // Function to update status
         async function updateStatus(menuID, status) {
             console.log('Updating status for', menuID, 'to', status);
             
@@ -1381,12 +1327,15 @@
             });
             
             // Add event listener to select all checkbox
-            document.getElementById('selectAll').addEventListener('change', function() {
-                const checkboxes = document.querySelectorAll('.item-checkbox');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = this.checked;
+            const selectAll = document.getElementById('selectAll');
+            if(selectAll) {
+                selectAll.addEventListener('change', function() {
+                    const checkboxes = document.querySelectorAll('.item-checkbox');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = this.checked;
+                    });
                 });
-            });
+            }
         });
 
         // Close popup on ESC key
