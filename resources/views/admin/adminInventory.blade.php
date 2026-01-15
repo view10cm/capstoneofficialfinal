@@ -22,20 +22,28 @@
             </div>
 
             <!-- Inventory Table Container -->
-            <div class="flex-1 p-6">
+            <div class="flex-1 p-5">
                 <!-- Header with Controls -->
-                <div class="bg-white rounded-lg shadow mb-6">
-                    <div class="p-6 border-b border-gray-200">
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-3 border-b border-gray-200">
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <!-- Left side: Inventory Text -->
-                            <div class="flex items-center">
-                                <h2 class="text-lg font-semibold text-gray-800">Inventory</h2>
+                            <div class="flex items-center mb-4 lg:mb-0">
+                                <div class="bg-white p-3 rounded-lg mr-3">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 22C4.45 22 3.97933 21.8043 3.588 21.413C3.19667 21.0217 3.00067 20.5507 3 20V8.725C2.7 8.54167 2.45833 8.30433 2.275 8.013C2.09167 7.72167 2 7.384 2 7V4C2 3.45 2.196 2.97933 2.588 2.588C2.98 2.19667 3.45067 2.00067 4 2H20C20.55 2 21.021 2.196 21.413 2.588C21.805 2.98 22.0007 3.45067 22 4V7C22 7.38333 21.9083 7.721 21.725 8.013C21.5417 8.305 21.3 8.542 21 8.724V20C21 20.55 20.8043 21.021 20.413 21.413C20.0217 21.805 19.5507 22.0007 19 22H5ZM5 9V20H19V9H5ZM4 7H20V4H4V7ZM9 14H15V12H9V14Z" fill="#E67809"/>
+                                </svg>
+                                </div>
+                                <!-- Products Text -->
+                                <div>
+                                    <h2 class="text-2xl font-bold text-gray-800 ml-4">Products</h2>
+                                </div>
                             </div>
 
                             <!-- Right side: Search, Export, and Add Button -->
-                            <div class="flex flex-col sm:flex-row gap-4">
+                            <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
                                 <!-- Search Bar -->
-                                <div class="relative">
+                                <div class="relative w-full sm:w-auto">
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -108,22 +116,22 @@
                                             <label for="selectAll" class="ml-2 sr-only">Select all</label>
                                         </div>
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Item ID
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Ingredient Name
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Category
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Quantity
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Availability
                                     </th>
-                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    <th scope="col" class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Actions
                                     </th>
                                 </tr>
@@ -134,10 +142,10 @@
                         </table>
 
                         <!-- Pagination - Exactly like the image -->
-                        <div class="px-6 py-4 border-t border-gray-200">
+                        <div class="px-5 py-3 border-t border-gray-200">
                             <div class="flex items-center justify-between">
                                 <!-- Previous Button -->
-                                <button class="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200">
+                                <button id="prevPage" class="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200">
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                                     </svg>
@@ -146,11 +154,11 @@
 
                                 <!-- Page Info -->
                                 <div class="text-gray-700 font-medium">
-                                    Page <span class="text-amber-600 font-bold">1</span> of <span>10</span>
+                                    Page <span id="currentPage" class="text-amber-600 font-bold">1</span> of <span id="totalPages">1</span>
                                 </div>
 
                                 <!-- Next Button -->
-                                <button class="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200">
+                                <button id="nextPage" class="flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-200">
                                     Next
                                     <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

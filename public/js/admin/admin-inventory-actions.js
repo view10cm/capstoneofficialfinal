@@ -4,6 +4,12 @@ const editModal = document.createElement('div');
 let isJsPDFLoaded = false;
 let isHtml2CanvasLoaded = false;
 
+// Pagination variables
+let allIngredients = [];
+let currentPage = 1;
+const itemsPerPage = 10;
+let isLoading = false;
+
 // Initialize edit modal
 function initializeEditModal() {
     editModal.id = 'editProductModal';
@@ -333,7 +339,49 @@ function setupAddIngredientForm() {
 
 // Refresh inventory table with data from server
 async function refreshInventoryTable() {
+    if (isLoading) return; // Prevent multiple simultaneous requests
+    
     try {
+        isLoading = true;
+        // Show loading state
+        const tableBody = document.querySelector('tbody');
+        const tableContainer = document.querySelector('.overflow-x-auto');
+        const emptyState = document.querySelector('.py-12.px-6.text-center');
+        
+        if (tableBody && tableContainer && !tableContainer.classList.contains('hidden')) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center">
+                        <div class="flex flex-col items-center justify-center">
+                            <svg class="animate-spin h-8 w-8 text-amber-600 mb-2" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <p class="text-gray-500">Loading ingredients...</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        } else if (emptyState) {
+            emptyState.classList.add('hidden');
+            if (tableContainer) tableContainer.classList.remove('hidden');
+            if (tableBody) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center">
+                                <svg class="animate-spin h-8 w-8 text-amber-600 mb-2" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p class="text-gray-500">Loading ingredients...</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
         const response = await fetch('/admin/inventory/list', {
             method: 'GET',
             headers: {
@@ -351,6 +399,8 @@ async function refreshInventoryTable() {
     } catch (error) {
         console.error('Error refreshing inventory:', error);
         showNotification('Failed to refresh inventory', 'error');
+    } finally {
+        isLoading = false;
     }
 }
 
@@ -359,29 +409,52 @@ function updateInventoryTable(ingredients) {
     const tableContainer = document.querySelector('.overflow-x-auto');
     const emptyState = document.querySelector('.py-12.px-6.text-center');
     const tableBody = document.querySelector('tbody');
+    const paginationContainer = document.querySelector('.px-5.py-3.border-t');
     
     if (!tableBody || !tableContainer || !emptyState) return;
     
+    // Store all ingredients
+    allIngredients = ingredients;
+    currentPage = 1;
+    
     if (ingredients.length === 0) {
-        // Show empty state
         tableContainer.classList.add('hidden');
         emptyState.classList.remove('hidden');
+        if (paginationContainer) paginationContainer.classList.add('hidden');
         return;
     }
     
-    // Hide empty state and show table
     emptyState.classList.add('hidden');
     tableContainer.classList.remove('hidden');
+    if (paginationContainer) paginationContainer.classList.remove('hidden');
     
-    // Clear existing rows
-    tableBody.innerHTML = '';
+    displayPage(1);
+    updatePaginationControls();
+}
+
+// Display a specific page of ingredients
+function displayPage(pageNumber) {
+    const tableBody = document.querySelector('tbody');
+    if (!tableBody) return;
     
-    // Add new rows
-    ingredients.forEach(ingredient => {
+    const totalPages = Math.ceil(allIngredients.length / itemsPerPage);
+    
+    if (pageNumber < 1) pageNumber = 1;
+    if (pageNumber > totalPages) pageNumber = totalPages;
+    
+    currentPage = pageNumber;
+    
+    const startIndex = (pageNumber - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageItems = allIngredients.slice(startIndex, endIndex);
+    
+    // Use DocumentFragment for better performance
+    const fragment = document.createDocumentFragment();
+    
+    pageItems.forEach(ingredient => {
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50 transition-colors duration-200';
         
-        // Determine availability badge classes
         let availabilityClass = '';
         let availabilityText = ingredient.ingredientAvailability;
         
@@ -433,13 +506,54 @@ function updateInventoryTable(ingredients) {
                                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
                     </button>
-                    <!-- Delete button has been removed as requested -->
                 </div>
             </td>
         `;
         
-        tableBody.appendChild(row);
+        fragment.appendChild(row);
     });
+    
+    // Clear and append all at once for better performance
+    tableBody.innerHTML = '';
+    tableBody.appendChild(fragment);
+}
+
+// Update pagination controls
+function updatePaginationControls() {
+    const totalPages = Math.ceil(allIngredients.length / itemsPerPage);
+    const prevBtn = document.getElementById('prevPage');
+    const nextBtn = document.getElementById('nextPage');
+    const currentPageSpan = document.getElementById('currentPage');
+    const totalPagesSpan = document.getElementById('totalPages');
+    
+    // Update page info
+    if (currentPageSpan) currentPageSpan.textContent = currentPage;
+    if (totalPagesSpan) totalPagesSpan.textContent = totalPages;
+    
+    // Update button states
+    if (prevBtn) {
+        prevBtn.disabled = currentPage <= 1;
+        prevBtn.classList.toggle('opacity-50', currentPage <= 1);
+        prevBtn.classList.toggle('cursor-not-allowed', currentPage <= 1);
+        prevBtn.onclick = () => {
+            if (currentPage > 1) {
+                displayPage(currentPage - 1);
+                updatePaginationControls();
+            }
+        };
+    }
+    
+    if (nextBtn) {
+        nextBtn.disabled = currentPage >= totalPages;
+        nextBtn.classList.toggle('opacity-50', currentPage >= totalPages);
+        nextBtn.classList.toggle('cursor-not-allowed', currentPage >= totalPages);
+        nextBtn.onclick = () => {
+            if (currentPage < totalPages) {
+                displayPage(currentPage + 1);
+                updatePaginationControls();
+            }
+        };
+    }
 }
 
 // Export inventory to PDF functionality

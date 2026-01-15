@@ -26,7 +26,7 @@
                 <!-- Table Container -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <!-- Second Row: Menu Icon, Text, Search, Filter, and Add Button -->
-                <div class="p-2 flex flex-col lg:flex-row lg:items-center lg:justify-between">
+                <div class="pl-2 pr-2 pt-2 pb-1.5 flex flex-col lg:flex-row lg:items-center lg:justify-between">
                     <!-- Left side: Inventory Icon and Text -->
                     <div class="flex items-center mb-4 lg:mb-0">
                         <!-- Inventory Icon -->
@@ -35,7 +35,7 @@
                         </div>
                         <!-- Menu Text -->
                         <div>
-                            <h2 class="text-lg font-bold text-gray-800">Menu Items</h2>
+                            <h1 class="text-2xl font-bold text-gray-800">Menu Items</h1>
                         </div>
                     </div>
                     
@@ -133,7 +133,7 @@
                             <tbody id="menuTableBody" class="bg-white divide-y divide-gray-200">
                                 <!-- Table rows will be dynamically populated here -->
                                 <tr>
-                                    <td class="px-4 py-3 text-center text-gray-500 italic" colspan="8">
+                                    <td class="px-3 py-2 text-center text-gray-500 italic" colspan="8">
                                         Loading menu items...
                                     </td>
                                 </tr>
@@ -142,7 +142,7 @@
                     </div>
                     
                     <!-- Pagination -->
-                    <div class="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200">
+                    <div class="flex items-center justify-between px-4 py-2.5 bg-white border-t border-gray-200">
                         <!-- Previous Button -->
                         <button id="prevPage" class="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" disabled>
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -613,8 +613,9 @@
 
     <script>
         // Global variables for pagination
+        let allMenuItems = [];
         let currentPage = 1;
-        let totalPages = 1;
+        const itemsPerPage = 10;
         let currentSearch = '';
         let currentCategory = '';
 
@@ -936,8 +937,6 @@
                 const params = new URLSearchParams();
                 if (search) params.append('search', search);
                 if (category) params.append('category', category);
-                params.append('page', page);
-                params.append('per_page', 7);
                 
                 // Fetch data from server
                 const response = await fetch(`{{ route("admin.menu.list") }}?${params.toString()}`);
@@ -945,7 +944,6 @@
                 
                 if (result.success) {
                     updateTableWithData(result.data);
-                    updatePagination(result.data);
                 } else {
                     throw new Error(result.message);
                 }
@@ -965,10 +963,11 @@
 
         // Function to update table with data
         function updateTableWithData(data) {
-            const tableBody = document.getElementById('menuTableBody');
+            allMenuItems = data.data || [];
+            currentPage = 1;
             
-            if (!data.data || data.data.length === 0) {
-                tableBody.innerHTML = `
+            if (!allMenuItems || allMenuItems.length === 0) {
+                document.getElementById('menuTableBody').innerHTML = `
                     <tr>
                         <td colspan="8" class="px-4 py-3 text-center text-gray-500 italic">
                             No menu items found. Click "Add Menu Item" to create your first item.
@@ -978,9 +977,27 @@
                 return;
             }
             
+            displayPage(1);
+            updatePaginationControls();
+        }
+        
+        // Display a specific page of menu items
+        function displayPage(pageNumber) {
+            const tableBody = document.getElementById('menuTableBody');
+            const totalPages = Math.ceil(allMenuItems.length / itemsPerPage);
+            
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageNumber > totalPages) pageNumber = totalPages;
+            
+            currentPage = pageNumber;
+            
+            const startIndex = (pageNumber - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageItems = allMenuItems.slice(startIndex, endIndex);
+            
             let html = '';
             
-            data.data.forEach(item => {
+            pageItems.forEach(item => {
                 // Get category display name
                 const categoryNames = {
                     'main-course': 'Main Course',
@@ -1044,28 +1061,28 @@
                         </td>
                         
                         <!-- Menu Name -->
-                        <td class="px-4 py-3 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">${item.menuName}</div>
                             <div class="text-sm text-gray-500">${item.menuID}</div>
                         </td>
                         
                         <!-- Category -->
-                        <td class="px-4 py-3 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${categoryNames[item.menuCategory] || item.menuCategory}</div>
                         </td>
                         
                         <!-- Subcategory -->
-                        <td class="px-4 py-3 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             <div class="text-sm text-gray-900">${subcategoryNames[item.menuSubcategory] || item.menuSubcategory}</div>
                         </td>
                         
                         <!-- Price -->
-                        <td class="px-4 py-3 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             <div class="text-sm font-medium text-gray-900">PHP ${parseFloat(item.menuPrice).toFixed(2)}</div>
                         </td>
                         
                         <!-- Status -->
-                        <td class="px-4 py-3 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             <div class="relative w-32">
                                 <select onchange="updateStatus('${item.menuID}', this.value)" 
                                         class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 focus:outline-none transition-colors ${getStatusClasses(item.menuStatus)}">
@@ -1115,36 +1132,42 @@
             });
         }
 
-        // Function to update pagination controls
-        function updatePagination(data) {
+        // Update pagination controls
+        function updatePaginationControls() {
+            const totalPages = Math.ceil(allMenuItems.length / itemsPerPage);
             const prevBtn = document.getElementById('prevPage');
             const nextBtn = document.getElementById('nextPage');
             const currentPageSpan = document.getElementById('currentPage');
             const totalPagesSpan = document.getElementById('totalPages');
             
-            currentPage = data.current_page;
-            totalPages = data.last_page;
-            
             // Update page info
-            currentPageSpan.textContent = currentPage;
-            totalPagesSpan.textContent = totalPages;
+            if (currentPageSpan) currentPageSpan.textContent = currentPage;
+            if (totalPagesSpan) totalPagesSpan.textContent = totalPages;
             
             // Update button states
-            prevBtn.disabled = currentPage <= 1;
-            nextBtn.disabled = currentPage >= totalPages;
+            if (prevBtn) {
+                prevBtn.disabled = currentPage <= 1;
+                prevBtn.classList.toggle('opacity-50', currentPage <= 1);
+                prevBtn.classList.toggle('cursor-not-allowed', currentPage <= 1);
+                prevBtn.onclick = () => {
+                    if (currentPage > 1) {
+                        displayPage(currentPage - 1);
+                        updatePaginationControls();
+                    }
+                };
+            }
             
-            // Update button event listeners
-            prevBtn.onclick = () => {
-                if (currentPage > 1) {
-                    loadMenuItems(currentSearch, currentCategory, currentPage - 1);
-                }
-            };
-            
-            nextBtn.onclick = () => {
-                if (currentPage < totalPages) {
-                    loadMenuItems(currentSearch, currentCategory, currentPage + 1);
-                }
-            };
+            if (nextBtn) {
+                nextBtn.disabled = currentPage >= totalPages;
+                nextBtn.classList.toggle('opacity-50', currentPage >= totalPages);
+                nextBtn.classList.toggle('cursor-not-allowed', currentPage >= totalPages);
+                nextBtn.onclick = () => {
+                    if (currentPage < totalPages) {
+                        displayPage(currentPage + 1);
+                        updatePaginationControls();
+                    }
+                };
+            }
         }
 
         // Function to show notification
