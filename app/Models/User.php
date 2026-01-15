@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 
 class User extends Authenticatable
 {
@@ -32,6 +33,10 @@ class User extends Authenticatable
             'last_login' => 'datetime', // Add this
         ];
     }
+    // Add status attribute with default value
+    protected $attributes = [
+        'status' => 'Activated',
+    ];
 
     public function getFormattedLastLoginAttribute()
     {

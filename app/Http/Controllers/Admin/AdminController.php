@@ -45,6 +45,8 @@ class AdminController extends Controller
         return view('admin.dashboard', compact('overallSales', 'mealsData', 'menuProductsData', 'lowStockData'));
     }
 
+    
+
     /**
      * Get meals served data
      */
@@ -131,20 +133,100 @@ class AdminController extends Controller
     /**
      * Update user status
      */
-    public function updateStatus(Request $request, $user)
-    {
-        // Logic to update user status
-        // You'll need to implement this based on your User model
+public function updateStatus(Request $request, $userId)
+{
+    $validator = Validator::make($request->all(), [
+        'status' => 'required|in:Activated,Deactivated'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => $validator->errors()->first()
+        ], 422);
     }
+
+    try {
+        $user = User::findOrFail($userId);
+        $user->status = $request->status;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User status updated successfully!',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'status' => $user->status
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error updating user status: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update user status. Please try again.'
+        ], 500);
+    }
+}
 
     /**
      * Create new user
      */
-    public function createUser(Request $request)
-    {
-        // Logic to create new user
-        // You'll need to implement this based on your User model
+/**
+ * Create new user
+ */
+public function createUser(Request $request)
+{
+    // Validate the request
+    $validator = Validator::make($request->all(), [
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|min:6|confirmed',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
     }
+
+    try {
+        // Create the user
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+            'role' => 'Staff', // Default role for new users
+            'status' => 'Activated', // Default status
+            'last_login' => null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User created successfully!',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'status' => $user->status,
+                'last_login' => $user->last_login,
+                'created_at' => $user->created_at->format('Y-m-d H:i:s'),
+            ]
+        ], 201);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error creating user: ' . $e->getMessage());
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create user. Please try again.'
+        ], 500);
+    }
+}
 
     /**
      * Show order history page with data from staff_to_kitchen_transaction
