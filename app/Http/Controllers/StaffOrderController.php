@@ -281,8 +281,10 @@ public function cancelOrder(Request $request)
         try {
             $data = $validator->validated();
             
-            // Save each product as a separate transaction record
+            // Flag to track if this is the first product (for order-level notes)
+            $isFirstProduct = true;
             $savedCount = 0;
+            
             foreach ($data['products'] as $product) {
                 StaffToKitchenTransaction::create([
                     'orderID' => $data['orderID'],
@@ -295,6 +297,7 @@ public function cancelOrder(Request $request)
                     'totalPrice' => $product['totalPrice'],
                     'taxAmount' => $product['taxAmount'],
                     'productNotes' => $product['notes'] ?? null,
+                    'orderNotes' => $isFirstProduct ? (null) : null, // Only save on first product, then set to null
                     'paymentStatus' => 'completed',
                     'amountPaid' => $data['amountPaid'],
                     'changeAmount' => $data['changeAmount'] ?? 0,
@@ -303,6 +306,7 @@ public function cancelOrder(Request $request)
                     'paymentProcessedAt' => now()
                 ]);
                 
+                $isFirstProduct = false; // After first product, never save order notes again
                 $savedCount++;
             }
 
@@ -331,6 +335,7 @@ public function cancelOrder(Request $request)
             $key = $transaction->orderID . '-' . $transaction->paymentNumber;
             
             if (!isset($groupedOrders[$key])) {
+                // Only get order notes from first transaction (should be null or order-level notes)
                 $groupedOrders[$key] = [
                     'orderID' => $transaction->orderID,
                     'paymentNumber' => $transaction->paymentNumber,
@@ -339,6 +344,7 @@ public function cancelOrder(Request $request)
                     'cookingStatus' => $transaction->cookingStatus ?? 'In Progress',
                     'staffName' => $transaction->staffName,
                     'paymentProcessedAt' => $transaction->paymentProcessedAt,
+                    'notes' => null, // Initialize as null - order notes are not being stored currently
                     'items' => []
                 ];
             }
@@ -349,7 +355,8 @@ public function cancelOrder(Request $request)
                 'quantity' => $transaction->quantity,
                 'unitPrice' => $transaction->unitPrice,
                 'totalPrice' => $transaction->totalPrice,
-                'productNotes' => $transaction->productNotes
+                'productNotes' => $transaction->productNotes, // Only item-specific notes
+                'taxAmount' => $transaction->taxAmount ?? 0
             ];
         }
         
