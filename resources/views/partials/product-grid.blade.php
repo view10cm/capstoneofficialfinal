@@ -1,10 +1,9 @@
 <div class="product-grid">
     @forelse($products as $product)
         <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
-            <!-- Product Image -->
             <div class="product-image-container">
                 @if($product->menuImage)
-                    <img src="{{ asset('storage/' . $product->menuImage) }}" 
+                    <img src="{{ route('serve.image', ['filename' => basename($product->menuImage)]) }}" 
                          alt="{{ $product->menuName }}" 
                          class="product-image">
                 @else
@@ -27,7 +26,7 @@
                             data-name="{{ $product->menuName }}" 
                             data-price="{{ $product->menuPrice }}" 
                             data-category="{{ $product->menuCategory }}"
-                            data-image="{{ $product->menuImage ? asset('storage/' . $product->menuImage) : '' }}">
+                            data-image="{{ $product->menuImage ? route('serve.image', ['filename' => basename($product->menuImage)]) : '' }}">
                         <i class="fas fa-plus mr-1"></i> Add
                     </button>
                 </div>
