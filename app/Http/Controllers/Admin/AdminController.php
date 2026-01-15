@@ -124,8 +124,8 @@ class AdminController extends Controller
      */
     public function users()
     {
-        // Fetch users from database with pagination
-        $users = User::orderBy('created_at', 'desc')->paginate(10);
+        // Fetch all users from database for client-side pagination
+        $users = User::orderBy('created_at', 'desc')->get();
         
         return view('admin.adminUsers', compact('users'));
     }

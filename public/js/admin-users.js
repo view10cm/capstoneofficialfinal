@@ -258,6 +258,19 @@ function selectStatus(userId, newStatus, userName, userRole) {
 function updateUserStatus(userId, newStatus) {
     const badge = document.getElementById(`status-badge-${userId}`);
     
+    // Find the user in the data arrays and update
+    const updateUserInArray = (array) => {
+        const userIndex = array.findIndex(u => u.id === userId);
+        if (userIndex !== -1) {
+            array[userIndex].status = newStatus;
+        }
+    };
+    
+    updateUserInArray(allUsers);
+    if (window.baseUsersData) {
+        updateUserInArray(window.baseUsersData);
+    }
+    
     // Update UI immediately for better UX
     badge.innerHTML = `<span>${newStatus}</span>
                       <svg class="ml-2 w-4 h-4 transition-transform duration-200" 
@@ -280,35 +293,8 @@ function updateUserStatus(userId, newStatus) {
     // Reattach click event to the badge
     badge.onclick = () => toggleDropdown(userId);
     
-    // Update the data-status attribute for filtering
-    const row = document.querySelector(`.user-row[data-user-id="${userId}"]`);
-    if (!row) {
-        // Try to find row by checking all rows for this user
-        const allRows = document.querySelectorAll('.user-row');
-        allRows.forEach(r => {
-            if (r.querySelector(`#status-badge-${userId}`)) {
-                r.setAttribute('data-status', newStatus);
-                
-                // Reapply filters if any are active
-                const statusFilter = document.getElementById('statusFilter');
-                const selectedStatus = statusFilter.value;
-                
-                if (selectedStatus && selectedStatus !== newStatus) {
-                    r.style.display = 'none';
-                }
-            }
-        });
-    } else {
-        row.setAttribute('data-status', newStatus);
-        
-        // Reapply filters if any are active
-        const statusFilter = document.getElementById('statusFilter');
-        const selectedStatus = statusFilter.value;
-        
-        if (selectedStatus && selectedStatus !== newStatus) {
-            row.style.display = 'none';
-        }
-    }
+    // Refresh the current page display to show updated status
+    displayPage(currentPage);
     
     // Make AJAX call to update the user status in the database
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -401,108 +387,24 @@ function createNewUser() {
 
 // Add new user to the table
 function addUserToTable(user) {
-    const tbody = document.getElementById('usersTableBody');
+    // Add user to base data
+    if (!window.baseUsersData) {
+        window.baseUsersData = [];
+    }
+    window.baseUsersData.unshift(user);
     
-    // Create new row
-    const newRow = document.createElement('tr');
-    newRow.className = 'user-row hover:bg-gray-50';
-    newRow.setAttribute('data-name', user.name.toLowerCase());
-    newRow.setAttribute('data-email', user.email.toLowerCase());
-    newRow.setAttribute('data-status', user.status);
+    // Reset allUsers to show all users including the new one
+    allUsers = [...window.baseUsersData];
     
-    // Format last login
-    const lastLogin = user.last_login ? 
-        new Date(user.last_login).toLocaleString('en-US', { 
-            year: 'numeric', 
-            month: '2-digit', 
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        }) : 'Never logged in';
-    
-    // Get initial for avatar
-    const initial = user.name.charAt(0).toUpperCase();
-    
-    newRow.innerHTML = `
-        <td class="py-4 px-6 whitespace-nowrap">
-            <div class="flex items-center">
-                <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    <span class="text-gray-600 font-medium">${initial}</span>
-                </div>
-                <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">${user.name}</div>
-                </div>
-            </div>
-        </td>
-        <td class="py-4 px-6 whitespace-nowrap">
-            <div class="text-sm text-gray-900">${user.email}</div>
-        </td>
-        <td class="py-4 px-6 whitespace-nowrap">
-            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                ${user.role}
-            </span>
-        </td>
-        <td class="py-4 px-6 whitespace-nowrap">
-            <div class="relative inline-block w-40">
-                <div class="relative">
-                    <div id="status-badge-${user.id}" 
-                         class="inline-flex items-center justify-between px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer transition-all duration-200 hover:shadow-md bg-green-100 text-green-800 border border-green-200 hover:bg-green-50"
-                         onclick="toggleDropdown(${user.id})">
-                        <span>${user.status}</span>
-                        <svg class="ml-2 w-4 h-4 transition-transform duration-200" 
-                             id="dropdown-arrow-${user.id}"
-                             fill="none" 
-                             stroke="currentColor" 
-                             viewBox="0 0 24 24">
-                            <path stroke-linecap="round" 
-                                  stroke-linejoin="round" 
-                                  stroke-width="2" 
-                                  d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </div>
-                    
-                    <div id="status-dropdown-${user.id}" 
-                         class="absolute z-10 hidden mt-1 w-full bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-                        <button type="button" 
-                                onclick="selectStatus(${user.id}, 'Activated', '${user.name}', '${user.role}')"
-                                class="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between bg-green-50 text-green-700 font-medium">
-                            <span>Activated</span>
-                            <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <button type="button" 
-                                onclick="selectStatus(${user.id}, 'Deactivated', '${user.name}', '${user.role}')"
-                                class="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 flex items-center justify-between text-gray-700">
-                            <span>Deactivated</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </td>
-        <td class="py-4 px-6 whitespace-nowrap text-sm text-gray-500">
-            ${lastLogin}
-        </td>
-    `;
-    
-    // Add to the beginning of the table (or wherever appropriate)
-    tbody.insertBefore(newRow, tbody.firstChild);
-    
-    // Update total count
-    updateTotalCount(1);
-    
-    // Reapply filters if any are active
-    applyFilters();
+    // Reset to first page and display
+    currentPage = 1;
+    displayPage(1);
 }
 
 // Update total user count
 function updateTotalCount(increment) {
-    const countElement = document.querySelector('.bg-amber-100.text-amber-800.rounded-full');
-    if (countElement) {
-        const currentCount = parseInt(countElement.textContent.replace(' total', '').trim());
-        countElement.textContent = `${currentCount + increment} total`;
-    }
+    // This function is kept for compatibility but not used in current implementation
+    // Total count is dynamically calculated from allUsers.length
 }
 
 // Handle validation errors
@@ -540,16 +442,7 @@ function clearFormErrors() {
 
 // Apply filters to the table
 function applyFilters() {
-    const statusFilter = document.getElementById('statusFilter');
-    const searchInput = document.getElementById('searchInput');
-    
-    if (statusFilter && statusFilter.value) {
-        filterUsers();
-    }
-    
-    if (searchInput && searchInput.value) {
-        searchUsers();
-    }
+    searchUsers();
 }
 
 // Show notification
@@ -652,39 +545,12 @@ function searchUsers() {
         return (nameMatch || emailMatch) && statusMatch;
     });
     
-    // Update display with filtered users
-    const tableBody = document.getElementById('usersTableBody');
-    tableBody.innerHTML = '';
+    // Update allUsers with filtered results
+    allUsers = filteredUsers;
     
-    filteredUsers.forEach(user => {
-        const row = createUserRow(user);
-        tableBody.appendChild(row);
-    });
-    
-    // Update pagination for filtered results
-    const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
+    // Reset to first page and display
     currentPage = 1;
-    
-    const currentPageSpan = document.getElementById('currentPageNum');
-    const totalPagesSpan = document.getElementById('totalPagesNum');
-    const prevBtn = document.getElementById('prevPage');
-    const nextBtn = document.getElementById('nextPage');
-    
-    if (currentPageSpan) currentPageSpan.textContent = currentPage;
-    if (totalPagesSpan) totalPagesSpan.textContent = totalPages;
-    
-    if (prevBtn) {
-        prevBtn.disabled = true;
-        prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
-    }
-    if (nextBtn) {
-        nextBtn.disabled = totalPages <= 1;
-        if (totalPages <= 1) {
-            nextBtn.classList.add('opacity-50', 'cursor-not-allowed');
-        } else {
-            nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        }
-    }
+    displayPage(1);
 }
 
 function filterUsers() {
