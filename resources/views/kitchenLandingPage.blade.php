@@ -750,172 +750,173 @@
             </div>
 
             <!-- Orders Container with Pagination -->
-            <div class="flex items-center justify-center gap-6">
-                <!-- Previous Button (Left Side) -->
-                <button id="prev-page" class="pagination-arrow" disabled>
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-
-                <!-- Order Groups Container (Center) -->
-                <div class="order-groups-container flex-1">
-                    @if(isset($groupedOrders) && count($groupedOrders) > 0)
-                        @php
-                            // Convert grouped orders to array for easier manipulation
-                            $ordersArray = [];
-                            foreach($groupedOrders as $orderID => $orderGroup) {
-                                $ordersArray[] = [
-                                    'orderID' => $orderID,
-                                    'orderGroup' => $orderGroup,
-                                    'status' => $orderGroup[0]->status ?? 'pending',
-                                    'cookingStatus' => $orderGroup[0]->cookingStatus ?? 'In Progress',
-                                    'paymentNumber' => $orderGroup[0]->paymentNumber,
-                                    'orderType' => $orderGroup[0]->orderType,
-                                    'paymentMethod' => $orderGroup[0]->paymentMethod,
-                                    'paymentProcessedAt' => $orderGroup[0]->paymentProcessedAt
-                                ];
-                            }
-                            
-                            // Split orders into groups of 4
-                            $orderGroups = array_chunk($ordersArray, 3);
-                        @endphp
+            <div class="order-groups-container">
+                @if(isset($groupedOrders) && count($groupedOrders) > 0)
+                    @php
+                        // Convert grouped orders to array for easier manipulation
+                        $ordersArray = [];
+                        foreach($groupedOrders as $orderID => $orderGroup) {
+                            $ordersArray[] = [
+                                'orderID' => $orderID,
+                                'orderGroup' => $orderGroup,
+                                'status' => $orderGroup[0]->status ?? 'pending',
+                                'cookingStatus' => $orderGroup[0]->cookingStatus ?? 'In Progress',
+                                'paymentNumber' => $orderGroup[0]->paymentNumber,
+                                'orderType' => $orderGroup[0]->orderType,
+                                'paymentMethod' => $orderGroup[0]->paymentMethod,
+                                'paymentProcessedAt' => $orderGroup[0]->paymentProcessedAt
+                            ];
+                        }
                         
-                        <div id="order-groups">
-                            @foreach($orderGroups as $groupIndex => $group)
-                            <div class="order-group @if($groupIndex > 0) hidden @endif" data-group-index="{{ $groupIndex }}">
-                                @foreach($group as $order)
-                                <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700 flex flex-col" data-order-id="{{ $order['orderID'] }}" data-payment-number="{{ $order['paymentNumber'] }}">
-                                    <!-- Order Header -->
-                                    <div class="mb-2">
-                                        <!-- Top Row: Order Number, Payment Badge, Status, and Time -->
-                                        {{-- <div class="flex items-center justify-between mb-3"> --}}
-                                            <div class="flex items-center justify-between mb-1">
-                                                <div class="flex items-center gap-2">
-                                                <span class="text-white font-bold text-lg">Order #{{ $order['paymentNumber'] }}</span>
-                                                <span class="order-status 
-                                                    @if($order['status'] == 'pending') status-pending
-                                                    @elseif($order['status'] == 'preparing') status-preparing
-                                                    @elseif($order['status'] == 'ready') status-ready
-                                                    @else status-completed @endif">
-                                                    {{ ucfirst($order['status']) }}
-                                                </span>
-                                                </div>
-                                                <div class="text-right">
-                                                    <div class="text-gray-400 text-xs mb-1 mr-6">Time</div>
-                                                    <div class="text-white font-semibold text-lg">{{ date('h:i A', strtotime($order['paymentProcessedAt'])) }}</div>
-                                                </div> 
-                                            </div>
-                                        {{-- </div> --}}
-                                        
-                                        <!-- Bottom Row: ID and Badges -->
-                                        <div class="flex items-center gap-3 mb-1">
-                                            <span class="text-gray-300 text-sm">ID: {{ $order['orderID'] }}</span>
-                                            <span class="px-3 py-1 rounded-[4px] font-semibold 
-                                                @if($order['orderType'] == 'dine-in') bg-blue-900 text-blue-200
-                                                @else bg-green-900 text-green-200 @endif">
-                                                {{ ucfirst($order['orderType']) }}
-                                            </span>
-                                            <span class="px-3 py-1 rounded-[4px] font-semibold
-                                                @if($order['paymentMethod'] == 'cash') payment-badge-cash
-                                                @else payment-badge-electronic @endif">
-                                                {{ ucfirst($order['paymentMethod']) }}
-                                            </span>
-                                        </div>
+                        // Split orders into groups of 4
+                        $orderGroups = array_chunk($ordersArray, 3);
+                    @endphp
+                    
+                    <div id="order-groups">
+                        @foreach($orderGroups as $groupIndex => $group)
+                        <div class="order-group @if($groupIndex > 0) hidden @endif" data-group-index="{{ $groupIndex }}">
+                            @foreach($group as $order)
+                            <div class="order-card bg-gray-800 rounded-xl p-5 border border-gray-700" data-order-id="{{ $order['orderID'] }}" data-payment-number="{{ $order['paymentNumber'] }}">
+                                <!-- Order Header -->
+                                <div class="mb-2">
+                                    <!-- Top Row: Order Number, Payment Badge, Status, and Time -->
+                                    {{-- <div class="flex items-center justify-between mb-3"> --}}
                                         <div class="flex items-center justify-between mb-1">
-                                            <span class="payment-number-display text-[14px] font-semibold">
-                                                Payment: {{ $order['paymentNumber'] }}
+                                            <div class="flex items-center gap-2">
+                                            <span class="text-white font-bold text-lg">Order #{{ $order['paymentNumber'] }}</span>
+                                            <span class="order-status 
+                                                @if($order['status'] == 'pending') status-pending
+                                                @elseif($order['status'] == 'preparing') status-preparing
+                                                @elseif($order['status'] == 'ready') status-ready
+                                                @else status-completed @endif">
+                                                {{ ucfirst($order['status']) }}
                                             </span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Order Items -->
-                                    <div class="order-items-list flex-1">
-                                        <div class="grid grid-cols-1 gap-2 max-h-56 overflow-y-auto pr-2">
-                                            @foreach($order['orderGroup'] as $item)
-                                            <div class="flex items-center justify-between py-2 px-3 border-b border-gray-700 last:border-b-0 bg-gray-700/30 rounded">
-                                                <div class="flex items-center flex-1">
-                                                    <span class="product-quantity-small">{{ $item->quantity }}x</span>
-                                                    <span class="text-white text-sm flex-grow">{{ $item->productName }}</span>
-                                                </div>
                                             </div>
-                                            @endforeach
+                                            <div class="text-right">
+                                                <div class="text-gray-400 text-xs mb-1 mr-6">Time</div>
+                                                <div class="text-white font-semibold text-lg">{{ date('h:i A', strtotime($order['paymentProcessedAt'])) }}</div>
+                                            </div> 
                                         </div>
+                                    {{-- </div> --}}
+                                    
+                                    <!-- Bottom Row: ID and Badges -->
+                                    <div class="flex items-center gap-3 mb-1">
+                                        <span class="text-gray-300 text-sm">ID: {{ $order['orderID'] }}</span>
+                                        <span class="px-3 py-1 rounded-[4px] font-semibold 
+                                            @if($order['orderType'] == 'dine-in') bg-blue-900 text-blue-200
+                                            @else bg-green-900 text-green-200 @endif">
+                                            {{ ucfirst($order['orderType']) }}
+                                        </span>
+                                        <span class="px-3 py-1 rounded-[4px] font-semibold
+                                            @if($order['paymentMethod'] == 'cash') payment-badge-cash
+                                            @else payment-badge-electronic @endif">
+                                            {{ ucfirst($order['paymentMethod']) }}
+                                        </span>
                                     </div>
-
-                                    <!-- Order Summary -->
-                                    <div class="mt-4 pt-4 border-t border-gray-700 mt-auto">
-                                        <div class="flex justify-between items-center mb-2">
-                                            <span class="text-gray-400">Payment Number:</span>
-                                            <span class="text-white font-bold">{{ $order['paymentNumber'] }}</span>
-                                        </div>
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-gray-400">Total Items:</span>
-                                            <span class="text-white font-bold">{{ count($order['orderGroup']) }}</span>
-                                        </div>
-                                    </div>
-
-                                    <!-- Action Buttons -->
-                                    <div class="mt-6 flex gap-3">
-                                        <button 
-                                            class="action-btn begin-preparing-btn flex-1"
-                                            onclick="beginPreparing('{{ $order['orderID'] }}', '{{ $order['paymentNumber'] }}')"
-                                            @if($order['status'] != 'pending') disabled @endif
-                                        >
-                                            <i class="fas fa-utensils mr-2"></i>
-                                            @if($order['status'] == 'preparing')
-                                                Cooking...
-                                            @else
-                                                Begin Preparing
-                                            @endif
-                                        </button>
-                                        
-                                        <button 
-                                            class="action-btn send-to-staff-btn flex-1"
-                                            onclick="sendToStaff('{{ $order['orderID'] }}', '{{ $order['paymentNumber'] }}')"
-                                            @if($order['status'] != 'preparing') disabled @endif
-                                        >
-                                            <i class="fas fa-paper-plane mr-2"></i>
-                                            Send to Staff
-                                        </button>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="payment-number-display text-[14px] font-semibold">
+                                            Payment: {{ $order['paymentNumber'] }}
+                                        </span>
                                     </div>
                                 </div>
-                                @endforeach
-                                
-                                <!-- Fill empty slots if less than 3 orders in this group -->
-                                @if(count($group) < 3)
-                                    @for($i = count($group); $i < 3; $i++)
+
+                                <!-- Order Items -->
+                                <div class="order-items-list">
+                                    @foreach($order['orderGroup'] as $item)
+                                    <div class="order-item">
+                                        <div class="order-item-details">
+                                            <span class="product-quantity-small">{{ $item->quantity }}x</span>
+                                            <span class="text-white flex-grow">{{ $item->productName }}</span>
+                                        </div>
+                                    </div>
+                                    @endforeach
+                                </div>
+
+                                <!-- Order Summary -->
+                                <div class="mt-4 pt-4 border-t border-gray-700">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-gray-400">Payment Number:</span>
+                                        <span class="text-white font-bold">{{ $order['paymentNumber'] }}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-400">Total Items:</span>
+                                        <span class="text-white font-bold">{{ count($order['orderGroup']) }}</span>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="mt-6 flex gap-3">
+                                    <button 
+                                        class="action-btn begin-preparing-btn flex-1"
+                                        onclick="beginPreparing('{{ $order['orderID'] }}', '{{ $order['paymentNumber'] }}')"
+                                        @if($order['status'] != 'pending') disabled @endif
+                                    >
+                                        <i class="fas fa-utensils mr-2"></i>
+                                        @if($order['status'] == 'preparing')
+                                            Cooking...
+                                        @else
+                                            Begin Preparing
+                                        @endif
+                                    </button>
+                                    
+                                    <button 
+                                        class="action-btn send-to-staff-btn flex-1"
+                                        onclick="sendToStaff('{{ $order['orderID'] }}', '{{ $order['paymentNumber'] }}')"
+                                        @if($order['status'] != 'preparing') disabled @endif
+                                    >
+                                        <i class="fas fa-paper-plane mr-2"></i>
+                                        Send to Staff
+                                    </button>
+                                </div>
+                            </div>
+                            @endforeach
+                            
+                            <!-- Fill empty slots if less than 3 orders in this group -->
+                            @if(count($group) < 3)
+                                @for($i = count($group); $i < 3; $i++)
                                     <div class="bg-gray-800/30 rounded-xl p-5 border border-gray-700/50 border-dashed flex items-center justify-center min-h-[300px]">
                                         <div class="text-center">
                                             <i class="fas fa-clipboard-list text-4xl text-gray-600 mb-3"></i>
                                             <p class="text-gray-500">No order</p>
                                         </div>
                                     </div>
-                                    @endfor
-                                @endif
-                            </div>
-                            @endforeach
+                                @endfor
+                            @endif
                         </div>
-                    @else
-                        <div class="empty-order-message">
-                            <i class="fas fa-utensils text-4xl text-gray-600 mb-3"></i>
-                            <p class="empty-order-text text-lg">No pending orders at the moment.</p>
+                        @endforeach
+                    </div>
+                    
+                    <!-- Pagination Controls -->
+                    @if(count($orderGroups) > 1)
+                    <div class="pagination-controls mb-4 mt-4">
+                        <button id="prev-page" class="pagination-arrow" disabled>
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        
+                        <div class="pagination-info">
+                            <span id="current-page">1</span> / <span id="total-pages">{{ count($orderGroups) }}</span>
                         </div>
+                        
+                        <button id="next-page" class="pagination-arrow" @if(count($orderGroups) <= 1) disabled @endif>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    
+                    {{-- <!-- Page Indicator Dots -->
+                    <div class="page-indicators">
+                        @for($i = 0; $i < count($orderGroups); $i++)
+                            <div class="page-dot @if($i == 0) active @endif" data-page="{{ $i + 1 }}"></div>
+                        @endfor
+                    </div> --}}
                     @endif
-                </div>
-
-                <!-- Next Button (Right Side) -->
-                <button id="next-page" class="pagination-arrow" @if(isset($groupedOrders) && count($groupedOrders) > 0 && count(array_chunk(array_values($groupedOrders), 3)) <= 1) disabled @endif>
-                    <i class="fas fa-chevron-right"></i>
-                </button>
+                    
+                @else
+                    <div class="empty-order-message">
+                        <i class="fas fa-utensils text-4xl text-gray-600 mb-3"></i>
+                        <p class="empty-order-text text-lg">No pending orders at the moment.</p>
+                    </div>
+                @endif
             </div>
-
-            <!-- Pagination Info (Centered Below) -->
-            @if(isset($groupedOrders) && count($groupedOrders) > 0 && count(array_chunk(array_values($groupedOrders), 3)) > 1)
-            <div class="flex justify-center mt-6 mb-4">
-                <div class="pagination-info">
-                    <span id="current-page">1</span> / <span id="total-pages">{{ count(array_chunk(array_values($groupedOrders), 3)) }}</span>
-                </div>
-            </div>
-            @endif
         </div>
     </div>
 
