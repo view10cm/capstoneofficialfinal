@@ -86,7 +86,7 @@ function updateLowerNav(category) {
     // Add new subcategory buttons
     subcategories.forEach(subcategory => {
         const button = document.createElement('button');
-        button.className = 'subcategory-btn bg-white text-amber-900 border border-amber-200 px-3 py-1.5 rounded-full font-medium hover:bg-amber-100 hover-lift transition-all duration-200 shadow-sm text-sm md:text-base';
+        button.className = 'subcategory-btn bg-white text-amber-900 border border-amber-200 px-2 py-1 rounded-full font-medium hover:bg-amber-100 hover-lift transition-all duration-200 shadow-sm text-xs md:text-sm';
         button.textContent = subcategory;
 
         button.addEventListener('click', function() {

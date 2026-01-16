@@ -121,74 +121,77 @@ function createPaymentQueueModal() {
 
     const modalHTML = `
         <div id="payment-queue-modal" class="fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50 hidden">
-            <div id="payment-queue-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 opacity-0 transform scale-95">
+            <div id="payment-queue-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 max-h-[95vh] overflow-y-auto opacity-0 transform scale-95">
                 <!-- Modal Header -->
-                <div class="bg-gradient-to-r from-blue-600 to-blue-500 p-6 rounded-t-xl">
+                <div class="bg-gradient-to-r from-orange-600 to-orange-500 p-3 rounded-t-lg">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center">
-                            <div class="bg-white p-2 rounded-full mr-3">
-                                <i class="fas fa-receipt text-blue-600 text-xl"></i>
+                            <div class="bg-white p-1.5 rounded-full mr-2">
+                                <i class="fas fa-receipt text-orange-600 text-lg"></i>
                             </div>
                             <div>
-                                <h2 class="text-xl font-bold text-white">
+                                <h2 class="text-lg font-bold text-white">
                                     Payment Queue
                                 </h2>
-                                <p class="text-blue-100 text-sm mt-1">Order Processing</p>
+                                <p class="text-orange-100 text-xs mt-0.5">Order Processing</p>
                             </div>
                         </div>
-                        <button id="close-payment-modal" class="text-white hover:text-blue-200 text-lg transition-transform hover:rotate-90 duration-300">
+                        <button id="close-payment-modal" class="text-white hover:text-orange-200 text-lg transition-transform hover:rotate-90 duration-300">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                 </div>
                 
                 <!-- Modal Body -->
-                <div class="p-6">
+                <div class="px-6 py-2">
                     <!-- Success Icon -->
-                    <div class="flex justify-center mb-4">
-                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-check-circle text-green-600 text-3xl"></i>
+                    <div class="flex justify-center mb-1.5">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600 text-2xl"></i>
                         </div>
                     </div>
                     
                     <!-- Message -->
-                    <div class="text-center mb-6">
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Order Sent to Payment Queue</h3>
-                        <p class="text-gray-600 mb-4">
-                            Please collect your payment number beside the Order System.
+                    <div class="text-center mb-3">
+                        <h3 class="text-base font-semibold text-gray-800 mb-0.5">Order Sent to Payment Queue</h3>
+                        <p class="text-gray-600 text-xs">
+                            Please collect your payment number
+                        </p>
+                        <p class="text-gray-600 text-xs mb-3"> 
+                            beside the Order System.
                         </p>
                         
                         <!-- Payment Number Dropdown -->
-                        <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-4">
-                            <label for="payment-number-dropdown" class="block text-sm font-medium text-gray-700 mb-2 text-center">
+                        <div class="bg-orange-50 border-2 border-orange-200 rounded-lg p-3 mb-3">
+                            <label for="payment-number-dropdown" class="block text-xs font-medium text-gray-700 mb-1.5 text-center">
                                 <i class="fas fa-ticket-alt mr-1"></i> Select Your Payment Number
                             </label>
                             <div class="relative">
-                                <select id="payment-number-dropdown" class="w-full bg-white border border-blue-300 rounded-lg py-2.5 px-4 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none text-center text-lg font-bold">
+                                <select id="payment-number-dropdown" class="w-full bg-white border border-orange-300 rounded-lg py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none text-center text-sm font-bold">
                                     <option value="">-- Select a number --</option>
                                 </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-700">
-                                    <i class="fas fa-chevron-down"></i>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                                    <i class="fas fa-chevron-down text-xs"></i>
                                 </div>
                             </div>
-                            <p class="text-xs text-gray-500 mt-2 text-center">
+                            <p class="text-xs text-gray-500 mt-1.5 text-center">
                                 <i class="fas fa-info-circle mr-1"></i> Present this number at the payment counter
                             </p>
                         </div>
                         
                         <!-- Selected Payment Number Display -->
-                        <div id="selected-number-display" class="hidden mb-4">
-                            <div class="bg-green-50 border-2 border-green-300 rounded-lg p-3">
-                                <p class="text-sm text-gray-600 mb-1 text-center">Your Selected Payment Number:</p>
-                                <div class="text-3xl font-bold text-green-700 tracking-wider text-center" id="display-selected-number"></div>
+                        <div id="selected-number-display" class="hidden mb-3">
+                            <div class="bg-green-50 border-2 border-green-300 rounded-lg p-1">
+                                <p class="text-xs text-gray-600 mb-0.5 text-center">Your Selected Payment Number:</p>
+                                <div class="text-xl font-bold text-green-700 tracking-wider text-center" id="display-selected-number"></div>
                             </div>
                         </div>
                         
                         <!-- Estimated Wait Time -->
-                        <div class="bg-amber-50 border border-amber-100 rounded-lg p-3">
+                        <div class="bg-amber-50 border border-amber-100 rounded-lg p-2">
                             <div class="flex items-center justify-center">
-                                <i class="fas fa-clock text-amber-500 mr-2"></i>
-                                <span class="text-sm text-amber-700">
+                                <i class="fas fa-clock text-amber-500 mr-1.5 text-sm"></i>
+                                <span class="text-xs text-amber-700">
                                     Estimated wait time: <span class="font-bold">5-10 minutes</span>
                                 </span>
                             </div>
@@ -196,16 +199,16 @@ function createPaymentQueueModal() {
                     </div>
                     
                     <!-- Order Summary -->
-                    <div class="border-t border-gray-200 pt-4 mt-4">
-                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <div class="border-t border-gray-200 pt-1.5 mt-1.5">
+                        <div class="flex justify-between text-xs text-gray-600 mb-0.5">
                             <span>Total Items:</span>
                             <span id="queue-item-count">0</span>
                         </div>
-                        <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <div class="flex justify-between text-xs text-gray-600 mb-0.5">
                             <span>Order Type:</span>
                             <span id="queue-order-type">Dine-in</span>
                         </div>
-                        <div class="flex justify-between text-sm text-gray-600">
+                        <div class="flex justify-between text-xs text-gray-600">
                             <span>Payment Method:</span>
                             <span id="queue-payment-method">Cash</span>
                         </div>
@@ -213,11 +216,11 @@ function createPaymentQueueModal() {
                 </div>
                 
                 <!-- Modal Footer -->
-                <div class="border-t border-gray-200 p-6 bg-gray-50 rounded-b-xl">
-                    <button id="confirm-payment-btn" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center hover-lift disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        <i class="fas fa-check-circle mr-2"></i> Confirm
+                <div class="border-t border-gray-200 p-3 bg-gray-50 rounded-b-xl">
+                    <button id="confirm-payment-btn" class="w-full bg-gradient-to-r from-orange-600 to-orange-500 hover:from-orange-700 hover:to-orange-600 text-white py-2 rounded-lg font-bold text-sm transition-all duration-300 flex items-center justify-center hover-lift disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-check-circle mr-1.5"></i> Confirm
                     </button>
-                    <p class="text-xs text-gray-500 text-center mt-4">
+                    <p class="text-xs text-gray-500 text-center mt-1.5">
                         <i class="fas fa-info-circle mr-1"></i> Select a payment number to continue
                     </p>
                 </div>
@@ -285,56 +288,56 @@ function createThankYouModal() {
         <div id="thank-you-modal" class="fixed inset-0 bg-black bg-opacity-0 flex items-center justify-center z-50 hidden">
             <div id="thank-you-modal-content" class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 opacity-0 transform scale-95">
                 <!-- Modal Header -->
-                <div class="bg-gradient-to-r from-amber-600 to-amber-500 p-6 rounded-t-xl">
+                <div class="bg-gradient-to-r from-amber-600 to-amber-500 p-3 rounded-t-xl">
                     <div class="flex items-center justify-center">
-                        <div class="bg-white p-3 rounded-full mr-3">
-                            <i class="fas fa-mug-hot text-amber-600 text-2xl"></i>
+                        <div class="bg-white p-1.5 rounded-full mr-2">
+                            <i class="fas fa-mug-hot text-amber-600 text-lg"></i>
                         </div>
                         <div>
-                            <h2 class="text-xl font-bold text-white">
+                            <h2 class="text-lg font-bold text-white">
                                 Caffé Arabica
                             </h2>
-                            <p class="text-amber-100 text-sm mt-1">Thank You for Your Order!</p>
+                            <p class="text-amber-100 text-xs mt-0.5">Thank You for Your Order!</p>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Modal Body -->
-                <div class="p-6 text-center">
+                <div class="p-4 text-center">
                     <!-- Success Icon -->
-                    <div class="flex justify-center mb-4">
-                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center animate-pulse">
-                            <i class="fas fa-check-circle text-green-600 text-4xl"></i>
+                    <div class="flex justify-center mb-2">
+                        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center animate-pulse">
+                            <i class="fas fa-check-circle text-green-600 text-3xl"></i>
                         </div>
                     </div>
                     
                     <!-- Message -->
-                    <div class="mb-6">
-                        <h3 class="text-xl font-bold text-gray-800 mb-2">Thank you for Ordering!</h3>
-                        <p class="text-gray-600 mb-4">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-bold text-gray-800 mb-1">Thank you for Ordering!</h3>
+                        <p class="text-gray-600 text-sm mb-3">
                             Please wait for your payment at the counter.
                         </p>
                         
                         <!-- Payment Number Display -->
-                        <div id="thank-you-payment-number" class="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-4">
-                            <p class="text-sm text-amber-700 mb-1">Your Payment Number:</p>
-                            <div class="text-3xl font-bold text-amber-800 tracking-wider" id="thank-you-display-number"></div>
-                            <p class="text-xs text-amber-600 mt-2">
+                        <div id="thank-you-payment-number" class="bg-amber-50 border-2 border-amber-200 rounded-lg p-3 mb-3">
+                            <p class="text-xs text-amber-700 mb-0.5">Your Payment Number:</p>
+                            <div class="text-2xl font-bold text-amber-800 tracking-wider" id="thank-you-display-number"></div>
+                            <p class="text-xs text-amber-600 mt-1.5">
                                 <i class="fas fa-info-circle mr-1"></i> Present this number at the payment counter
                             </p>
                         </div>
                         
                         <!-- Order Summary -->
-                        <div class="border-t border-gray-200 pt-4 mt-4">
-                            <div class="flex justify-between text-sm text-gray-600 mb-1">
+                        <div class="border-t border-gray-200 pt-3 mt-3">
+                            <div class="flex justify-between text-xs text-gray-600 mb-0.5">
                                 <span>Order ID:</span>
                                 <span id="thank-you-order-id">#0000</span>
                             </div>
-                            <div class="flex justify-between text-sm text-gray-600 mb-1">
+                            <div class="flex justify-between text-xs text-gray-600 mb-0.5">
                                 <span>Order Type:</span>
                                 <span id="thank-you-order-type">Dine-in</span>
                             </div>
-                            <div class="flex justify-between text-sm text-gray-600">
+                            <div class="flex justify-between text-xs text-gray-600">
                                 <span>Total Amount:</span>
                                 <span id="thank-you-total">₱0.00</span>
                             </div>
@@ -342,22 +345,22 @@ function createThankYouModal() {
                     </div>
                     
                     <!-- Countdown Timer -->
-                    <div class="mb-4">
-                        <p class="text-sm text-gray-600 mb-2">This message will close in:</p>
+                    <div class="mb-3">
+                        <p class="text-xs text-gray-600 mb-1.5">This message will close in:</p>
                         <div class="flex justify-center items-center">
-                            <div class="text-2xl font-bold text-amber-600" id="countdown-timer">5</div>
-                            <span class="ml-1 text-gray-600">seconds</span>
+                            <div class="text-xl font-bold text-amber-600" id="countdown-timer">5</div>
+                            <span class="ml-1 text-gray-600 text-sm">seconds</span>
                         </div>
                     </div>
                     
                     <!-- Progress Bar -->
-                    <div class="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+                    <div class="w-full bg-gray-200 rounded-full h-1.5 mb-1.5">
                         <div id="countdown-progress" class="bg-amber-500 h-1.5 rounded-full" style="width: 100%"></div>
                     </div>
                 </div>
                 
                 <!-- Modal Footer -->
-                <div class="border-t border-gray-200 p-4 bg-gray-50 rounded-b-xl">
+                <div class="border-t border-gray-200 p-3 bg-gray-50 rounded-b-xl">
                     <p class="text-xs text-gray-500 text-center">
                         <i class="fas fa-clock mr-1"></i> Your order is being prepared now
                     </p>
