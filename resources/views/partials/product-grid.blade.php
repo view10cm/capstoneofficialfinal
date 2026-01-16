@@ -1,7 +1,7 @@
 <div class="product-grid">
     @forelse($products as $product)
         <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
-            <div class="product-image-container">
+            <div class="product-image-container" style="height: 40%;">
                 @if($product->menuImage)
                     <img src="{{ route('serve.image', ['filename' => basename($product->menuImage)]) }}" 
                          alt="{{ $product->menuName }}" 
@@ -13,16 +13,16 @@
                 @endif
             </div>
             
-            <div class="p-4 flex-1">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-lg font-bold text-gray-800 truncate">{{ $product->menuName }}</h3>
-                    <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap">
+            <div class="p-4 flex flex-col" style="height: 60%;">
+                <div class="flex justify-between items-start mb-1 gap-2">
+                    <h3 class="text-sm font-bold text-gray-800 flex-1 line-clamp-2">{{ $product->menuName }}</h3>
+                    <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">
                         {{ ucfirst($product->menuSubcategory) }}
                     </span>
                 </div>
                 <div class="flex justify-between items-center mt-auto">
-                    <span class="text-xl font-bold text-amber-700">₱{{ number_format($product->menuPrice, 2) }}</span>
-                    <button class="add-to-order-btn bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm"
+                    <span class="text-base font-bold text-amber-700">₱{{ number_format($product->menuPrice, 2) }}</span>
+                    <button class="add-to-order-btn bg-amber-600 hover:bg-amber-700 text-white px-2 py-1 rounded-lg font-medium transition-colors duration-200 flex items-center text-xs"
                             data-name="{{ $product->menuName }}" 
                             data-price="{{ $product->menuPrice }}" 
                             data-category="{{ $product->menuCategory }}"

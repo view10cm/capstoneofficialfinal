@@ -18,7 +18,7 @@
         .active-tab::after { content: ''; position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%); width: 70%; height: 3px; background-color: #c2410c; border-radius: 3px; }
         .hover-lift { transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .hover-lift:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-        .order-items-container { max-height: 250px; overflow-y: auto; }
+        .order-items-container { max-height: 250px; overflow-y: auto; overflow-x: hidden; }
         .voice-recording { animation: recordingPulse 1.5s infinite; }
         @keyframes recordingPulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.9; } 100% { transform: scale(1); opacity: 1; } }
         .carousel-container { position: relative; width: 100%; height: 100%; }
@@ -51,10 +51,10 @@
             
             <div class="bg-white border-b border-gray-200">
                 <div class="px-4 py-2">
-                    <nav class="flex justify-center space-x-1 md:space-x-4">
-                        <button data-category="main-course" class="upper-nav-btn active-tab px-4 py-3 text-base md:text-lg font-medium text-gray-800 hover:text-amber-900 transition-colors duration-200"><i class="fas fa-utensils mr-2"></i>Main Course</button>
-                        <button data-category="appetizers" class="upper-nav-btn px-4 py-3 text-base md:text-lg font-medium text-gray-800 hover:text-amber-900 transition-colors duration-200"><i class="fas fa-seedling mr-2"></i>Appetizers</button>
-                        <button data-category="drinks" class="upper-nav-btn px-4 py-3 text-base md:text-lg font-medium text-gray-800 hover:text-amber-900 transition-colors duration-200"><i class="fas fa-glass-whiskey mr-2"></i>Drinks</button>
+                    <nav class="flex justify-center space-x-1 md:space-x-2">
+                        <button data-category="main-course" class="upper-nav-btn active-tab px-4 py-3 text-sm md:text-base font-medium text-gray-800 hover:text-amber-900 transition-colors duration-200"><i class="fas fa-utensils mr-2"></i>Main Course</button>
+                        <button data-category="appetizers" class="upper-nav-btn px-4 py-3 text-sm md:text-base font-medium text-gray-800 hover:text-amber-900 transition-colors duration-200"><i class="fas fa-seedling mr-2"></i>Appetizers</button>
+                        <button data-category="drinks" class="upper-nav-btn px-4 py-3 text-sm md:text-base font-medium text-gray-800 hover:text-amber-900 transition-colors duration-200"><i class="fas fa-glass-whiskey mr-2"></i>Drinks</button>
                     </nav>
                 </div>
                 <div class="bg-amber-50 border-y border-amber-100">
@@ -70,59 +70,14 @@
                     <div class="carousel-arrow carousel-arrow-left" id="carousel-prev"><i class="fas fa-chevron-left"></i></div>
                     <div class="carousel-arrow carousel-arrow-right" id="carousel-next"><i class="fas fa-chevron-right"></i></div>
                     <div id="carousel-slides" class="carousel-slide">
-                        @foreach($slides as $slideIndex => $slideProducts)
-                            <div class="carousel-page" data-page="{{ $slideIndex }}" style="min-width: 100%;">
-<div class="product-grid">
-    @forelse($products as $product)
-        <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
-            <div class="product-image-container">
-                @if($product->menuImage)
-                    {{-- FIXED: Use serve.image route instead of direct storage link --}}
-<img src="{{ route('serve.image', ['filename' => basename($product->menuImage)]) }}" 
-     alt="{{ $product->menuName }}" 
-     class="product-image">
-                @else
-                    <div class="w-full h-full flex items-center justify-center bg-gray-200">
-                        <i class="fas fa-utensils text-gray-400 text-4xl"></i>
-                    </div>
-                @endif
-            </div>
-            <div class="p-4 flex-1 flex flex-col">
-                <div class="flex justify-between items-start mb-2">
-                    <h3 class="text-lg font-bold text-gray-800 truncate">{{ $product->menuName }}</h3>
-                    <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full">
-                        {{ ucfirst($product->menuSubcategory) }}
-                    </span>
-                </div>
-                <div class="flex justify-between items-center mt-auto">
-                    <span class="text-xl font-bold text-amber-700">₱{{ number_format($product->menuPrice, 2) }}</span>
-                    {{-- FIXED: Update data-image attribute to use serve.image route as well --}}
-                    <button class="add-to-order-btn bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors duration-200 flex items-center text-sm" 
-                        data-name="{{ $product->menuName }}" 
-                        data-price="{{ $product->menuPrice }}" 
-                        data-category="{{ $product->menuCategory }}" 
-                        data-image="{{ $product->menuImage ? route('serve.image', ['filename' => basename($product->menuImage)]) : '' }}">
-                        <i class="fas fa-plus mr-1"></i> Add
-                    </button>
-                </div>
-            </div>
-        </div>
-    @empty
-        <div class="col-span-3 row-span-2 flex items-center justify-center">
-            <div class="text-center text-gray-400">
-                <i class="fas fa-utensils text-6xl mb-4"></i>
-                <p>No products found</p>
-            </div>
-        </div>
-    @endforelse
-</div>
+                        <div class="flex items-center justify-center h-full" style="min-width: 100%">
+                            <div class="text-center">
+                                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto"></div>
+                                <p class="mt-4 text-gray-600">Loading products...</p>
                             </div>
-                        @endforeach
+                        </div>
                     </div>
-                    <div class="carousel-indicator" id="carousel-indicators">
-                        @for($i = 0; $i < count($slides); $i++)
-                            <div class="carousel-dot {{ $i === 0 ? 'active' : '' }}" data-slide="{{ $i }}"></div>
-                        @endfor
+                    <div class="carousel-indicator hidden" id="carousel-indicators">
                     </div>
                 </div>
             </div>
@@ -154,51 +109,51 @@
         </div>
         
         <div class="w-1/3 min-w-96 bg-white border-l border-gray-200 flex flex-col h-full overflow-hidden">
-            <div class="bg-white p-4 border-b border-gray-200 flex flex-col justify-center">
+            <div class="bg-white pl-4 pr-4 pt-4 pb-2 border-b border-gray-200 flex flex-col justify-center">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h2 class="text-xl font-bold text-gray-800"><i class="fas fa-shopping-cart mr-2 text-amber-700"></i>Order Summary</h2>
-                        <p class="text-gray-500 text-sm mt-1">Review your order</p>
+                        <h2 class="text-base font-bold text-gray-800"><i class="fas fa-shopping-cart mr-1 text-amber-700 text-sm"></i>Order Summary</h2>
+                        <p class="text-gray-500 text-xs mt-1">Review your order</p>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <span class="text-gray-600 text-sm font-medium">Type:</span>
+                        <span class="text-gray-600 text-xs font-medium">Type:</span>
                         <div class="relative">
-                            <select id="order-type-dropdown" class="bg-amber-600 text-white text-sm font-medium rounded-lg py-2 pl-3 pr-8 focus:outline-none shadow-sm cursor-pointer">
+                            <select id="order-type-dropdown" class="bg-amber-600 text-white text-xs font-medium rounded-lg py-1.5 pl-2 pr-6 focus:outline-none shadow-sm cursor-pointer appearance-none">
                                 <option value="dine-in" class="text-gray-800 bg-white">Dine-in</option>
                                 <option value="takeout" class="text-gray-800 bg-white">Takeout</option>
                             </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-white"><i class="fas fa-chevron-down text-xs"></i></div>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-1.5 text-white"><i class="fas fa-chevron-down text-xs"></i></div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <div class="flex-1 p-4 overflow-hidden">
-                <div class="mb-4">
+            <div class="flex-1 pl-4 pr-4 pt-2 pb-2 overflow-hidden">
+                <div class="mb-2">
                     <h4 class="font-bold text-gray-800 text-sm mb-2"><i class="fas fa-credit-card mr-1"></i> Payment Method</h4>
                     <div class="grid grid-cols-2 gap-2">
                         <button id="cash-btn" class="payment-btn active py-1 rounded-lg font-medium flex flex-col items-center justify-center"><i class="fas fa-money-bill-wave text-sm mb-0.5"></i><span class="font-bold text-sm">Cash</span></button>
                         <button id="electronic-btn" class="payment-btn py-1 rounded-lg font-medium flex flex-col items-center justify-center"><i class="fas fa-qrcode text-sm mb-0.5"></i><span class="font-bold text-sm">Electronic</span></button>
                     </div>
                 </div>
-                <div id="order-items-container" class="order-items-container mb-4">
-                    <div id="empty-order" class="text-center py-6"><i class="fas fa-shopping-cart text-gray-300 text-4xl mb-3"></i><h3 class="text-lg font-semibold text-gray-500">Your order is empty</h3></div>
-                    <div id="order-items-list" class="space-y-3"></div>
+                <div id="order-items-container" class="order-items-container">
+                    <div id="empty-order" class="text-center py-20"><i class="fas fa-shopping-cart text-gray-300 text-4xl mb-3"></i><h3 class="text-lg font-semibold text-gray-500">Your order is empty</h3></div>
+                    <div id="order-items-list" class="space-y-3 mt-1"></div>
                 </div>
             </div>
             
             <div class="border-t border-gray-200 p-4 bg-gray-50 shadow-md z-10">
                 <div class="mb-1">
                     <label for="order-notes" class="block text-sm font-medium text-gray-700 mb-1"><i class="fas fa-sticky-note mr-1 text-xs"></i> Notes</label>
-                    <textarea id="order-notes" rows="2" class="w-full p-2 border border-gray-300 rounded-lg text-sm" placeholder="Special instructions..."></textarea>
+                    <textarea id="order-notes" rows="1" maxlength="50" class="w-full p-2 border border-gray-300 rounded-lg text-sm" placeholder="Special instructions..."></textarea>
                 </div>
-                <div class="space-y-2 mb-4">
-                    <div class="flex justify-between text-gray-600 text-sm"><span>Subtotal:</span><span id="subtotal">₱0.00</span></div>
+                <div class="space-y-2 mb-2">
+                    <div class="flex justify-between text-gray-600 text-sm hidden"><span>Subtotal:</span><span id="subtotal">₱0.00</span></div>
                     <div class="flex justify-between font-bold text-gray-800 pt-2 border-t border-gray-300"><span>Total:</span><span id="total">₱0.00</span></div>
                 </div>
-                <div class="space-y-2">
-                    <button id="clear-order-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg font-medium text-sm"><i class="fas fa-trash-alt mr-1"></i> Clear Order</button>
-                    <button id="checkout-btn" class="w-full bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white py-2.5 rounded-lg font-bold hover-lift"><i class="fas fa-check-circle mr-2"></i> Checkout</button>
+                <div class="flex gap-2">
+                    <button id="clear-order-btn" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-lg font-medium text-sm"><i class="fas fa-trash-alt mr-1"></i> Clear Order</button>
+                    <button id="checkout-btn" class="w-1/2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white py-2.5 rounded-lg font-bold hover-lift"><i class="fas fa-check-circle mr-2"></i> Checkout</button>
                 </div>
             </div>
         </div>
@@ -218,6 +173,13 @@
             createCheckoutModal();
             createPaymentQueueModal();
             calculateTotals();
+            
+            // Load initial category and subcategory
+            const mainCourseBtn = document.querySelector('[data-category="main-course"]');
+            if (mainCourseBtn) {
+                updateLowerNav('main-course');
+                loadProducts('main-course', 'pork');
+            }
         });
     </script>
 </body>
