@@ -1,3 +1,5 @@
+// resources/views/partials/product-slide.blade.php
+
 <div class="product-grid">
     @forelse($products as $product)
         <div class="product-card bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover-lift h-full flex flex-col">
